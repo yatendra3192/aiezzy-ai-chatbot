@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LangGraph AI Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f7f7f8;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #fff;
+            border-bottom: 1px solid #e5e5e5;
+            padding: 15px 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-content h1 {
+            color: #333;
+            font-size: 1.5em;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .header-content p {
+            color: #666;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .clear-button {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .clear-button:hover {
+            background: #dc2626;
+            transform: translateY(-1px);
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            margin: 0 auto;
+            width: 100%;
+            height: 100%;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .message {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .user .message-avatar {
+            background: #4f46e5;
+            color: white;
+        }
+
+        .ai .message-avatar {
+            background: #10b981;
+            color: white;
+        }
+
+        .message-content {
+            max-width: 70%;
+            background: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            word-wrap: break-word;
+        }
+
+        .user .message-content {
+            background: #4f46e5;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .ai .message-content {
+            background: #f1f5f9;
+            color: #334155;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-time {
+            font-size: 0.75em;
+            opacity: 0.6;
+            margin-top: 4px;
+            text-align: right;
+        }
+
+        .user .message-time {
+            text-align: left;
+            color: rgba(255,255,255,0.8);
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 20px;
+        }
+
+        .typing-dots {
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: 18px;
+            border-bottom-left-radius: 4px;
+            display: flex;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #94a3b8;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+        .input-area {
+            background: white;
+            border-top: 1px solid #e5e5e5;
+            padding: 20px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .input-container {
+            flex: 1;
+            display: flex;
+            align-items: flex-end;
+            background: #f8fafc;
+            border: 2px solid #e5e7eb;
+            border-radius: 24px;
+            padding: 8px 16px;
+            transition: border-color 0.2s;
+        }
+
+        .input-container:focus-within {
+            border-color: #4f46e5;
+        }
+
+        .chat-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            font-size: 16px;
+            resize: none;
+            min-height: 24px;
+            max-height: 120px;
+            line-height: 1.5;
+            padding: 8px 0;
+        }
+
+        .send-button {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-button:hover {
+            background: #4338ca;
+            transform: scale(1.05);
+        }
+
+        .send-button:disabled {
+            background: #d1d5db;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .image-upload-area {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .upload-button {
+            background: #6b7280;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .upload-button:hover {
+            background: #4b5563;
+        }
+
+        .uploaded-image {
+            max-width: 200px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .message-image {
+            max-width: 250px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-top: 8px;
+            cursor: pointer;
+        }
+
+        .message-image:hover {
+            transform: scale(1.02);
+            transition: transform 0.2s;
+        }
+
+        .generated-image {
+            max-width: 300px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            margin-top: 8px;
+        }
+
+        .attachment-button {
+            background: #f3f4f6;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 8px;
+            transition: all 0.2s;
+        }
+
+        .attachment-button:hover {
+            background: #e5e7eb;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% { opacity: 0.3; }
+            30% { opacity: 1; }
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .chat-messages {
+                padding: 16px;
+            }
+            
+            .message-content {
+                max-width: 85%;
+            }
+            
+            .header {
+                padding: 12px 16px;
+            }
+            
+            .input-area {
+                padding: 16px;
+            }
+        }
+
+        /* Welcome message */
+        .welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6b7280;
+        }
+
+        .welcome-message h2 {
+            color: #374151;
+            margin-bottom: 8px;
+        }
+
+        .welcome-examples {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .example-prompt {
+            background: white;
+            border: 1px solid #e5e7eb;
+            padding: 12px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .example-prompt:hover {
+            border-color: #4f46e5;
+            transform: translateY(-1px);
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>🤖 LangGraph AI Assistant</h1>
+            <p>Multi-agent AI with vision analysis and image generation</p>
+        </div>
+        <div class="header-actions">
+            <button class="clear-button" onclick="clearConversation()" title="Clear conversation">
+                🗑️ Clear Chat
+            </button>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="chat-messages" id="chat-messages">
+            <div class="welcome-message">
+                <h2>Welcome! How can I help you today?</h2>
+                <p>I can analyze images, generate new ones, edit existing images, or have a conversation with you.</p>
+                <div class="welcome-examples">
+                    <div class="example-prompt" onclick="setInput('Create a modern logo for a tech startup')">
+                        🎨 Create a logo
+                    </div>
+                    <div class="example-prompt" onclick="setInput('Explain quantum computing in simple terms')">
+                        🧠 Explain concepts
+                    </div>
+                    <div class="example-prompt" onclick="document.getElementById('image-input').click()">
+                        👁️ Analyze an image
+                    </div>
+                    <div class="example-prompt" onclick="setInput('Edit the previous image to add my name')">
+                        ✏️ Edit images
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typing-indicator" style="display: none;">
+            <div class="message-avatar ai">🤖</div>
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div style="flex: 1;">
+                <div id="image-preview" style="margin-bottom: 12px;"></div>
+                
+                <div class="input-container">
+                    <button class="attachment-button" onclick="document.getElementById('image-input').click()" title="Upload image">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M9 16h6v-6h4l-7-7-7 7h4zm-4 2h14v2H5z"/>
+                        </svg>
+                    </button>
+                    <input type="file" id="image-input" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
+                    
+                    <textarea 
+                        id="chat-input" 
+                        class="chat-input" 
+                        placeholder="Message LangGraph AI..."
+                        rows="1"
+                        onkeydown="handleKeyDown(event)"
+                        oninput="adjustTextareaHeight()"
+                    ></textarea>
+                </div>
+            </div>
+            <button class="send-button" id="send-button" onclick="sendMessage()" disabled>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let uploadedImage = null;
+        let uploadedImageData = null;
+        let conversationHistory = [];
+        let imageCounter = 0;
+
+        // Initialize
+        document.getElementById('chat-input').addEventListener('input', function() {
+            updateSendButton();
+        });
+
+        // Load conversation history from localStorage
+        function loadConversationHistory() {
+            try {
+                const saved = localStorage.getItem('langraph_conversation');
+                if (saved) {
+                    const data = JSON.parse(saved);
+                    conversationHistory = data.history || [];
+                    
+                    // Restore messages to UI
+                    data.messages?.forEach(msg => {
+                        addMessage(msg.content, msg.isUser, msg.timestamp, msg.imageData);
+                    });
+                }
+            } catch (e) {
+                console.log('No previous conversation found');
+            }
+        }
+
+        // Save conversation to localStorage
+        function saveConversationHistory() {
+            try {
+                const messages = Array.from(document.querySelectorAll('.message')).map(msgDiv => {
+                    const isUser = msgDiv.classList.contains('user');
+                    const content = msgDiv.querySelector('.message-content').textContent.replace(/\d{1,2}:\d{2}\s?[AP]M/, '').trim();
+                    const time = msgDiv.querySelector('.message-time').textContent;
+                    const img = msgDiv.querySelector('.message-image');
+                    
+                    return {
+                        content,
+                        isUser,
+                        timestamp: time,
+                        imageData: img ? img.src : null
+                    };
+                });
+
+                localStorage.setItem('langraph_conversation', JSON.stringify({
+                    history: conversationHistory,
+                    messages: messages
+                }));
+            } catch (e) {
+                console.log('Failed to save conversation');
+            }
+        }
+
+        // Clear conversation
+        function clearConversation() {
+            localStorage.removeItem('langraph_conversation');
+            conversationHistory = [];
+            document.getElementById('chat-messages').innerHTML = `
+                <div class="welcome-message">
+                    <h2>Welcome! How can I help you today?</h2>
+                    <p>I can analyze images, generate new ones, or have a conversation with you.</p>
+                    <div class="welcome-examples">
+                        <div class="example-prompt" onclick="setInput('Create a modern logo for a tech startup')">
+                            🎨 Create a logo
+                        </div>
+                        <div class="example-prompt" onclick="setInput('Explain quantum computing in simple terms')">
+                            🧠 Explain concepts
+                        </div>
+                        <div class="example-prompt" onclick="setInput('Write a Python function to sort a list')">
+                            💻 Code help
+                        </div>
+                        <div class="example-prompt" onclick="document.getElementById('image-input').click()">
+                            👁️ Analyze an image
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Load conversation on page load
+        window.addEventListener('load', loadConversationHistory);
+
+        function setInput(text) {
+            document.getElementById('chat-input').value = text;
+            updateSendButton();
+            document.getElementById('chat-input').focus();
+        }
+
+        function updateSendButton() {
+            const input = document.getElementById('chat-input').value.trim();
+            const button = document.getElementById('send-button');
+            button.disabled = !input && !uploadedImage;
+        }
+
+        function adjustTextareaHeight() {
+            const textarea = document.getElementById('chat-input');
+            textarea.style.height = 'auto';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
+
+        function handleKeyDown(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                uploadedImage = file;
+                const preview = document.getElementById('image-preview');
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImageData = e.target.result; // Store the base64 data
+                    preview.innerHTML = `
+                        <div style="position: relative; display: inline-block;">
+                            <img src="${e.target.result}" class="uploaded-image" alt="Uploaded image">
+                            <button onclick="clearImage()" style="position: absolute; top: 4px; right: 4px; background: rgba(0,0,0,0.7); color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 14px;">×</button>
+                        </div>
+                    `;
+                };
+                reader.readAsDataURL(file);
+                
+                updateSendButton();
+            }
+        }
+
+        function clearImage() {
+            uploadedImage = null;
+            uploadedImageData = null;
+            document.getElementById('image-preview').innerHTML = '';
+            document.getElementById('image-input').value = '';
+            updateSendButton();
+        }
+
+        function addMessage(content, isUser = false, timestamp = null, imageData = null) {
+            const messagesContainer = document.getElementById('chat-messages');
+            const welcomeMsg = messagesContainer.querySelector('.welcome-message');
+            if (welcomeMsg) {
+                welcomeMsg.remove();
+            }
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+            
+            const time = timestamp || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            let imageHtml = '';
+            if (imageData) {
+                imageHtml = `<img src="${imageData}" class="message-image" alt="Uploaded image" onclick="openImageModal('${imageData}')">`;
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="message-avatar">${isUser ? '👤' : '🤖'}</div>
+                <div class="message-content">
+                    ${imageHtml}
+                    ${content}
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function openImageModal(imageData) {
+            // Simple modal to view full-size image
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.8); display: flex; align-items: center; 
+                justify-content: center; z-index: 1000; cursor: pointer;
+            `;
+            
+            const img = document.createElement('img');
+            img.src = imageData;
+            img.style.cssText = 'max-width: 90%; max-height: 90%; border-radius: 12px;';
+            
+            modal.appendChild(img);
+            modal.onclick = () => document.body.removeChild(modal);
+            document.body.appendChild(modal);
+        }
+
+        function showTyping() {
+            document.getElementById('typing-indicator').style.display = 'flex';
+            const container = document.getElementById('chat-messages');
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function hideTyping() {
+            document.getElementById('typing-indicator').style.display = 'none';
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (!message && !uploadedImage) return;
+            
+            // Store current image data for message display
+            const currentImageData = uploadedImageData;
+            
+            // Add user message with image if present
+            let userContent = message;
+            if (uploadedImage && message) {
+                userContent = message; // Don't add [Image uploaded] text
+            } else if (uploadedImage && !message) {
+                userContent = 'What\'s in this image?';
+            }
+            
+            if (userContent || uploadedImage) {
+                addMessage(userContent, true, null, currentImageData);
+                
+                // Store in conversation history with image context
+                const historyEntry = {
+                    role: 'user', 
+                    content: message || 'What\'s in this image?',
+                    hasImage: !!uploadedImage,
+                    timestamp: new Date().toISOString()
+                };
+                
+                conversationHistory.push(historyEntry);
+            }
+            
+            // Clear input
+            input.value = '';
+            input.style.height = 'auto';
+            
+            // Show typing indicator
+            showTyping();
+            
+            try {
+                let response;
+                
+                if (uploadedImage) {
+                    // Vision mode - image analysis
+                    const formData = new FormData();
+                    formData.append('image', uploadedImage);
+                    formData.append('message', message || 'What\'s in this image?');
+                    
+                    response = await fetch('/api/analyze-image', {
+                        method: 'POST',
+                        body: formData
+                    });
+                } else {
+                    // Chat mode - text only
+                    response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            message: message,
+                            history: conversationHistory.slice(-10) // Keep last 10 messages for context
+                        })
+                    });
+                }
+                
+                const data = await response.json();
+                hideTyping();
+                
+                if (data.error) {
+                    addMessage(`❌ Error: ${data.error}`, false);
+                } else {
+                    let content = data.response;
+                    
+                    // Handle image generation and editing responses
+                    if (content.includes('Image saved to') || content.includes('Edited image saved to')) {
+                        const imagePath = content.match(/assets[\\\/](.*?\.png)/);
+                        if (imagePath) {
+                            content = content.replace(/(Image saved to|Edited image saved to).*/, '') + 
+                                     `<br><br><img src="/assets/${imagePath[1]}" class="generated-image" alt="Generated/Edited image">`;
+                        }
+                    }
+                    
+                    addMessage(content, false);
+                    conversationHistory.push({
+                        role: 'assistant', 
+                        content: data.response,
+                        timestamp: new Date().toISOString()
+                    });
+                }
+                
+            } catch (error) {
+                hideTyping();
+                addMessage(`❌ Connection error: ${error.message}`, false);
+            }
+            
+            // Clear uploaded image after sending
+            if (uploadedImage) {
+                clearImage();
+            }
+            
+            updateSendButton();
+            
+            // Save conversation after each message
+            saveConversationHistory();
+        }
+    </script>
+</body>
+</html>

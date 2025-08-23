@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ conversation.title }} - AIezzy</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <style>
+        :root {
+            --bg: #FFFFFF;
+            --bg-subtle: #F5F7F9;
+            --text: #111827;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --accent: #0EA5E9;
+            --shadow: rgba(0,0,0,0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .header {
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            height: 32px;
+            width: auto;
+        }
+
+        .header-text {
+            flex: 1;
+        }
+
+        .header-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0;
+        }
+
+        .header-subtitle {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        .shared-badge {
+            background: #EBF8FF;
+            color: #1E40AF;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            border: 1px solid #DBEAFE;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .conversation-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+        }
+
+        .conversation-meta {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .messages {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .message {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: #3B82F6;
+            color: white;
+        }
+
+        .message.assistant .message-avatar {
+            background: var(--bg-subtle);
+            color: var(--text);
+        }
+
+        .message-content {
+            flex: 1;
+            background: var(--bg-subtle);
+            padding: 1rem;
+            border-radius: 12px;
+            max-width: 70%;
+        }
+
+        .message.user .message-content {
+            background: #3B82F6;
+            color: white;
+        }
+
+        .message-content img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            display: block;
+        }
+
+        .message-content video {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin: 0.5rem 0;
+            display: block;
+        }
+
+        .image-preview-container {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin: 0.5rem 0;
+        }
+
+        .image-preview {
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .multi-image-container {
+            margin: 0.5rem 0;
+        }
+
+        .multi-image-grid {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .multi-image-grid img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .footer {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .powered-by {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-muted);
+            text-decoration: none;
+        }
+
+        .powered-by:hover {
+            color: var(--accent);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header-content {
+                padding: 0 1rem;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+            }
+            
+            .header-title {
+                font-size: 1rem;
+            }
+            
+            .header-subtitle {
+                font-size: 0.8rem;
+            }
+            
+            .conversation-title {
+                font-size: 1.3rem;
+            }
+            
+            .message {
+                gap: 0.75rem;
+            }
+            
+            .message-content {
+                max-width: 90%;
+                padding: 0.75rem;
+                font-size: 15px;
+            }
+            
+            .message-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 0.8rem;
+            }
+            
+            .shared-badge {
+                font-size: 0.7rem;
+                padding: 0.2rem 0.6rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+                text-align: left;
+            }
+            
+            .header-text {
+                order: -1;
+            }
+            
+            .logo {
+                height: 28px;
+                align-self: center;
+            }
+            
+            .shared-badge {
+                align-self: center;
+            }
+            
+            .container {
+                padding: 0.75rem;
+            }
+            
+            .conversation-title {
+                font-size: 1.2rem;
+                line-height: 1.3;
+            }
+            
+            .conversation-meta {
+                font-size: 0.8rem;
+            }
+            
+            .message-content {
+                max-width: 95%;
+                font-size: 14px;
+                line-height: 1.5;
+            }
+            
+            .message-content img {
+                max-width: 100%;
+                height: auto;
+            }
+            
+            .multi-image-grid img {
+                width: 60px;
+                height: 60px;
+            }
+            
+            .footer {
+                margin-top: 2rem;
+                padding-top: 1.5rem;
+                font-size: 0.8rem;
+            }
+            
+            .powered-by img {
+                height: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <img src="/logo.png" alt="AIezzy" class="logo">
+            <div class="header-text">
+                <h1 class="header-title">Shared Conversation</h1>
+                <p class="header-subtitle">{{ conversation.title }}</p>
+            </div>
+            <div class="shared-badge">Public Link</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <h1 class="conversation-title">{{ conversation.title }}</h1>
+        <div class="conversation-meta">
+            <p>Shared on {{ conversation.shared_at | timestamp_to_date }} • {{ conversation.messages | length }} messages</p>
+        </div>
+
+        <div class="messages">
+            {% for message in conversation.messages %}
+                <div class="message {{ message.role }}">
+                    <div class="message-avatar">
+                        {% if message.role == 'user' %}
+                            U
+                        {% else %}
+                            A
+                        {% endif %}
+                    </div>
+                    <div class="message-content">
+                        {{ message.content | process_shared_content | safe }}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="footer">
+            <a href="https://aiezzy.com" class="powered-by">
+                <img src="/logo.png" alt="AIezzy" style="height: 20px;">
+                Powered by AIezzy
+            </a>
+            <p style="margin-top: 0.5rem;">
+                Create your own AI conversations at <strong>aiezzy.com</strong>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Custom filter for timestamp to date conversion
+        document.addEventListener('DOMContentLoaded', function() {
+            // Convert timestamp to readable date
+            const timestampElements = document.querySelectorAll('[data-timestamp]');
+            timestampElements.forEach(el => {
+                const timestamp = parseFloat(el.dataset.timestamp);
+                const date = new Date(timestamp * 1000);
+                el.textContent = date.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long', 
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            });
+        });
+    </script>
+</body>
+</html>

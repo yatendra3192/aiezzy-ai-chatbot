@@ -1,0 +1,38 @@
+{
+  "id": "Md7gA6uYQ1SUJNFomluhtA",
+  "title": "create 2 image man with yellow...",
+  "messages": [
+    {
+      "role": "user",
+      "content": "create 2 image man with yellow hair and woman with blue hair",
+      "timestamp": "12:36 PM"
+    },
+    {
+      "role": "assistant",
+      "content": "Here are the images you requested:\n\n1. **Man with Yellow Hair**:\n   <img src=\"/assets/img_1755932800.png\" class=\"message-image\" alt=\"Generated image\" onclick=\"openImageModal('/assets/img_1755932800.png')\">\n\n2. **Woman with Blue Hair**:\n   <img src=\"/assets/img_1755932806.png\" class=\"message-image\" alt=\"Generated image\" onclick=\"openImageModal('/assets/img_1755932806.png')\">\n\nThese images were generated based on your description. Let me know if there's anything else you need!",
+      "timestamp": "12:36 PM"
+    },
+    {
+      "role": "user",
+      "content": "combine the image man and woman standing front of a house",
+      "timestamp": "12:38 PM"
+    },
+    {
+      "role": "assistant",
+      "content": "I have combined the images of the man with yellow hair and the woman with blue hair, placing them in front of a house. Here is the result:\n\n<img src=\"/assets/multi_1755932942.png\" class=\"message-image\" alt=\"Multi-image generated\" onclick=\"openImageModal('/assets/multi_1755932942.png')\">\n\nLet me know if there's anything else you'd like to do!",
+      "timestamp": "12:39 PM"
+    },
+    {
+      "role": "user",
+      "content": "create a video for this with gentle movement",
+      "timestamp": "12:39 PM"
+    },
+    {
+      "role": "assistant",
+      "content": "Here is the video with gentle movement, featuring the man with yellow hair and the woman with blue hair standing in front of a house:\n\n<video controls class=\"message-video\" style=\"max-width: 500px; border-radius: 12px; margin: 12px 0;\"><source src=\"/videos/video_1755933019.mp4\" type=\"video/mp4\">Your browser does not support the video tag.</video>\n\nFeel free to let me know if there's anything else you'd like to do!",
+      "timestamp": "12:40 PM"
+    }
+  ],
+  "created_at": 1755933032.5851233,
+  "shared_at": 1755933032.5851233
+}
