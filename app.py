@@ -501,7 +501,9 @@ def generate_image_from_multiple(prompt: str,
         # Filter images to only recent ones (within last 10 minutes = 600 seconds)
         recent_images = []
         for img_path in uploaded_images:
-            if 'img_' in img_path or 'multi_' in img_path or 'edited_' in img_path:
+            # FIXED: Include ALL uploaded images, not just those with specific patterns
+            # Check if it's an uploaded image (either generated or user-uploaded)
+            if 'uploads/' in img_path or 'assets/' in img_path or 'img_' in img_path or 'multi_' in img_path or 'edited_' in img_path:
                 try:
                     # Extract timestamp from filename
                     import re
@@ -514,11 +516,16 @@ def generate_image_from_multiple(prompt: str,
                         else:
                             print(f"DEBUG: Filtering out old image: {img_path} (timestamp: {img_timestamp})")
                     else:
-                        # If no timestamp found, assume it's recent
+                        # If no timestamp found, assume it's recent (for user-uploaded files)
                         recent_images.append(img_path)
+                        print(f"DEBUG: Including image without timestamp (assumed recent): {img_path}")
                 except:
                     # If any error in processing, include the image
                     recent_images.append(img_path)
+            else:
+                # FALLBACK: If image doesn't match any pattern, still include it
+                recent_images.append(img_path)
+                print(f"DEBUG: Including image (no pattern match but keeping): {img_path}")
         
         print(f"DEBUG: Filtered from {len(uploaded_images)} to {len(recent_images)} recent images")
         uploaded_images = recent_images
@@ -765,6 +772,7 @@ def build_coordinator():
         "- When the message contains image content blocks, the user has uploaded an image\n"
         "- If message has image + video/animate keywords: use generate_video_from_image directly\n"
         "- If message has image + edit/modify keywords: use edit_image directly\n"
+        "- If message contains '[Multi-image request with X uploaded images]': use generate_image_from_multiple directly\n"
         "- If message has multiple images: use generate_image_from_multiple\n"
         "- If message has single image + analysis: analyze the uploaded image directly\n"
         "- If no images uploaded but image requested: use generate_image\n"
@@ -772,6 +780,7 @@ def build_coordinator():
         "DECISION LOGIC:\n"
         "- 'news', 'latest', 'current' -> Use search_web\n"
         "- 'create image', 'generate image' + NO uploads -> Use generate_image\n"
+        "- Message contains '[Multi-image request with' -> IMMEDIATELY use generate_image_from_multiple\n"
         "- CURRENT multi-image upload (2-5) -> Use generate_image_from_multiple\n"
         "- 'combine', 'merge' + check_image_context shows 2+ images -> Use generate_image_from_multiple\n"
         "- 'create 2 images' -> Use generate_image twice, then user can combine them\n"
