@@ -19,9 +19,36 @@ def timestamp_to_date(timestamp):
     import datetime
     try:
         dt = datetime.datetime.fromtimestamp(float(timestamp))
-        return dt.strftime('%B %d, %Y at %I:%M %p')
+        now = datetime.datetime.now()
+        diff = now - dt
+        
+        # For file browser, show relative time
+        if diff.days == 0:
+            if diff.seconds < 3600:
+                return f"{diff.seconds // 60}m ago"
+            else:
+                return f"{diff.seconds // 3600}h ago"
+        elif diff.days == 1:
+            return "Yesterday"
+        elif diff.days < 7:
+            return f"{diff.days}d ago"
+        else:
+            return dt.strftime('%B %d, %Y at %I:%M %p')
     except:
         return 'Unknown date'
+
+# Add file type filter for file browser
+@web_app.template_filter('get_file_type')
+def get_file_type(filename):
+    """Get file type for styling"""
+    if filename.endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')):
+        return 'image'
+    elif filename.endswith('.mp4'):
+        return 'video'
+    elif filename.endswith('.json'):
+        return 'json'
+    else:
+        return 'file'
 
 # Add custom filter to process image paths in shared content
 @web_app.template_filter('process_shared_content')
@@ -741,6 +768,92 @@ def vote_feature_request(request_id):
 def feature_requests_page():
     """Feature requests page with voting interface"""
     return render_template('feature_requests.html')
+
+def require_admin_auth():
+    """Simple admin authentication check"""
+    # Check for admin key in URL params or session
+    admin_key = request.args.get('key') or request.headers.get('X-Admin-Key')
+    
+    # Get admin key from environment variable (more secure)
+    ADMIN_KEY = os.environ.get('ADMIN_KEY', 'default_dev_key_2025')
+    
+    if admin_key != ADMIN_KEY:
+        return False
+    return True
+
+@web_app.route('/admin/files')
+def file_browser():
+    """Simple file browser for viewing generated assets"""
+    # Simple authentication check
+    if not require_admin_auth():
+        return """
+        <html>
+        <head><title>Admin Access Required</title></head>
+        <body style="font-family: -apple-system, sans-serif; padding: 50px; text-align: center;">
+            <h2>🔒 Admin Access Required</h2>
+            <p>Add <code>?key=YOUR_ADMIN_KEY</code> to the URL to access the file browser.</p>
+            <p><strong>Example:</strong> <code>/admin/files?key=YOUR_ADMIN_KEY</code></p>
+            <p><small>Contact the administrator for the admin key.</small></p>
+        </body>
+        </html>
+        """, 401
+    
+    try:
+        # Get files from all directories
+        file_data = {}
+        directories = ['assets', 'videos', 'uploads', 'shared', 'feature_requests']
+        
+        for directory in directories:
+            if os.path.exists(directory):
+                files = []
+                for filename in os.listdir(directory):
+                    file_path = os.path.join(directory, filename)
+                    if os.path.isfile(file_path):
+                        stat = os.stat(file_path)
+                        files.append({
+                            'name': filename,
+                            'size': stat.st_size,
+                            'modified': stat.st_mtime,
+                            'url': f'/{directory}/{filename}' if directory in ['assets', 'videos', 'uploads'] else None
+                        })
+                
+                # Sort files by modification time (newest first)
+                files.sort(key=lambda x: x['modified'], reverse=True)
+                file_data[directory] = files
+        
+        return render_template('file_browser.html', file_data=file_data)
+        
+    except Exception as e:
+        return f"Error browsing files: {str(e)}", 500
+
+@web_app.route('/admin/delete-file', methods=['POST'])
+def delete_file():
+    """Delete a file (with simple protection)"""
+    # Simple authentication check
+    if not require_admin_auth():
+        return jsonify({'error': 'Admin access required'}), 401
+    
+    try:
+        data = request.get_json()
+        file_path = data.get('file_path', '')
+        
+        # Security check: only allow deleting files in allowed directories
+        allowed_dirs = ['assets', 'videos', 'uploads']
+        if not any(file_path.startswith(d + '/') for d in allowed_dirs):
+            return jsonify({'error': 'Access denied'}), 403
+        
+        # Additional security: no path traversal
+        if '..' in file_path or file_path.startswith('/'):
+            return jsonify({'error': 'Invalid file path'}), 400
+        
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return jsonify({'success': True, 'message': f'File {file_path} deleted successfully'})
+        else:
+            return jsonify({'error': 'File not found'}), 404
+            
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
