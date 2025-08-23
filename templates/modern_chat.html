@@ -1373,6 +1373,57 @@
             font-weight: 500;
             margin-bottom: 16px;
         }
+
+        /* === LOADING ANIMATION === */
+        .loading-message {
+            opacity: 0.8;
+        }
+
+        .loading-content {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background: var(--bg-subtle);
+            border-radius: 12px;
+            margin: 8px 0;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            color: var(--text-muted);
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        .loading-dots {
+            display: inline-block;
+        }
+
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
     </style>
 </head>
 <body>
@@ -1782,6 +1833,59 @@
             updateSendButton();
         }
 
+        // Loading message functions
+        function showLoadingMessage(type = 'Generating') {
+            const messagesContainer = document.getElementById('chat-messages');
+            const welcomeMsg = messagesContainer.querySelector('.welcome-message');
+            if (welcomeMsg) {
+                welcomeMsg.remove();
+            }
+
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message loading-message';
+            loadingDiv.id = 'loading-message';
+            
+            const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            loadingDiv.innerHTML = `
+                <div class="message-avatar">🤖</div>
+                <div class="message-content">
+                    <div class="loading-content">
+                        <div class="loading-spinner"></div>
+                        <div class="loading-text">
+                            ${type} <span class="loading-dots"></span>
+                        </div>
+                    </div>
+                    <div class="message-time">${time}</div>
+                </div>
+            `;
+            
+            messagesContainer.appendChild(loadingDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            // Disable input during loading
+            const input = document.getElementById('composer-input');
+            const sendBtn = document.querySelector('.send-btn');
+            if (input) input.disabled = true;
+            if (sendBtn) sendBtn.disabled = true;
+        }
+
+        function hideLoadingMessage() {
+            const loadingMsg = document.getElementById('loading-message');
+            if (loadingMsg) {
+                loadingMsg.remove();
+            }
+            
+            // Re-enable input after loading
+            const input = document.getElementById('composer-input');
+            const sendBtn = document.querySelector('.send-btn');
+            if (input) {
+                input.disabled = false;
+                input.focus(); // Return focus to input
+            }
+            if (sendBtn) sendBtn.disabled = false;
+        }
+
         function addMessage(content, isUser = false, timestamp = null, imageData = null, multiImageData = null) {
             const messagesContainer = document.getElementById('chat-messages');
             const welcomeMsg = messagesContainer.querySelector('.welcome-message');
@@ -2168,6 +2272,9 @@
                 let response;
                 
                 if (hasMultiImages || hasUploadedImage) {
+                    // Show loading animation for image processing
+                    const loadingType = hasMultiImages ? 'Processing images' : 'Analyzing image';
+                    showLoadingMessage(loadingType);
                     // Unified image handling - agent decides what to do based on count and prompt
                     const formData = new FormData();
                     
@@ -2189,6 +2296,9 @@
                     });
                     
                     const imageData = await response.json();
+                    
+                    // Hide loading message
+                    hideLoadingMessage();
                     
                     // Store thread_id and image path for image context continuity
                     if (imageData.thread_id) {
@@ -2343,6 +2453,9 @@
                     }
                     
                 } else {
+                    // Show loading animation for text generation
+                    showLoadingMessage('Thinking');
+                    
                     // Chat mode - text only
                     response = await fetch('/api/chat', {
                         method: 'POST',
@@ -2364,6 +2477,9 @@
                     });
                     
                     const data = await response.json();
+                    
+                    // Hide loading message
+                    hideLoadingMessage();
                     
                     // Store thread_id for image context continuity
                     if (data.thread_id) {
@@ -2425,6 +2541,7 @@
                 hideProgressIndicator();
                 
             } catch (error) {
+                hideLoadingMessage();
                 hideTyping();
                 hideProgressIndicator();
                 addMessage(`❌ Connection error: ${error.message}`, false);

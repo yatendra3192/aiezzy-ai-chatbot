@@ -12,6 +12,8 @@ A production-ready ChatGPT-style web application featuring advanced LangGraph mu
 - **Enhanced Multi-Image Workflow**: Now automatically accesses generated images from conversation history
 - **Improved Context Management**: Better thread isolation and image context handling
 - **Optimized Agent Coordination**: Reduced tool calling loops and improved response accuracy
+- **Added Loading Animations**: Beautiful loading indicators eliminate blank screen during processing
+- **Enhanced UX**: Spinning animations, context-aware messages, and input disabling during requests
 
 ## ✨ Features
 
