@@ -1314,6 +1314,71 @@
             margin-bottom: 20px;
         }
 
+        /* Feature Request Form Styles */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--bg);
+            font-size: 14px;
+            color: var(--text);
+            font-family: inherit;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .share-btn.secondary {
+            background: var(--bg-subtle);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .share-btn.secondary:hover {
+            background: var(--border);
+        }
+
+        .share-btn.primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .share-btn.primary:hover {
+            background: #0284c7;
+        }
+
+        .feature-success {
+            background: #dcfce7;
+            color: #166534;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+
         .share-info {
             color: var(--text-muted);
             font-size: 14px;
@@ -1479,6 +1544,13 @@
                     <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #f59e0b; color: white; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: 500;">Soon</span>
                 </a>
                 
+                <a href="/feature-requests" class="nav-item">
+                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Feature Requests
+                </a>
+                
                 <div class="nav-section">Recent Chats</div>
                 
                 <div class="chat-list" id="chat-list">
@@ -1510,6 +1582,18 @@
                 </button>
                 <div class="model-name">Aiezzy beta version 0.1</div>
                 <div class="header-actions">
+                    <button class="header-btn" onclick="requestFeature()">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Request Feature
+                    </button>
+                    <a href="/feature-requests" class="header-btn" style="text-decoration: none;">
+                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                        </svg>
+                        See Requested Features
+                    </a>
                     <button class="header-btn" onclick="shareChat()">
                         <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"/>
@@ -1690,6 +1774,39 @@
                         Reddit
                     </a>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Request Modal -->
+    <div class="share-modal" id="feature-request-modal">
+        <div class="share-modal-content" onclick="event.stopPropagation()">
+            <div class="share-modal-header">
+                <h3 class="share-modal-title">Request a Feature</h3>
+                <button class="share-close-btn" onclick="closeFeatureRequestModal()">&times;</button>
+            </div>
+            <div class="share-modal-body">
+                <div class="feature-success" id="feature-success" style="display: none;">
+                    ✓ Feature request submitted successfully!
+                </div>
+                <form id="feature-request-form">
+                    <div class="form-group">
+                        <label for="feature-name">Feature Name <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="feature-name" name="feature-name" required placeholder="e.g. Dark Mode, Voice Commands, PDF Export">
+                    </div>
+                    <div class="form-group">
+                        <label for="feature-details">Feature Details <span style="color: #ef4444;">*</span></label>
+                        <textarea id="feature-details" name="feature-details" required rows="4" placeholder="Describe the feature you'd like to see added, how it would work, and why it would be useful..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="requested-by">Requested By (Optional)</label>
+                        <input type="text" id="requested-by" name="requested-by" placeholder="Your name (optional)">
+                    </div>
+                    <div class="share-actions">
+                        <button type="button" class="share-btn secondary" onclick="closeFeatureRequestModal()">Cancel</button>
+                        <button type="submit" class="share-btn primary">Submit Request</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -2727,6 +2844,17 @@
             document.getElementById('share-success').style.display = 'none';
         }
 
+        // Feature Request Modal Functions
+        function requestFeature() {
+            document.getElementById('feature-request-modal').classList.add('open');
+        }
+
+        function closeFeatureRequestModal() {
+            document.getElementById('feature-request-modal').classList.remove('open');
+            document.getElementById('feature-success').style.display = 'none';
+            document.getElementById('feature-request-form').reset();
+        }
+
         async function copyShareLink() {
             const shareUrlInput = document.getElementById('share-url-input');
             const copyBtn = document.getElementById('copy-btn');
@@ -2757,6 +2885,45 @@
 
         // Close modal when clicking outside
         document.getElementById('share-modal').addEventListener('click', closeShareModal);
+        document.getElementById('feature-request-modal').addEventListener('click', closeFeatureRequestModal);
+
+        // Handle feature request form submission
+        document.getElementById('feature-request-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = {
+                featureName: document.getElementById('feature-name').value,
+                featureDetails: document.getElementById('feature-details').value,
+                requestedBy: document.getElementById('requested-by').value || 'Anonymous'
+            };
+
+            try {
+                const response = await fetch('/api/feature-request', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    document.getElementById('feature-success').style.display = 'block';
+                    document.getElementById('feature-request-form').style.display = 'none';
+                    
+                    setTimeout(() => {
+                        closeFeatureRequestModal();
+                        document.getElementById('feature-request-form').style.display = 'block';
+                    }, 2000);
+                } else {
+                    alert('Error: ' + (result.error || 'Failed to submit feature request'));
+                }
+            } catch (error) {
+                alert('Error: Failed to submit feature request');
+                console.error('Feature request error:', error);
+            }
+        });
 
         // Mobile menu functions
         function toggleMobileMenu() {

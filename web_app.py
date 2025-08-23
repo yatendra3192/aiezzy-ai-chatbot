@@ -47,6 +47,7 @@ os.makedirs('uploads', exist_ok=True)
 os.makedirs('assets', exist_ok=True)
 os.makedirs('videos', exist_ok=True)
 os.makedirs('shared', exist_ok=True)
+os.makedirs('feature_requests', exist_ok=True)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
@@ -56,6 +57,8 @@ recent_images = {}
 thread_image_context = {}
 # Store shared conversations
 shared_conversations = {}
+# Store feature requests
+feature_requests = {}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -618,6 +621,126 @@ def list_shared_conversations():
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/feature-request', methods=['POST'])
+def submit_feature_request():
+    """Submit a new feature request"""
+    try:
+        data = request.get_json()
+        feature_name = data.get('featureName', '').strip()
+        feature_details = data.get('featureDetails', '').strip()
+        requested_by = data.get('requestedBy', 'Anonymous').strip()
+        
+        if not feature_name or not feature_details:
+            return jsonify({'error': 'Feature name and details are required'}), 400
+        
+        # Generate a unique request ID
+        request_id = secrets.token_urlsafe(12)
+        
+        # Create feature request object
+        feature_request = {
+            'id': request_id,
+            'feature_name': feature_name,
+            'feature_details': feature_details,
+            'requested_by': requested_by,
+            'votes': 0,
+            'voters': [],
+            'status': 'open',  # open, in_progress, completed, rejected
+            'created_at': time.time(),
+            'updated_at': time.time()
+        }
+        
+        # Save to persistent storage
+        feature_file_path = os.path.join('feature_requests', f'{request_id}.json')
+        with open(feature_file_path, 'w') as f:
+            json.dump(feature_request, f, indent=2)
+        
+        # Also store in memory for quick access
+        feature_requests[request_id] = feature_request
+        
+        return jsonify({
+            'success': True,
+            'request_id': request_id,
+            'message': 'Feature request submitted successfully!'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/feature-requests', methods=['GET'])
+def get_feature_requests():
+    """Get all feature requests with optional filtering"""
+    try:
+        # Load all feature requests from files
+        feature_requests_dir = 'feature_requests'
+        requests_list = []
+        
+        if os.path.exists(feature_requests_dir):
+            for filename in os.listdir(feature_requests_dir):
+                if filename.endswith('.json'):
+                    file_path = os.path.join(feature_requests_dir, filename)
+                    try:
+                        with open(file_path, 'r') as f:
+                            req = json.load(f)
+                            requests_list.append(req)
+                    except:
+                        continue
+        
+        # Sort by votes (descending) then by created_at (descending)
+        requests_list.sort(key=lambda x: (-x['votes'], -x['created_at']))
+        
+        return jsonify({'requests': requests_list})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/feature-request/<request_id>/vote', methods=['POST'])
+def vote_feature_request(request_id):
+    """Vote for a feature request"""
+    try:
+        # Get voter IP as a simple identifier
+        voter_ip = request.environ.get('HTTP_X_FORWARDED_FOR') or request.environ.get('REMOTE_ADDR')
+        
+        # Load feature request from file
+        feature_file_path = os.path.join('feature_requests', f'{request_id}.json')
+        
+        if not os.path.exists(feature_file_path):
+            return jsonify({'error': 'Feature request not found'}), 404
+        
+        with open(feature_file_path, 'r') as f:
+            feature_request = json.load(f)
+        
+        # Check if user already voted
+        if voter_ip in feature_request.get('voters', []):
+            return jsonify({'error': 'You have already voted for this feature'}), 400
+        
+        # Add vote
+        feature_request['votes'] = feature_request.get('votes', 0) + 1
+        if 'voters' not in feature_request:
+            feature_request['voters'] = []
+        feature_request['voters'].append(voter_ip)
+        feature_request['updated_at'] = time.time()
+        
+        # Save back to file
+        with open(feature_file_path, 'w') as f:
+            json.dump(feature_request, f, indent=2)
+        
+        # Update memory cache
+        feature_requests[request_id] = feature_request
+        
+        return jsonify({
+            'success': True,
+            'votes': feature_request['votes'],
+            'message': 'Vote recorded successfully!'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/feature-requests')
+def feature_requests_page():
+    """Feature requests page with voting interface"""
+    return render_template('feature_requests.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

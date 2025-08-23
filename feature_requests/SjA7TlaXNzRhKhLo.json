@@ -1,0 +1,13 @@
+{
+  "id": "SjA7TlaXNzRhKhLo",
+  "feature_name": "Dark Mode",
+  "feature_details": "Add a dark theme toggle for better user experience during nighttime usage",
+  "requested_by": "Claude Tester",
+  "votes": 1,
+  "voters": [
+    "127.0.0.1"
+  ],
+  "status": "open",
+  "created_at": 1755952997.363608,
+  "updated_at": 1755953019.782159
+}
