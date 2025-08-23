@@ -133,8 +133,11 @@ def chat():
         if not message:
             return jsonify({'error': 'Message is required'}), 400
         
-        # Create or use existing thread ID
-        thread_id = data.get('thread_id', str(uuid.uuid4()))
+        # Create or use existing thread ID - MOBILE FIX: Handle None thread_id
+        thread_id = data.get('thread_id')
+        if not thread_id or thread_id == 'None' or thread_id == '':
+            thread_id = str(uuid.uuid4())
+        print(f"MOBILE FIX: Using thread_id = {thread_id}")
         
         # CRITICAL FIX: If this is a new conversation (no history), clear any old image context
         if not history or len(history) == 0:

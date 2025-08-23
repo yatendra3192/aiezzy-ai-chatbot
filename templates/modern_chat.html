@@ -1155,6 +1155,24 @@
             }
         }
 
+        /* MOBILE VIDEO CONTROLS FIX */
+        @media (max-width: 768px) {
+            .message-video {
+                max-width: 100% !important;
+                width: 100%;
+                height: auto;
+            }
+            
+            /* Ensure video controls are touch-friendly */
+            .message-video::-webkit-media-controls {
+                width: 100%;
+            }
+            
+            .message-video::-webkit-media-controls-panel {
+                background-color: rgba(0,0,0,0.8);
+            }
+        }
+
         /* Extra small screens (360px and below) */
         @media (max-width: 360px) {
             .composer-container {
@@ -1685,7 +1703,17 @@
         let isAtBottom = true;
         let currentConversationId = null;
         let allConversations = {};
-        let currentThreadId = null;  // Track current thread for image context
+        let currentThreadId = localStorage.getItem('currentThreadId') || null;  // Track current thread for image context - MOBILE FIX
+        
+        // MOBILE FIX: Function to ensure thread ID consistency
+        function ensureThreadId() {
+            if (!currentThreadId || currentThreadId === 'null' || currentThreadId === 'None') {
+                currentThreadId = 'thread_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+                localStorage.setItem('currentThreadId', currentThreadId);
+                console.log('MOBILE FIX: Generated new thread ID:', currentThreadId);
+            }
+            return currentThreadId;
+        }
         let progressSteps = [];
         let currentProgressStep = 0;
 
@@ -2300,9 +2328,11 @@
                     // Hide loading message
                     hideLoadingMessage();
                     
-                    // Store thread_id and image path for image context continuity
+                    // Store thread_id and image path for image context continuity - MOBILE FIX
                     if (imageData.thread_id) {
                         currentThreadId = imageData.thread_id;
+                        localStorage.setItem('currentThreadId', currentThreadId);
+                        console.log('MOBILE FIX: Stored thread_id in localStorage:', currentThreadId);
                     }
                     
                     // Store the uploaded image path in conversation history for future editing
@@ -2350,7 +2380,7 @@
                                     };
                                     return historyMsg;
                                 }),
-                                thread_id: currentThreadId
+                                thread_id: ensureThreadId()
                             })
                         });
                         
@@ -2472,7 +2502,7 @@
                                 };
                                 return historyMsg;
                             }),
-                            thread_id: currentThreadId
+                            thread_id: ensureThreadId()
                         })
                     });
                     
@@ -2481,9 +2511,11 @@
                     // Hide loading message
                     hideLoadingMessage();
                     
-                    // Store thread_id for image context continuity
+                    // Store thread_id for image context continuity - MOBILE FIX
                     if (data.thread_id) {
                         currentThreadId = data.thread_id;
+                        localStorage.setItem('currentThreadId', currentThreadId);
+                        console.log('MOBILE FIX: Stored thread_id in localStorage:', currentThreadId);
                     }
                     
                     if (data.error) {
@@ -3022,7 +3054,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        thread_id: currentThreadId
+                        thread_id: ensureThreadId()
                     })
                 }).catch(err => console.log('Context clear error (non-critical):', err));
             }
@@ -3031,6 +3063,7 @@
             currentConversationId = generateConversationId();
             conversationHistory = [];
             currentThreadId = null;  // Reset thread context for new conversation
+            localStorage.removeItem('currentThreadId');  // MOBILE FIX: Clear from storage
             
             // Clear any uploaded images from previous conversation
             clearImage();
