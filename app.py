@@ -458,6 +458,9 @@ def generate_video_from_image(prompt: str,
         return f"Error generating video from image: {str(e)}"
 
 # --- Tool: multi-image generation (FAL AI flux-pro/kontext/multi) ----------
+# Global tracker for multi-image requests to prevent duplicates
+_multi_image_active = False
+
 @tool
 def generate_image_from_multiple(prompt: str,
                                 aspect_ratio: str = "16:9",
@@ -470,31 +473,70 @@ def generate_image_from_multiple(prompt: str,
     Requires at least 2 images to have been uploaded in the current session.
     Returns HTML img tag for web display.
     """
-    # Get thread-specific context - use global thread ID as fallback
-    thread_id = state.get("configurable", {}).get("thread_id", "default") if state else "default"
-    if thread_id == "default":
-        global _current_thread_id
-        thread_id = _current_thread_id
-    context = get_thread_context(thread_id)
-    uploaded_images = context['uploaded_images']
-    
-    print(f"CRITICAL DEBUG: generate_image_from_multiple called!")
-    print(f"CRITICAL DEBUG: thread_id = {thread_id}")
-    print(f"CRITICAL DEBUG: uploaded_images = {uploaded_images}")
-    print(f"CRITICAL DEBUG: prompt = {prompt}")
-    
-    # Check if we need to look deeper for images from conversation history
-    if len(uploaded_images) < 2:
-        print(f"DEBUG: Only {len(uploaded_images)} images in thread context, checking for recent generations...")
-        # If we have exactly 1 image and it's a recent generation, this might be a follow-up request
-        if len(uploaded_images) == 1:
-            return f"Only 1 image available in current conversation. For multi-image fusion, please generate or upload more images first, or try a different operation on the single image."
-        else:
-            return f"No images available for multi-image generation. Please generate or upload images first, then try combining them."
+    # DUPLICATE PREVENTION: Check if already processing
+    global _multi_image_active
+    if _multi_image_active:
+        return "Multi-image generation is already in progress. Please wait for the current request to complete."
     
     try:
-        # Check if we have enough images in this thread
+        _multi_image_active = True
+        
+        # Get thread-specific context - use global thread ID as fallback
+        thread_id = state.get("configurable", {}).get("thread_id", "default") if state else "default"
+        if thread_id == "default":
+            global _current_thread_id
+            thread_id = _current_thread_id
+        context = get_thread_context(thread_id)
+        uploaded_images = context['uploaded_images']
+        
+        print(f"CRITICAL DEBUG: generate_image_from_multiple called!")
+        print(f"CRITICAL DEBUG: thread_id = {thread_id}")
+        print(f"CRITICAL DEBUG: uploaded_images = {uploaded_images}")
+        print(f"CRITICAL DEBUG: prompt = {prompt}")
+    
+        # ENHANCED CHECK: Filter out very old or potentially contaminated images
+        import time
+        current_time = int(time.time())
+        
+        # Filter images to only recent ones (within last 10 minutes = 600 seconds)
+        recent_images = []
+        for img_path in uploaded_images:
+            if 'img_' in img_path or 'multi_' in img_path or 'edited_' in img_path:
+                try:
+                    # Extract timestamp from filename
+                    import re
+                    timestamp_match = re.search(r'(\d{10,})', img_path)
+                    if timestamp_match:
+                        img_timestamp = int(timestamp_match.group(1))
+                        # Only include images from last 10 minutes
+                        if current_time - img_timestamp < 600:
+                            recent_images.append(img_path)
+                        else:
+                            print(f"DEBUG: Filtering out old image: {img_path} (timestamp: {img_timestamp})")
+                    else:
+                        # If no timestamp found, assume it's recent
+                        recent_images.append(img_path)
+                except:
+                    # If any error in processing, include the image
+                    recent_images.append(img_path)
+        
+        print(f"DEBUG: Filtered from {len(uploaded_images)} to {len(recent_images)} recent images")
+        uploaded_images = recent_images
+        
+        # Check if we need to look deeper for images from conversation history
         if len(uploaded_images) < 2:
+            print(f"DEBUG: Only {len(uploaded_images)} recent images in thread context")
+            # If we have exactly 1 image and it's a recent generation, this might be a follow-up request
+            if len(uploaded_images) == 1:
+                _multi_image_active = False
+                return f"Only 1 recent image available in current conversation. For multi-image fusion, please generate or upload more images first, or try a different operation on the single image."
+            else:
+                _multi_image_active = False
+                return f"No recent images available for multi-image generation. Please generate or upload images first, then try combining them."
+        
+        # Final check if we have enough images in this thread after filtering
+        if len(uploaded_images) < 2:
+            _multi_image_active = False
             return f"Multi-image generation requires at least 2 uploaded images. Currently have {len(uploaded_images)} image(s). Please upload more images first."
         
         # Use the most recent images (up to 5) from this thread only
@@ -555,19 +597,29 @@ def generate_image_from_multiple(prompt: str,
                         # Update thread-specific recent image path for potential further editing
                         context['recent_path'] = str(local_path)
                         
+                        # Reset the active flag
+                        _multi_image_active = False
+                        
                         return f'<img src="/assets/{filename}" class="message-image" alt="Multi-image generated" onclick="openImageModal(\'/assets/{filename}\')"> Multi-image created from {len(fal_image_urls)} images, saved to {local_path}'
                     else:
+                        # Reset the active flag
+                        _multi_image_active = False
                         # Fallback: use the direct URL
                         return f'<img src="{image_url}" class="message-image" alt="Multi-image generated"> Multi-image generated from {len(fal_image_urls)} source images'
                 except Exception as download_error:
+                    # Reset the active flag
+                    _multi_image_active = False
                     # Fallback: use the direct URL
                     return f'<img src="{image_url}" class="message-image" alt="Multi-image generated"> Multi-image generated from {len(fal_image_urls)} source images'
             else:
+                _multi_image_active = False
                 return "Failed to generate multi-image: No image URL in response"
         else:
+            _multi_image_active = False
             return "Failed to generate multi-image: Invalid response from API"
             
     except Exception as e:
+        _multi_image_active = False
         return f"Error generating multi-image: {str(e)}"
 
 # Global state for multi-step task tracking and request deduplication
@@ -682,7 +734,9 @@ def build_coordinator():
         "1. NEVER call the same tool twice in a row with similar parameters\n"
         "2. STOP after successfully completing the user's request\n"
         "3. If a tool fails, provide helpful error message and STOP\n"
-        "4. Maximum 3 tool calls per response to prevent loops\n\n"
+        "4. Maximum 5 tool calls per response to prevent loops\n"
+        "5. NEVER call generate_image_from_multiple more than ONCE per response\n"
+        "6. If generate_image_from_multiple fails, do NOT retry - explain the issue\n\n"
         "CRITICAL: When you receive a message with image content AND animation/video keywords, immediately use generate_video_from_image tool.\n\n"
         "CORE BEHAVIOR:\n"
         "1. Analyze user requests to understand all required steps\n"
@@ -785,10 +839,11 @@ def build_app():
 # Add function to completely reset context for testing
 def reset_all_context():
     """Reset all global context - for testing purposes"""
-    global _thread_image_context, _active_requests, _current_thread_id
+    global _thread_image_context, _active_requests, _current_thread_id, _multi_image_active
     _thread_image_context.clear()
     _active_requests.clear()
     _current_thread_id = "default"
+    _multi_image_active = False
 
 def set_current_thread_id(thread_id):
     """Set the current thread ID for tools to use"""

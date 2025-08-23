@@ -14,6 +14,8 @@ A production-ready ChatGPT-style web application featuring advanced LangGraph mu
 - **Optimized Agent Coordination**: Reduced tool calling loops and improved response accuracy
 - **Added Loading Animations**: Beautiful loading indicators eliminate blank screen during processing
 - **Enhanced UX**: Spinning animations, context-aware messages, and input disabling during requests
+- **Fixed Multi-Step Workflow**: Resolved intermittent failures in complex multi-step tasks
+- **Context Isolation**: Eliminated image contamination between conversations and requests
 
 ## ✨ Features
 
