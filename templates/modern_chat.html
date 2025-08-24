@@ -139,31 +139,41 @@
             color: var(--text-muted);
         }
 
-        .chat-delete {
+        .chat-actions {
             position: absolute;
             right: 8px;
             top: 50%;
             transform: translateY(-50%);
+            display: none;
+            gap: 4px;
+        }
+        
+        .chat-delete, .chat-export {
             width: 20px;
             height: 20px;
             border-radius: 4px;
             border: none;
             background: transparent;
             cursor: pointer;
-            display: none;
+            display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 12px;
             color: var(--text-muted);
             transition: all 0.15s ease;
         }
 
-        .chat-item:hover .chat-delete {
+        .chat-item:hover .chat-actions {
             display: flex;
         }
 
         .chat-delete:hover {
             background: #ff4757;
+            color: white;
+        }
+        
+        .chat-export:hover {
+            background: var(--accent);
             color: white;
         }
 
@@ -1542,13 +1552,6 @@
                     </svg>
                     Library
                     <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #f59e0b; color: white; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: 500;">Soon</span>
-                </a>
-                
-                <a href="/feature-requests" class="nav-item">
-                    <svg class="nav-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Feature Requests
                 </a>
                 
                 <div class="nav-section">Recent Chats</div>
@@ -2992,12 +2995,42 @@
             return firstMessage;
         }
 
-        function loadAllConversations() {
+        async function loadAllConversations() {
             try {
+                // Load from localStorage first (for backwards compatibility)
                 const saved = localStorage.getItem('langraph_all_conversations');
                 if (saved) {
                     allConversations = JSON.parse(saved);
                 }
+                
+                // Also load from server-side storage
+                try {
+                    const response = await fetch('/api/load-conversations?user_id=default_user');
+                    const data = await response.json();
+                    
+                    if (data.success && data.conversations) {
+                        // Merge server conversations with local ones
+                        for (const serverConv of data.conversations) {
+                            if (!allConversations[serverConv.id] || 
+                                (allConversations[serverConv.id].lastUpdated < serverConv.lastUpdated)) {
+                                // Load full conversation data
+                                const fullConvResponse = await fetch(`/api/get-conversation/${serverConv.id}?user_id=default_user`);
+                                const fullConvData = await fullConvResponse.json();
+                                
+                                if (fullConvData.success) {
+                                    allConversations[serverConv.id] = fullConvData.conversation;
+                                }
+                            }
+                        }
+                        
+                        // Update localStorage with merged data
+                        localStorage.setItem('langraph_all_conversations', JSON.stringify(allConversations));
+                    }
+                } catch (serverError) {
+                    console.log('Could not load from server storage:', serverError);
+                    // Continue with localStorage only
+                }
+                
             } catch (e) {
                 console.log('No previous conversations found');
                 allConversations = {};
@@ -3005,7 +3038,7 @@
             updateRecentChatsList();
         }
 
-        function saveCurrentConversation() {
+        async function saveCurrentConversation() {
             if (!currentConversationId || conversationHistory.length === 0) return;
 
             try {
@@ -3096,7 +3129,26 @@
                     messages: messages
                 };
 
-                // Try to save, with error handling for quota issues
+                // Save to server-side storage first
+                try {
+                    await fetch('/api/save-conversation', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            conversation_id: currentConversationId,
+                            conversation_data: allConversations[currentConversationId],
+                            user_id: 'default_user'
+                        })
+                    });
+                    console.log('Conversation saved to server');
+                } catch (serverError) {
+                    console.log('Could not save to server:', serverError);
+                    // Continue with localStorage fallback
+                }
+                
+                // Try to save to localStorage, with error handling for quota issues
                 try {
                     localStorage.setItem('langraph_all_conversations', JSON.stringify(allConversations));
                     updateRecentChatsList();
@@ -3305,7 +3357,10 @@
                     <div class="chat-item ${isActive ? 'active' : ''}" onclick="loadConversation('${conv.id}')" title="${conv.title}">
                         <div class="chat-title">${conv.title}</div>
                         <div class="chat-time">${timeAgo}</div>
-                        <button class="chat-delete" onclick="deleteConversation('${conv.id}', event)" title="Delete conversation">×</button>
+                        <div class="chat-actions">
+                            <button class="chat-export" onclick="exportConversation('${conv.id}', event)" title="Export conversation">↓</button>
+                            <button class="chat-delete" onclick="deleteConversation('${conv.id}', event)" title="Delete conversation">×</button>
+                        </div>
                     </div>
                 `;
             }).join('');
@@ -3336,12 +3391,22 @@
             return `${days}d`;
         }
 
-        function deleteConversation(conversationId, event) {
+        async function deleteConversation(conversationId, event) {
             if (event) {
                 event.stopPropagation();
             }
             
             if (confirm('Are you sure you want to delete this conversation?')) {
+                // Delete from server first
+                try {
+                    await fetch(`/api/delete-conversation/${conversationId}?user_id=default_user`, {
+                        method: 'DELETE'
+                    });
+                } catch (error) {
+                    console.log('Could not delete from server:', error);
+                }
+                
+                // Delete from localStorage
                 delete allConversations[conversationId];
                 localStorage.setItem('langraph_all_conversations', JSON.stringify(allConversations));
                 
@@ -3350,6 +3415,100 @@
                 } else {
                     updateRecentChatsList();
                 }
+            }
+        }
+        
+        async function exportConversation(conversationId, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            
+            try {
+                const conversation = allConversations[conversationId];
+                const title = conversation?.title || 'Conversation';
+                
+                // Show export format options
+                const format = prompt(`Export "${title}" as:\n\n1. JSON (raw data)\n2. Markdown (formatted text)\n3. HTML (web page)\n\nEnter 1, 2, or 3:`);
+                
+                if (!format) return; // User cancelled
+                
+                let exportFormat;
+                switch(format.trim()) {
+                    case '1': exportFormat = 'json'; break;
+                    case '2': exportFormat = 'markdown'; break;
+                    case '3': exportFormat = 'html'; break;
+                    default:
+                        alert('Invalid choice. Please enter 1, 2, or 3.');
+                        return;
+                }
+                
+                // Download the exported conversation
+                const response = await fetch(`/api/export-conversation/${conversationId}?user_id=default_user&format=${exportFormat}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Export failed: ${response.statusText}`);
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                // Set filename based on format
+                const extension = exportFormat === 'json' ? 'json' : exportFormat === 'markdown' ? 'md' : 'html';
+                a.download = `${title.replace(/[^a-zA-Z0-9]/g, '_')}_${conversationId.slice(0, 8)}.${extension}`;
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                // Show success message
+                addMessage(`\u2713 Conversation exported as ${exportFormat.toUpperCase()}`, false);
+                
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Failed to export conversation. Please try again.');
+            }
+        }
+        
+        async function exportAllConversations() {
+            try {
+                const format = prompt(`Export all conversations as:\n\n1. JSON files (raw data)\n2. Markdown files (formatted text)\n\nEnter 1 or 2:`);
+                
+                if (!format) return;
+                
+                let exportFormat;
+                switch(format.trim()) {
+                    case '1': exportFormat = 'json'; break;
+                    case '2': exportFormat = 'markdown'; break;
+                    default:
+                        alert('Invalid choice. Please enter 1 or 2.');
+                        return;
+                }
+                
+                const response = await fetch(`/api/export-all-conversations?user_id=default_user&format=${exportFormat}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Export failed: ${response.statusText}`);
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `aiezzy_all_conversations_${new Date().toISOString().split('T')[0]}.zip`;
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                addMessage(`\u2713 All conversations exported as ZIP file`, false);
+                
+            } catch (error) {
+                console.error('Export all error:', error);
+                alert('Failed to export conversations. Please try again.');
             }
         }
 

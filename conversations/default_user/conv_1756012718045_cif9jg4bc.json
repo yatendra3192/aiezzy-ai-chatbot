@@ -1,0 +1,62 @@
+{
+  "id": "conv_1756012718045_cif9jg4bc",
+  "title": "hi",
+  "lastUpdated": "2025-08-24T05:21:08.472Z",
+  "history": [
+    {
+      "role": "user",
+      "content": "hi",
+      "hasImage": false,
+      "imagePath": null,
+      "timestamp": "2025-08-24T05:18:42.520Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! How can I assist you today?",
+      "timestamp": "2025-08-24T05:18:43.974Z"
+    },
+    {
+      "role": "user",
+      "content": "my name i s  yatendra",
+      "hasImage": false,
+      "imagePath": null,
+      "timestamp": "2025-08-24T05:18:50.725Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello Yatendra! How can I assist you today?",
+      "timestamp": "2025-08-24T05:18:51.552Z"
+    }
+  ],
+  "messages": [
+    {
+      "content": "hi",
+      "isUser": true,
+      "timestamp": "10:48 AM",
+      "hasImage": false,
+      "imageData": null
+    },
+    {
+      "content": "Hello! How can I assist you today?",
+      "isUser": false,
+      "timestamp": "10:48 AM",
+      "imageData": null
+    },
+    {
+      "content": "my name i s  yatendra",
+      "isUser": true,
+      "timestamp": "10:48 AM",
+      "hasImage": false,
+      "imageData": null
+    },
+    {
+      "content": "Hello Yatendra! How can I assist you today?",
+      "isUser": false,
+      "timestamp": "10:48 AM",
+      "imageData": null
+    }
+  ],
+  "saved_at": 1756012868.4790459,
+  "user_id": "default_user",
+  "server_saved": true
+}

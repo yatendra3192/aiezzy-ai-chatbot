@@ -86,6 +86,11 @@ thread_image_context = {}
 shared_conversations = {}
 # Store feature requests
 feature_requests = {}
+# Store user conversations persistently
+user_conversations = {}
+
+# Create conversations directory for server-side storage
+os.makedirs('conversations', exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -616,6 +621,309 @@ def view_shared_conversation(share_id):
         
     except Exception as e:
         return render_template('shared_error.html', error=str(e)), 500
+
+@web_app.route('/api/save-conversation', methods=['POST'])
+def save_conversation():
+    """Save a conversation to server-side storage for persistence"""
+    try:
+        data = request.get_json()
+        conversation_id = data.get('conversation_id')
+        conversation_data = data.get('conversation_data')
+        user_id = data.get('user_id', 'default_user')  # For future user authentication
+        
+        if not conversation_id or not conversation_data:
+            return jsonify({'error': 'Missing conversation_id or conversation_data'}), 400
+        
+        # Create user-specific conversation directory
+        user_conv_dir = os.path.join('conversations', user_id)
+        os.makedirs(user_conv_dir, exist_ok=True)
+        
+        # Save conversation to file
+        conv_file_path = os.path.join(user_conv_dir, f'{conversation_id}.json')
+        
+        # Add server-side metadata
+        enhanced_conversation = {
+            **conversation_data,
+            'saved_at': time.time(),
+            'user_id': user_id,
+            'server_saved': True
+        }
+        
+        with open(conv_file_path, 'w', encoding='utf-8') as f:
+            json.dump(enhanced_conversation, f, indent=2, ensure_ascii=False)
+        
+        # Also store in memory for quick access
+        if user_id not in user_conversations:
+            user_conversations[user_id] = {}
+        user_conversations[user_id][conversation_id] = enhanced_conversation
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Conversation saved successfully',
+            'saved_at': enhanced_conversation['saved_at']
+        })
+        
+    except Exception as e:
+        print(f"Error saving conversation: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/load-conversations')
+def load_conversations():
+    """Load all conversations for a user from server-side storage"""
+    try:
+        user_id = request.args.get('user_id', 'default_user')
+        
+        # Load from memory first
+        if user_id in user_conversations:
+            conversations = user_conversations[user_id]
+        else:
+            conversations = {}
+            
+        # Load from files if not in memory
+        user_conv_dir = os.path.join('conversations', user_id)
+        if os.path.exists(user_conv_dir):
+            for filename in os.listdir(user_conv_dir):
+                if filename.endswith('.json'):
+                    conv_id = filename[:-5]  # Remove .json extension
+                    if conv_id not in conversations:
+                        conv_file_path = os.path.join(user_conv_dir, filename)
+                        try:
+                            with open(conv_file_path, 'r', encoding='utf-8') as f:
+                                conversation = json.load(f)
+                                conversations[conv_id] = conversation
+                        except Exception as e:
+                            print(f"Error loading conversation {filename}: {e}")
+            
+            # Store in memory for next time
+            user_conversations[user_id] = conversations
+        
+        # Sort conversations by lastUpdated or saved_at
+        sorted_conversations = []
+        for conv_id, conv_data in conversations.items():
+            sorted_conversations.append({
+                'id': conv_id,
+                'title': conv_data.get('title', 'Untitled Chat'),
+                'lastUpdated': conv_data.get('lastUpdated', conv_data.get('saved_at', 0)),
+                'messageCount': len(conv_data.get('messages', [])),
+                'server_saved': conv_data.get('server_saved', False)
+            })
+        
+        sorted_conversations.sort(key=lambda x: x['lastUpdated'], reverse=True)
+        
+        return jsonify({
+            'success': True,
+            'conversations': sorted_conversations[:50]  # Limit to 50 recent conversations
+        })
+        
+    except Exception as e:
+        print(f"Error loading conversations: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/get-conversation/<conversation_id>')
+def get_conversation(conversation_id):
+    """Get a specific conversation by ID"""
+    try:
+        user_id = request.args.get('user_id', 'default_user')
+        
+        # Check memory first
+        if user_id in user_conversations and conversation_id in user_conversations[user_id]:
+            conversation = user_conversations[user_id][conversation_id]
+        else:
+            # Load from file
+            conv_file_path = os.path.join('conversations', user_id, f'{conversation_id}.json')
+            if os.path.exists(conv_file_path):
+                with open(conv_file_path, 'r', encoding='utf-8') as f:
+                    conversation = json.load(f)
+                
+                # Store in memory
+                if user_id not in user_conversations:
+                    user_conversations[user_id] = {}
+                user_conversations[user_id][conversation_id] = conversation
+            else:
+                return jsonify({'error': 'Conversation not found'}), 404
+        
+        return jsonify({
+            'success': True,
+            'conversation': conversation
+        })
+        
+    except Exception as e:
+        print(f"Error getting conversation: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/delete-conversation/<conversation_id>', methods=['DELETE'])
+def delete_conversation(conversation_id):
+    """Delete a conversation from server storage"""
+    try:
+        user_id = request.args.get('user_id', 'default_user')
+        
+        # Remove from memory
+        if user_id in user_conversations and conversation_id in user_conversations[user_id]:
+            del user_conversations[user_id][conversation_id]
+        
+        # Remove file
+        conv_file_path = os.path.join('conversations', user_id, f'{conversation_id}.json')
+        if os.path.exists(conv_file_path):
+            os.remove(conv_file_path)
+            return jsonify({'success': True, 'message': 'Conversation deleted'})
+        else:
+            return jsonify({'error': 'Conversation not found'}), 404
+            
+    except Exception as e:
+        print(f"Error deleting conversation: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/export-conversation/<conversation_id>')
+def export_conversation(conversation_id):
+    """Export a conversation as JSON, Markdown, or HTML"""
+    try:
+        user_id = request.args.get('user_id', 'default_user')
+        export_format = request.args.get('format', 'json').lower()
+        
+        # Get conversation data
+        conv_file_path = os.path.join('conversations', user_id, f'{conversation_id}.json')
+        if not os.path.exists(conv_file_path):
+            return jsonify({'error': 'Conversation not found'}), 404
+        
+        with open(conv_file_path, 'r', encoding='utf-8') as f:
+            conversation = json.load(f)
+        
+        if export_format == 'json':
+            # Return raw JSON
+            return jsonify(conversation)
+        
+        elif export_format == 'markdown':
+            # Convert to Markdown format
+            markdown_content = f"# {conversation.get('title', 'Conversation')}\n\n"
+            markdown_content += f"*Exported on {time.strftime('%B %d, %Y at %I:%M %p')}*\n\n"
+            markdown_content += "---\n\n"
+            
+            for message in conversation.get('messages', []):
+                if message.get('isUser'):
+                    markdown_content += f"**You:** {message['content']}\n\n"
+                else:
+                    # Clean up HTML for markdown
+                    import re
+                    content = message['content']
+                    # Convert HTML images to markdown
+                    content = re.sub(r'<img[^>]+src="([^"]+)"[^>]*>', r'![Image](\1)', content)
+                    # Remove other HTML tags
+                    content = re.sub(r'<[^>]+>', '', content)
+                    markdown_content += f"**AIezzy:** {content}\n\n"
+            
+            return markdown_content, 200, {'Content-Type': 'text/markdown'}
+        
+        elif export_format == 'html':
+            # Convert to HTML format
+            html_content = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{conversation.get('title', 'Conversation')}</title>
+    <style>
+        body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }}
+        .message {{ margin: 20px 0; padding: 15px; border-radius: 8px; }}
+        .user {{ background: #f0f9ff; border-left: 4px solid #0ea5e9; }}
+        .assistant {{ background: #f9fafb; border-left: 4px solid #6b7280; }}
+        .timestamp {{ color: #6b7280; font-size: 12px; margin-top: 5px; }}
+        img {{ max-width: 100%; height: auto; border-radius: 4px; }}
+    </style>
+</head>
+<body>
+    <h1>{conversation.get('title', 'Conversation')}</h1>
+    <p><em>Exported on {time.strftime('%B %d, %Y at %I:%M %p')}</em></p>
+    <hr>
+"""
+            
+            for message in conversation.get('messages', []):
+                css_class = 'user' if message.get('isUser') else 'assistant'
+                sender = 'You' if message.get('isUser') else 'AIezzy'
+                
+                html_content += f"""
+    <div class="message {css_class}">
+        <strong>{sender}:</strong>
+        <div>{message['content']}</div>
+        {f'<div class="timestamp">{message.get("timestamp", "")}</div>' if message.get('timestamp') else ''}
+    </div>
+"""
+            
+            html_content += """
+</body>
+</html>
+"""
+            return html_content, 200, {'Content-Type': 'text/html'}
+        
+        else:
+            return jsonify({'error': 'Invalid format. Use json, markdown, or html'}), 400
+            
+    except Exception as e:
+        print(f"Error exporting conversation: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/export-all-conversations')
+def export_all_conversations():
+    """Export all conversations as a ZIP file"""
+    try:
+        user_id = request.args.get('user_id', 'default_user')
+        export_format = request.args.get('format', 'json').lower()
+        
+        import zipfile
+        from io import BytesIO
+        
+        # Create ZIP file in memory
+        zip_buffer = BytesIO()
+        
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            user_conv_dir = os.path.join('conversations', user_id)
+            
+            if os.path.exists(user_conv_dir):
+                for filename in os.listdir(user_conv_dir):
+                    if filename.endswith('.json'):
+                        conv_id = filename[:-5]  # Remove .json extension
+                        
+                        # Get conversation in requested format
+                        if export_format == 'json':
+                            file_path = os.path.join(user_conv_dir, filename)
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                content = f.read()
+                            zip_file.writestr(f"{conv_id}.json", content)
+                        
+                        else:
+                            # For markdown/html, we need to call the export function
+                            with open(os.path.join(user_conv_dir, filename), 'r', encoding='utf-8') as f:
+                                conversation = json.load(f)
+                            
+                            title = conversation.get('title', 'Conversation').replace('/', '_')
+                            safe_filename = f"{title}_{conv_id}"
+                            
+                            if export_format == 'markdown':
+                                # Generate markdown content
+                                markdown_content = f"# {conversation.get('title', 'Conversation')}\n\n"
+                                for message in conversation.get('messages', []):
+                                    if message.get('isUser'):
+                                        markdown_content += f"**You:** {message['content']}\n\n"
+                                    else:
+                                        import re
+                                        content = message['content']
+                                        content = re.sub(r'<img[^>]+src="([^"]+)"[^>]*>', r'![Image](\1)', content)
+                                        content = re.sub(r'<[^>]+>', '', content)
+                                        markdown_content += f"**AIezzy:** {content}\n\n"
+                                
+                                zip_file.writestr(f"{safe_filename}.md", markdown_content)
+        
+        zip_buffer.seek(0)
+        
+        from flask import send_file
+        return send_file(
+            BytesIO(zip_buffer.read()),
+            mimetype='application/zip',
+            as_attachment=True,
+            download_name=f'aiezzy_conversations_{user_id}_{int(time.time())}.zip'
+        )
+        
+    except Exception as e:
+        print(f"Error exporting all conversations: {e}")
+        return jsonify({'error': str(e)}), 500
 
 @web_app.route('/api/shared-conversations')
 def list_shared_conversations():
