@@ -1109,21 +1109,54 @@ def file_browser():
     try:
         # Get files from all directories
         file_data = {}
-        directories = ['assets', 'videos', 'uploads', 'shared', 'feature_requests']
+        directories = ['assets', 'videos', 'uploads', 'shared', 'feature_requests', 'conversations']
         
         for directory in directories:
             if os.path.exists(directory):
                 files = []
-                for filename in os.listdir(directory):
-                    file_path = os.path.join(directory, filename)
-                    if os.path.isfile(file_path):
-                        stat = os.stat(file_path)
-                        files.append({
-                            'name': filename,
-                            'size': stat.st_size,
-                            'modified': stat.st_mtime,
-                            'url': f'/{directory}/{filename}' if directory in ['assets', 'videos', 'uploads'] else None
-                        })
+                
+                if directory == 'conversations':
+                    # Special handling for conversations - look in user directories
+                    for user_dir in os.listdir(directory):
+                        user_path = os.path.join(directory, user_dir)
+                        if os.path.isdir(user_path):
+                            for filename in os.listdir(user_path):
+                                file_path = os.path.join(user_path, filename)
+                                if os.path.isfile(file_path) and filename.endswith('.json'):
+                                    stat = os.stat(file_path)
+                                    
+                                    # Try to read conversation metadata
+                                    conversation_data = None
+                                    try:
+                                        with open(file_path, 'r', encoding='utf-8') as f:
+                                            conversation_data = json.load(f)
+                                    except:
+                                        pass
+                                    
+                                    files.append({
+                                        'name': filename,
+                                        'size': stat.st_size,
+                                        'modified': stat.st_mtime,
+                                        'user_id': user_dir,
+                                        'full_path': f'{directory}/{user_dir}/{filename}',
+                                        'url': None,  # Conversations are not directly servable
+                                        'conversation_title': conversation_data.get('title', 'Untitled') if conversation_data else 'Untitled',
+                                        'message_count': len(conversation_data.get('messages', [])) if conversation_data else 0,
+                                        'last_updated': conversation_data.get('lastUpdated') if conversation_data else None,
+                                        'conversation_id': conversation_data.get('id') if conversation_data else filename[:-5]
+                                    })
+                else:
+                    # Standard file handling for other directories
+                    for filename in os.listdir(directory):
+                        file_path = os.path.join(directory, filename)
+                        if os.path.isfile(file_path):
+                            stat = os.stat(file_path)
+                            files.append({
+                                'name': filename,
+                                'size': stat.st_size,
+                                'modified': stat.st_mtime,
+                                'url': f'/{directory}/{filename}' if directory in ['assets', 'videos', 'uploads'] else None
+                            })
                 
                 # Sort files by modification time (newest first)
                 files.sort(key=lambda x: x['modified'], reverse=True)
