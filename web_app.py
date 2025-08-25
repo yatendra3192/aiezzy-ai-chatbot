@@ -644,7 +644,7 @@ def api_register():
         result = user_manager.create_user(email, password)
         
         if result['success']:
-            # Log activity
+            # Log account creation activity
             user_manager.log_activity(
                 result['user_id'], 
                 'account_created', 
@@ -652,12 +652,30 @@ def api_register():
                 client_ip
             )
             
-            return jsonify({
-                'success': True,
-                'message': 'Account created successfully. Please log in.',
-                'user_id': result['user_id'],
-                'username': result['username']
-            })
+            # Auto-login the newly registered user
+            # Authenticate the user to get session token
+            login_result = user_manager.authenticate_user(
+                result['username'], password, client_ip, get_user_agent()
+            )
+            
+            if login_result['success']:
+                # Create session for auto-login
+                create_session(login_result['user'], login_result['session_token'])
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Account created successfully. You are now logged in.',
+                    'user': login_result['user'],
+                    'session_token': login_result['session_token']
+                })
+            else:
+                # If auto-login fails for some reason, still return success but without session
+                return jsonify({
+                    'success': True,
+                    'message': 'Account created successfully. Please log in.',
+                    'user_id': result['user_id'],
+                    'username': result['username']
+                })
         else:
             return jsonify(result), 400
         
