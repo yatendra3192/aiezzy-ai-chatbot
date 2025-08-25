@@ -848,7 +848,7 @@ def view_shared_conversation(share_id):
         return render_template('shared_error.html', error=str(e)), 500
 
 @web_app.route('/api/save-conversation', methods=['POST'])
-@login_required
+@optional_auth
 def save_conversation():
     """Save a conversation to server-side storage for persistence"""
     try:
@@ -894,7 +894,7 @@ def save_conversation():
         return jsonify({'error': str(e)}), 500
 
 @web_app.route('/api/load-conversations')
-@login_required
+@optional_auth
 def load_conversations():
     """Load all conversations for a user from server-side storage"""
     try:
@@ -947,7 +947,7 @@ def load_conversations():
         return jsonify({'error': str(e)}), 500
 
 @web_app.route('/api/get-conversation/<conversation_id>')
-@login_required
+@optional_auth
 def get_conversation(conversation_id):
     """Get a specific conversation by ID"""
     try:
@@ -980,7 +980,7 @@ def get_conversation(conversation_id):
         return jsonify({'error': str(e)}), 500
 
 @web_app.route('/api/delete-conversation/<conversation_id>', methods=['DELETE'])
-@login_required
+@optional_auth
 def delete_conversation(conversation_id):
     """Delete a conversation from server storage"""
     try:
