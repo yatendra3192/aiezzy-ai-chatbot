@@ -1417,17 +1417,18 @@ def file_browser():
                                     except:
                                         pass
                                     
+                                    conversation_id = conversation_data.get('id') if conversation_data else filename[:-5]
                                     files.append({
                                         'name': filename,
                                         'size': stat.st_size,
                                         'modified': stat.st_mtime,
                                         'user_id': user_dir,
                                         'full_path': f'{directory_path}/{user_dir}/{filename}',
-                                        'url': None,  # Conversations are not directly servable
+                                        'url': f'/admin/view-conversation/{user_id}/{conversation_id}',  # Now viewable!
                                         'conversation_title': conversation_data.get('title', 'Untitled') if conversation_data else 'Untitled',
                                         'message_count': len(conversation_data.get('messages', [])) if conversation_data else 0,
                                         'last_updated': conversation_data.get('lastUpdated') if conversation_data else None,
-                                        'conversation_id': conversation_data.get('id') if conversation_data else filename[:-5]
+                                        'conversation_id': conversation_id
                                     })
                 else:
                     # Standard file handling for other directories
@@ -1443,6 +1444,13 @@ def file_browser():
                                 file_url = f'/videos/{filename}'
                             elif directory_path == web_app.config['UPLOAD_FOLDER']:
                                 file_url = f'/uploads/{filename}'
+                            elif directory_path == 'shared' and filename.endswith('.json'):
+                                # Shared content - create view URL
+                                share_id = filename[:-5]  # Remove .json extension
+                                file_url = f'/admin/view-shared/{share_id}'
+                            elif directory_path == 'feature_requests' and filename.endswith('.json'):
+                                # Feature requests - could add view URL later
+                                file_url = None
                             
                             files.append({
                                 'name': filename,
@@ -1464,6 +1472,51 @@ def file_browser():
         
     except Exception as e:
         return f"Error browsing files: {str(e)}", 500
+
+@web_app.route('/admin/view-conversation/<user_id>/<conversation_id>')
+def view_conversation(user_id, conversation_id):
+    """View a conversation in admin panel"""
+    # Simple authentication check
+    if not require_admin_auth():
+        return "Admin access required", 401
+    
+    try:
+        conv_file_path = os.path.join(CONVERSATIONS_DIR, user_id, f'{conversation_id}.json')
+        if not os.path.exists(conv_file_path):
+            return f"Conversation not found: {conv_file_path}", 404
+        
+        with open(conv_file_path, 'r', encoding='utf-8') as f:
+            conversation_data = json.load(f)
+        
+        return render_template('admin_conversation_view.html', 
+                             conversation=conversation_data, 
+                             user_id=user_id,
+                             conversation_id=conversation_id)
+        
+    except Exception as e:
+        return f"Error viewing conversation: {str(e)}", 500
+
+@web_app.route('/admin/view-shared/<share_id>')
+def view_shared_content(share_id):
+    """View shared content in admin panel"""
+    # Simple authentication check
+    if not require_admin_auth():
+        return "Admin access required", 401
+    
+    try:
+        shared_file_path = os.path.join('shared', f'{share_id}.json')
+        if not os.path.exists(shared_file_path):
+            return f"Shared content not found: {shared_file_path}", 404
+        
+        with open(shared_file_path, 'r', encoding='utf-8') as f:
+            shared_data = json.load(f)
+        
+        return render_template('admin_shared_view.html', 
+                             shared_content=shared_data,
+                             share_id=share_id)
+        
+    except Exception as e:
+        return f"Error viewing shared content: {str(e)}", 500
 
 @web_app.route('/admin/delete-file', methods=['POST'])
 def delete_file():
