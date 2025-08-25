@@ -355,7 +355,8 @@ def chat():
         img_match = re.search(r'<img[^>]*src="/assets/([^"]+)"', response_content)
         if img_match:
             filename = img_match.group(1)
-            generated_image_path = f"assets/{filename}"
+            # FIXED: Use full absolute path for Railway persistent storage
+            generated_image_path = os.path.join(ASSETS_DIR, filename)
             thread_image_context[thread_id] = generated_image_path
             import sys
             print(f"ROBUST FIX: Updated thread {thread_id} context with generated image: {generated_image_path}", file=sys.stderr)
@@ -370,7 +371,17 @@ def chat():
             import re
             path_match = re.search(r'Image saved to (.*?)(?:\s|$)', response_content)
             if path_match:
-                generated_image_path = path_match.group(1).strip()
+                raw_path = path_match.group(1).strip()
+                # FIXED: Ensure absolute path for Railway persistent storage
+                if not os.path.isabs(raw_path):
+                    # If it's a relative path like 'assets/filename', make it absolute
+                    if raw_path.startswith('assets/'):
+                        generated_image_path = os.path.join(ASSETS_DIR, raw_path[7:])  # Remove 'assets/' prefix
+                    else:
+                        generated_image_path = os.path.join(ASSETS_DIR, raw_path)
+                else:
+                    generated_image_path = raw_path
+                    
                 thread_image_context[thread_id] = generated_image_path
                 import sys
                 print(f"LEGACY: Updated thread {thread_id} context with generated image: {generated_image_path}", file=sys.stderr)
@@ -384,7 +395,17 @@ def chat():
             import re
             path_match = re.search(r'Saved as (.*?)(?:\s|$)', response_content)
             if path_match:
-                edited_image_path = path_match.group(1).strip()
+                raw_path = path_match.group(1).strip()
+                # FIXED: Ensure absolute path for Railway persistent storage
+                if not os.path.isabs(raw_path):
+                    # If it's a relative path like 'assets/filename', make it absolute
+                    if raw_path.startswith('assets/'):
+                        edited_image_path = os.path.join(ASSETS_DIR, raw_path[7:])  # Remove 'assets/' prefix
+                    else:
+                        edited_image_path = os.path.join(ASSETS_DIR, raw_path)
+                else:
+                    edited_image_path = raw_path
+                
                 thread_image_context[thread_id] = edited_image_path
                 print(f"Updated thread {thread_id} context with edited image: {edited_image_path}")
                 
