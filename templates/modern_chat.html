@@ -272,6 +272,43 @@
         .sidebar-register-link a:hover {
             text-decoration: underline;
         }
+        
+        /* Form toggle styles */
+        .form-toggle-buttons {
+            display: flex;
+            background: var(--bg-subtle);
+            border-radius: 8px;
+            padding: 4px;
+            margin-bottom: 20px;
+            gap: 4px;
+        }
+        
+        .form-toggle-btn {
+            flex: 1;
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text-muted);
+        }
+        
+        .form-toggle-btn.active {
+            background: var(--bg);
+            color: var(--text);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .form-toggle-btn:hover:not(.active) {
+            color: var(--text);
+        }
+        
+        .auth-form-container {
+            transition: opacity 0.2s ease;
+        }
 
         .sidebar-nav {
             flex: 1;
@@ -1780,29 +1817,58 @@
                     </div>
                 </div>
                 
-                <!-- Login form for non-authenticated users -->
+                <!-- Login/Register form for non-authenticated users -->
                 <div class="guest-section" id="guest-section">
                     <div class="login-form-container">
-                        <h3 class="login-title">Sign in to your account</h3>
-                        <p class="login-subtitle">Save and access your chat history</p>
+                        <!-- Form Toggle Buttons -->
+                        <div class="form-toggle-buttons">
+                            <button type="button" class="form-toggle-btn active" id="login-toggle-btn" onclick="showLoginForm()">Sign In</button>
+                            <button type="button" class="form-toggle-btn" id="register-toggle-btn" onclick="showRegisterForm()">Sign Up</button>
+                        </div>
                         
-                        <div id="sidebar-error" class="sidebar-error" style="display: none;"></div>
+                        <!-- Login Form -->
+                        <div class="auth-form-container" id="login-form-container">
+                            <h3 class="login-title">Sign in to your account</h3>
+                            <p class="login-subtitle">Save and access your chat history</p>
+                            
+                            <div id="sidebar-login-error" class="sidebar-error" style="display: none;"></div>
+                            
+                            <form id="sidebar-login-form" class="sidebar-login-form">
+                                <div class="sidebar-form-group">
+                                    <input type="email" id="sidebar-email" placeholder="Email" required>
+                                </div>
+                                <div class="sidebar-form-group">
+                                    <input type="password" id="sidebar-password" placeholder="Password" required>
+                                </div>
+                                <button type="submit" class="sidebar-login-btn" id="sidebar-login-btn">
+                                    <span class="sidebar-loading-spinner" id="sidebar-loading-spinner" style="display: none;"></span>
+                                    Sign In
+                                </button>
+                            </form>
+                        </div>
                         
-                        <form id="sidebar-login-form" class="sidebar-login-form">
-                            <div class="sidebar-form-group">
-                                <input type="email" id="sidebar-email" placeholder="Email" required>
-                            </div>
-                            <div class="sidebar-form-group">
-                                <input type="password" id="sidebar-password" placeholder="Password" required>
-                            </div>
-                            <button type="submit" class="sidebar-login-btn" id="sidebar-login-btn">
-                                <span class="sidebar-loading-spinner" id="sidebar-loading-spinner" style="display: none;"></span>
-                                Sign In
-                            </button>
-                        </form>
-                        
-                        <div class="sidebar-register-link">
-                            <p>Don't have an account? <a href="/register">Sign up</a></p>
+                        <!-- Register Form -->
+                        <div class="auth-form-container" id="register-form-container" style="display: none;">
+                            <h3 class="login-title">Create your account</h3>
+                            <p class="login-subtitle">Join to save your conversations</p>
+                            
+                            <div id="sidebar-register-error" class="sidebar-error" style="display: none;"></div>
+                            
+                            <form id="sidebar-register-form" class="sidebar-login-form">
+                                <div class="sidebar-form-group">
+                                    <input type="email" id="sidebar-register-email" placeholder="Email" required>
+                                </div>
+                                <div class="sidebar-form-group">
+                                    <input type="password" id="sidebar-register-password" placeholder="Password" required>
+                                </div>
+                                <div class="sidebar-form-group">
+                                    <input type="password" id="sidebar-register-confirm-password" placeholder="Confirm Password" required>
+                                </div>
+                                <button type="submit" class="sidebar-login-btn" id="sidebar-register-btn">
+                                    <span class="sidebar-loading-spinner-register" id="sidebar-loading-spinner-register" style="display: none;"></span>
+                                    Create Account
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -3839,9 +3905,9 @@
                     console.error('Logout error:', error);
                 }
                 
-                // Clear local storage and redirect
+                // Clear local storage and redirect to main page
                 localStorage.clear();
-                window.location.href = '/login';
+                window.location.href = '/';
             }
         }
         
@@ -3869,20 +3935,44 @@
             
             // Handle authentication errors
             if (response.status === 401) {
-                console.log('Authentication required, redirecting to login');
+                console.log('Authentication session expired, redirecting to main page');
                 localStorage.clear();
-                window.location.href = '/login';
-                throw new Error('Authentication required');
+                window.location.href = '/';
+                throw new Error('Authentication session expired');
             }
             
             return response;
         }
 
-        // Sidebar login functionality
+        // Form toggle functions
+        function showLoginForm() {
+            document.getElementById('login-form-container').style.display = 'block';
+            document.getElementById('register-form-container').style.display = 'none';
+            document.getElementById('login-toggle-btn').classList.add('active');
+            document.getElementById('register-toggle-btn').classList.remove('active');
+            
+            // Clear any errors
+            document.getElementById('sidebar-login-error').style.display = 'none';
+            document.getElementById('sidebar-register-error').style.display = 'none';
+        }
+        
+        function showRegisterForm() {
+            document.getElementById('login-form-container').style.display = 'none';
+            document.getElementById('register-form-container').style.display = 'block';
+            document.getElementById('login-toggle-btn').classList.remove('active');
+            document.getElementById('register-toggle-btn').classList.add('active');
+            
+            // Clear any errors
+            document.getElementById('sidebar-login-error').style.display = 'none';
+            document.getElementById('sidebar-register-error').style.display = 'none';
+        }
+        
+        // Sidebar authentication functionality
         function setupSidebarLogin() {
+            // Setup login form
             const sidebarLoginForm = document.getElementById('sidebar-login-form');
             const sidebarLoginBtn = document.getElementById('sidebar-login-btn');
-            const sidebarError = document.getElementById('sidebar-error');
+            const sidebarLoginError = document.getElementById('sidebar-login-error');
             const sidebarSpinner = document.getElementById('sidebar-loading-spinner');
             
             if (sidebarLoginForm) {
@@ -3890,14 +3980,13 @@
                     e.preventDefault();
                     
                     // Hide error
-                    sidebarError.style.display = 'none';
+                    sidebarLoginError.style.display = 'none';
                     
                     // Show loading
                     sidebarLoginBtn.disabled = true;
                     sidebarSpinner.style.display = 'inline-block';
                     sidebarLoginBtn.textContent = 'Signing In...';
                     
-                    const formData = new FormData(sidebarLoginForm);
                     const email = document.getElementById('sidebar-email').value.trim();
                     const password = document.getElementById('sidebar-password').value;
                     
@@ -3925,12 +4014,12 @@
                             updateUserInterface();
                             
                         } else {
-                            sidebarError.textContent = result.error || 'Login failed';
-                            sidebarError.style.display = 'block';
+                            sidebarLoginError.textContent = result.error || 'Login failed';
+                            sidebarLoginError.style.display = 'block';
                         }
                     } catch (error) {
-                        sidebarError.textContent = 'Network error. Please try again.';
-                        sidebarError.style.display = 'block';
+                        sidebarLoginError.textContent = 'Network error. Please try again.';
+                        sidebarLoginError.style.display = 'block';
                     } finally {
                         // Reset button
                         sidebarLoginBtn.disabled = false;
@@ -3940,6 +4029,85 @@
                         if (currentUser) {
                             // Clear form on success
                             sidebarLoginForm.reset();
+                        }
+                    }
+                });
+            }
+            
+            // Setup register form
+            const sidebarRegisterForm = document.getElementById('sidebar-register-form');
+            const sidebarRegisterBtn = document.getElementById('sidebar-register-btn');
+            const sidebarRegisterError = document.getElementById('sidebar-register-error');
+            const sidebarRegisterSpinner = document.getElementById('sidebar-loading-spinner-register');
+            
+            if (sidebarRegisterForm) {
+                sidebarRegisterForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    // Hide error
+                    sidebarRegisterError.style.display = 'none';
+                    
+                    const email = document.getElementById('sidebar-register-email').value.trim();
+                    const password = document.getElementById('sidebar-register-password').value;
+                    const confirmPassword = document.getElementById('sidebar-register-confirm-password').value;
+                    
+                    // Basic validation
+                    if (password !== confirmPassword) {
+                        sidebarRegisterError.textContent = 'Passwords do not match';
+                        sidebarRegisterError.style.display = 'block';
+                        return;
+                    }
+                    
+                    if (password.length < 1) {
+                        sidebarRegisterError.textContent = 'Password is required';
+                        sidebarRegisterError.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Show loading
+                    sidebarRegisterBtn.disabled = true;
+                    sidebarRegisterSpinner.style.display = 'inline-block';
+                    sidebarRegisterBtn.textContent = 'Creating Account...';
+                    
+                    try {
+                        const response = await fetch('/api/register', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                email: email,
+                                password: password
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            // Store session info
+                            localStorage.setItem('session_token', result.session_token);
+                            localStorage.setItem('current_user', JSON.stringify(result.user));
+                            
+                            // Update current user and UI
+                            currentUser = result.user;
+                            updateUserInterface();
+                            
+                        } else {
+                            sidebarRegisterError.textContent = result.error || 'Registration failed';
+                            sidebarRegisterError.style.display = 'block';
+                        }
+                    } catch (error) {
+                        sidebarRegisterError.textContent = 'Network error. Please try again.';
+                        sidebarRegisterError.style.display = 'block';
+                    } finally {
+                        // Reset button
+                        sidebarRegisterBtn.disabled = false;
+                        sidebarRegisterSpinner.style.display = 'none';
+                        sidebarRegisterBtn.textContent = 'Create Account';
+                        
+                        if (currentUser) {
+                            // Clear form on success
+                            sidebarRegisterForm.reset();
                         }
                     }
                 });
