@@ -4,9 +4,19 @@ A production-ready ChatGPT-style web application featuring advanced LangGraph mu
 
 **🌐 Live at: [aiezzy.com](https://aiezzy.com)**
 
-## 🆕 Latest Updates (August 23, 2025)
+## 🆕 Latest Updates (August 25, 2025)
 
-### ✅ Bug Fixes & Improvements
+### 🔐 **User Authentication & Management System**
+- **Complete Authentication**: Secure user registration, login, and session management
+- **Guest Access**: Non-registered users can use all AI features without signing up
+- **Sidebar Login**: Integrated login form in sidebar for seamless authentication
+- **User Profiles**: Profile management, password changes, and account settings
+- **Session Security**: 30-day secure sessions with automatic cleanup and IP logging
+- **Simplified Registration**: Only email and password required, usernames auto-generated
+- **Rate Limiting Removed**: No login attempt restrictions for better user experience
+- **User-Specific Storage**: Individual conversation history and data isolation
+
+### ✅ Previous Bug Fixes & Improvements (August 23, 2025)
 - **Fixed Recursion Limit Error**: Resolved infinite loop issues with proper stop conditions
 - **Updated Deprecated Imports**: Fixed LangChain compatibility issues
 - **Enhanced Multi-Image Workflow**: Now automatically accesses generated images from conversation history
@@ -88,6 +98,17 @@ A production-ready ChatGPT-style web application featuring advanced LangGraph mu
 - **No Blank Screens**: Users always see what's happening during processing
 - **Professional Feedback**: Eliminates confusion during long operations
 
+### 🔐 **User Authentication & Management**
+- **Guest Access**: Use all AI features immediately without registration
+- **Seamless Registration**: Simple email + password signup with auto-generated usernames
+- **Secure Sessions**: 30-day session management with automatic cleanup and IP logging
+- **Sidebar Login**: Integrated authentication form in sidebar (no separate login page)
+- **User Profiles**: Account settings, password changes, and usage statistics
+- **Conversation Persistence**: Save and access chat history across sessions (logged-in users)
+- **Data Privacy**: Complete user-specific data isolation and privacy protection
+- **No Rate Limits**: Unlimited login/registration attempts for optimal user experience
+- **Smart UI Switching**: Dynamic interface that adapts based on authentication status
+
 ### 📤 **Simplified Upload Experience**
 - **One-Click Multi-Upload**: Select 1-5 images with single attachment button
 - **No Complex Dialogs**: Removed confusing popup choices between single/multi modes
@@ -133,6 +154,19 @@ python app.py
 
 ## 🎯 Usage Guide
 
+### Getting Started
+**As a Guest (No Registration Required):**
+- Visit http://localhost:5000
+- Start using all AI features immediately
+- Sidebar shows login form for optional registration
+- All functionality available without creating an account
+
+**For Registered Users:**
+- Use sidebar login or visit `/register` for account creation
+- Only email and password required (username auto-generated)
+- Access conversation history and profile management
+- Persistent chat history across sessions
+
 ### Web Interface Features
 1. **Text Chat**: Ask questions, request explanations, or have conversations
 2. **Image Analysis**: Upload images and ask "What do you see?" or specific questions
@@ -143,10 +177,10 @@ python app.py
 7. **Multi-Image Fusion**: Upload multiple images and request "Combine these images" or "Merge these photos"
 8. **Web Search**: Ask "What are the latest..." or "Current news about..."
 9. **Multi-Step Workflows**: Complex requests like "Get news, create a video, write a post"
-10. **Conversation Management**: 
-    - Click "New chat" to start fresh conversations
-    - Click any item in "Recent Chats" to switch conversations
-    - Hover over chat items to delete unwanted conversations
+10. **Authentication Features**:
+    - **Guests**: Use sidebar login form or continue without registration
+    - **Users**: Access Recent Chats, profile settings, and persistent conversations
+    - **Account Management**: Change password, update profile, view statistics
 
 ### Example Prompts
 
