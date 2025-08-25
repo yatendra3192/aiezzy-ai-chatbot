@@ -583,10 +583,7 @@ def api_register():
         email = data.get('email', '').strip().lower()
         password = data.get('password', '')
         
-        # Rate limiting
-        client_ip = get_client_ip()
-        if not rate_limit_check(f"register_{client_ip}", limit=5, window=3600):  # 5 attempts per hour
-            return jsonify({'error': 'Too many registration attempts. Try again later.'}), 429
+        # Rate limiting removed - allow unlimited registration attempts
         
         # Validation
         if not email or not is_valid_email(email):
@@ -633,10 +630,7 @@ def api_login():
         password = data.get('password', '')
         remember_me = data.get('remember_me', False)
         
-        # Rate limiting
-        client_ip = get_client_ip()
-        if not rate_limit_check(f"login_{client_ip}", limit=10, window=900):  # 10 attempts per 15 minutes
-            return jsonify({'error': 'Too many login attempts. Try again later.'}), 429
+        # Rate limiting removed - allow unlimited login attempts
         
         if not username or not password:
             return jsonify({'error': 'Username and password are required'}), 400
