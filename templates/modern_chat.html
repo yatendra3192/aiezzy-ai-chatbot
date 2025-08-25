@@ -150,6 +150,128 @@
         .dropdown-item.danger:hover {
             background: #fef2f2;
         }
+        
+        /* Guest login section */
+        .guest-section {
+            padding: 16px;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .login-form-container {
+            width: 100%;
+            max-width: 240px;
+        }
+        
+        .login-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        
+        .login-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            text-align: center;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+        
+        .sidebar-form-group {
+            margin-bottom: 12px;
+        }
+        
+        .sidebar-form-group input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            font-size: 14px;
+            background: var(--bg);
+            color: var(--text);
+            transition: border-color 0.2s ease;
+        }
+        
+        .sidebar-form-group input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .sidebar-form-group input::placeholder {
+            color: var(--text-muted);
+        }
+        
+        .sidebar-login-btn {
+            width: 100%;
+            padding: 10px 16px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .sidebar-login-btn:hover {
+            background: #0284c7;
+            transform: translateY(-1px);
+        }
+        
+        .sidebar-login-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .sidebar-loading-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        .sidebar-error {
+            background: #fef2f2;
+            color: #dc2626;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            margin-bottom: 12px;
+            border-left: 3px solid #dc2626;
+        }
+        
+        .sidebar-register-link {
+            margin-top: 16px;
+            text-align: center;
+        }
+        
+        .sidebar-register-link p {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin: 0;
+        }
+        
+        .sidebar-register-link a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .sidebar-register-link a:hover {
+            text-decoration: underline;
+        }
 
         .sidebar-nav {
             flex: 1;
@@ -1650,14 +1772,43 @@
                     <span style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); background: #f59e0b; color: white; font-size: 9px; padding: 1px 4px; border-radius: 6px; font-weight: 500;">Soon</span>
                 </a>
                 
-                <div class="nav-section">Recent Chats</div>
+                <!-- Recent Chats for authenticated users -->
+                <div class="authenticated-section" id="authenticated-section" style="display: none;">
+                    <div class="nav-section">Recent Chats</div>
+                    <div class="chat-list" id="chat-list">
+                        <!-- Recent chats will be populated here -->
+                    </div>
+                </div>
                 
-                <div class="chat-list" id="chat-list">
-                    <!-- Recent chats will be populated here -->
+                <!-- Login form for non-authenticated users -->
+                <div class="guest-section" id="guest-section">
+                    <div class="login-form-container">
+                        <h3 class="login-title">Sign in to your account</h3>
+                        <p class="login-subtitle">Save and access your chat history</p>
+                        
+                        <div id="sidebar-error" class="sidebar-error" style="display: none;"></div>
+                        
+                        <form id="sidebar-login-form" class="sidebar-login-form">
+                            <div class="sidebar-form-group">
+                                <input type="email" id="sidebar-email" placeholder="Email" required>
+                            </div>
+                            <div class="sidebar-form-group">
+                                <input type="password" id="sidebar-password" placeholder="Password" required>
+                            </div>
+                            <button type="submit" class="sidebar-login-btn" id="sidebar-login-btn">
+                                <span class="sidebar-loading-spinner" id="sidebar-loading-spinner" style="display: none;"></span>
+                                Sign In
+                            </button>
+                        </form>
+                        
+                        <div class="sidebar-register-link">
+                            <p>Don't have an account? <a href="/register">Sign up</a></p>
+                        </div>
+                    </div>
                 </div>
             </div>
             
-            <div class="sidebar-footer">
+            <div class="sidebar-footer" id="sidebar-footer" style="display: none;">
                 <div class="user-profile" id="user-profile" onclick="toggleProfileDropdown()">
                     <div class="user-avatar" id="user-avatar">U</div>
                     <div class="user-info">
@@ -3623,32 +3774,45 @@
                 
                 if (result.authenticated) {
                     currentUser = result.user;
-                    updateUserInterface();
                 } else {
-                    // Not authenticated, redirect to login
-                    window.location.href = '/login';
+                    currentUser = null;
                 }
+                
+                updateUserInterface();
             } catch (error) {
                 console.error('Authentication check failed:', error);
-                window.location.href = '/login';
+                currentUser = null;
+                updateUserInterface();
             }
         }
         
         function updateUserInterface() {
+            const authenticatedSection = document.getElementById('authenticated-section');
+            const guestSection = document.getElementById('guest-section');
+            const sidebarFooter = document.getElementById('sidebar-footer');
+            
             if (currentUser) {
+                // Show authenticated UI
+                authenticatedSection.style.display = 'block';
+                guestSection.style.display = 'none';
+                sidebarFooter.style.display = 'block';
+                
+                // Update user profile info
                 const avatar = document.getElementById('user-avatar');
                 const userName = document.getElementById('user-name');
                 const userEmail = document.getElementById('user-email');
                 
-                // Update avatar with first letter of username
                 avatar.textContent = (currentUser.full_name || currentUser.username || 'U')[0].toUpperCase();
-                
-                // Update name and email
                 userName.textContent = currentUser.full_name || currentUser.username;
                 userEmail.textContent = currentUser.email;
                 
-                // Show user profile section
-                document.getElementById('user-profile').style.display = 'flex';
+                // Load conversations for authenticated users
+                loadAllConversations();
+            } else {
+                // Show guest UI
+                authenticatedSection.style.display = 'none';
+                guestSection.style.display = 'block';
+                sidebarFooter.style.display = 'none';
             }
         }
         
@@ -3714,12 +3878,82 @@
             return response;
         }
 
+        // Sidebar login functionality
+        function setupSidebarLogin() {
+            const sidebarLoginForm = document.getElementById('sidebar-login-form');
+            const sidebarLoginBtn = document.getElementById('sidebar-login-btn');
+            const sidebarError = document.getElementById('sidebar-error');
+            const sidebarSpinner = document.getElementById('sidebar-loading-spinner');
+            
+            if (sidebarLoginForm) {
+                sidebarLoginForm.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    // Hide error
+                    sidebarError.style.display = 'none';
+                    
+                    // Show loading
+                    sidebarLoginBtn.disabled = true;
+                    sidebarSpinner.style.display = 'inline-block';
+                    sidebarLoginBtn.textContent = 'Signing In...';
+                    
+                    const formData = new FormData(sidebarLoginForm);
+                    const email = document.getElementById('sidebar-email').value.trim();
+                    const password = document.getElementById('sidebar-password').value;
+                    
+                    try {
+                        const response = await fetch('/api/login', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                username: email,
+                                password: password
+                            })
+                        });
+                        
+                        const result = await response.json();
+                        
+                        if (result.success) {
+                            // Store session info
+                            localStorage.setItem('session_token', result.session_token);
+                            localStorage.setItem('current_user', JSON.stringify(result.user));
+                            
+                            // Update current user and UI
+                            currentUser = result.user;
+                            updateUserInterface();
+                            
+                        } else {
+                            sidebarError.textContent = result.error || 'Login failed';
+                            sidebarError.style.display = 'block';
+                        }
+                    } catch (error) {
+                        sidebarError.textContent = 'Network error. Please try again.';
+                        sidebarError.style.display = 'block';
+                    } finally {
+                        // Reset button
+                        sidebarLoginBtn.disabled = false;
+                        sidebarSpinner.style.display = 'none';
+                        sidebarLoginBtn.textContent = 'Sign In';
+                        
+                        if (currentUser) {
+                            // Clear form on success
+                            sidebarLoginForm.reset();
+                        }
+                    }
+                });
+            }
+        }
+
         window.addEventListener('load', async function() {
             // Check authentication first
             await loadCurrentUser();
             
-            // Then load conversations and start chat
-            loadAllConversations();
+            // Setup sidebar login
+            setupSidebarLogin();
+            
+            // Start new chat
             startNewChat();
         });
     </script>
