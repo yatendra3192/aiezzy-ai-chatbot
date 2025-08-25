@@ -3857,7 +3857,11 @@
             const guestSection = document.getElementById('guest-section');
             const sidebarFooter = document.getElementById('sidebar-footer');
             
+            console.log('updateUserInterface called with currentUser:', currentUser);
+            console.log('Found elements - auth:', !!authenticatedSection, 'guest:', !!guestSection, 'footer:', !!sidebarFooter);
+            
             if (currentUser) {
+                console.log('User is authenticated, showing authenticated UI');
                 // Show authenticated UI
                 authenticatedSection.style.display = 'block';
                 guestSection.style.display = 'none';
@@ -3875,6 +3879,7 @@
                 // Load conversations for authenticated users
                 loadAllConversations();
             } else {
+                console.log('User is not authenticated, showing guest UI');
                 // Show guest UI
                 authenticatedSection.style.display = 'none';
                 guestSection.style.display = 'block';
@@ -4125,19 +4130,25 @@
                             localStorage.setItem('session_token', result.session_token);
                             localStorage.setItem('current_user', JSON.stringify(result.user));
                             
-                            // FIXED: Immediately set currentUser and use let to preserve scope
+                            // FIXED: Immediately set currentUser and use shorter delay
                             const newUser = result.user;
                             currentUser = newUser;
+                            console.log('Registration success: Immediately set currentUser to', newUser);
                             
                             // Update current user and UI after a brief delay to show success message
                             setTimeout(() => {
-                                console.log('Registration success: Auto-login with user', newUser);
-                                currentUser = newUser; // Ensure it's still set
+                                console.log('Registration success: About to call updateUserInterface with currentUser:', currentUser);
                                 updateUserInterface();
                                 // Clear the form since we're now authenticated
                                 sidebarRegisterForm.reset();
-                                console.log('Registration success: Switched to authenticated UI');
-                            }, 1500); // Show success message for 1.5 seconds
+                                console.log('Registration success: Called updateUserInterface and reset form');
+                                
+                                // Force a check of UI state
+                                const authSection = document.getElementById('authenticated-section');
+                                const guestSection = document.getElementById('guest-section');
+                                console.log('Auth section display:', authSection ? authSection.style.display : 'not found');
+                                console.log('Guest section display:', guestSection ? guestSection.style.display : 'not found');
+                            }, 1000); // Reduced to 1 second
                             
                         } else {
                             // Reset error styles for actual errors
