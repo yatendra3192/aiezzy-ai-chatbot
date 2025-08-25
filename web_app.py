@@ -1424,7 +1424,7 @@ def file_browser():
                                         'modified': stat.st_mtime,
                                         'user_id': user_dir,
                                         'full_path': f'{directory_path}/{user_dir}/{filename}',
-                                        'url': f'/admin/view-conversation/{user_id}/{conversation_id}',  # Now viewable!
+                                        'url': f'/admin/view-conversation/{user_dir}/{conversation_id}',  # Now viewable!
                                         'conversation_title': conversation_data.get('title', 'Untitled') if conversation_data else 'Untitled',
                                         'message_count': len(conversation_data.get('messages', [])) if conversation_data else 0,
                                         'last_updated': conversation_data.get('lastUpdated') if conversation_data else None,
