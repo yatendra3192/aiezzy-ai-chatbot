@@ -1397,6 +1397,7 @@ def file_browser():
         for directory_path, display_name in directory_mapping:
             if os.path.exists(directory_path):
                 files = []
+                print(f"Admin Debug: Processing {display_name} at {directory_path}")
                 
                 if directory_path == CONVERSATIONS_DIR:
                     # Special handling for conversations - look in user directories
@@ -1452,8 +1453,12 @@ def file_browser():
                 
                 # Sort files by modification time (newest first)
                 files.sort(key=lambda x: x['modified'], reverse=True)
-                # Use display_name as key for template
+                # Use display_name as key for template (works for both conversation and standard directories)
                 file_data[display_name] = files
+            else:
+                print(f"Admin Debug: Directory does not exist: {display_name} at {directory_path}")
+                # Still add empty entry so it shows in the admin panel
+                file_data[display_name] = []
         
         return render_template('file_browser.html', file_data=file_data)
         
