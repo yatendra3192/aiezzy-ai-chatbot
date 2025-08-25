@@ -156,10 +156,8 @@ def get_step_context(history):
 @optional_auth
 def index():
     user = get_current_user()
-    if user:
-        return render_template('modern_chat.html')
-    else:
-        return redirect(url_for('login_page'))
+    # Allow both authenticated and non-authenticated users to access the main app
+    return render_template('modern_chat.html', current_user=user)
 
 @web_app.route('/original')
 def original_interface():
@@ -174,7 +172,7 @@ def modern_interface():
     return render_template('modern_chat.html')
 
 @web_app.route('/api/chat', methods=['POST'])
-@login_required
+@optional_auth
 def chat():
     try:
         data = request.get_json()
@@ -384,7 +382,7 @@ def chat():
         return jsonify({'error': str(e)}), 500
 
 @web_app.route('/api/analyze-image', methods=['POST'])
-@login_required
+@optional_auth
 def analyze_image():
     try:
         # Handle both single and multiple image uploads automatically
