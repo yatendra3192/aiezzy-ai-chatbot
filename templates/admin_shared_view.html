@@ -122,6 +122,20 @@
             margin: 10px 0;
         }
 
+        /* Styles for embedded content in messages */
+        .message-content img {
+            max-width: 400px;
+            border-radius: 8px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        .message-content video {
+            max-width: 500px;
+            border-radius: 12px;
+            margin: 12px 0;
+        }
+
         .timestamp {
             font-size: 12px;
             color: var(--text-muted);
@@ -151,7 +165,7 @@
             {% for message in shared_content.messages %}
             <div class="message {{ 'user' if message.isUser else 'assistant' }}">
                 <div class="message-role">{{ 'User' if message.isUser else 'Assistant' }}</div>
-                <div class="message-content">{{ message.content }}</div>
+                <div class="message-content">{{ message.content|safe }}</div>
                 {% if message.imageData %}
                     <img src="{{ message.imageData }}" class="message-image" alt="Message image">
                 {% endif %}
