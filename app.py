@@ -23,9 +23,20 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 import fal_client
 fal_client.api_key = os.getenv("FAL_KEY")
 
-ASSETS_DIR = pathlib.Path("assets")
+# Configure persistent storage paths for Railway
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    # Production: Use Railway persistent volume
+    DATA_DIR = pathlib.Path('/app/data')
+    ASSETS_DIR = DATA_DIR / 'assets'
+    VIDEOS_DIR = DATA_DIR / 'videos'
+    # Ensure data directory exists
+    DATA_DIR.mkdir(exist_ok=True)
+else:
+    # Development: Use local directories
+    ASSETS_DIR = pathlib.Path("assets")
+    VIDEOS_DIR = pathlib.Path("videos")
+
 ASSETS_DIR.mkdir(exist_ok=True)
-VIDEOS_DIR = pathlib.Path("videos")
 VIDEOS_DIR.mkdir(exist_ok=True)
 
 # --- Helpers ---------------------------------------------------------------

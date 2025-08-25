@@ -14,8 +14,32 @@ from auth import login_required, admin_required, optional_auth, get_current_user
 
 # Initialize Flask app
 web_app = Flask(__name__)
-web_app.config['UPLOAD_FOLDER'] = 'uploads'
+
+# Configure persistent storage paths for Railway
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    # Production: Use Railway persistent volume
+    DATA_DIR = '/app/data'
+    web_app.config['UPLOAD_FOLDER'] = f'{DATA_DIR}/uploads'
+    ASSETS_DIR = f'{DATA_DIR}/assets'
+    VIDEOS_DIR = f'{DATA_DIR}/videos' 
+    CONVERSATIONS_DIR = f'{DATA_DIR}/conversations'
+    DATABASE_PATH = f'{DATA_DIR}/aiezzy_users.db'
+else:
+    # Development: Use local directories
+    DATA_DIR = '.'
+    web_app.config['UPLOAD_FOLDER'] = 'uploads'
+    ASSETS_DIR = 'assets'
+    VIDEOS_DIR = 'videos'
+    CONVERSATIONS_DIR = 'conversations'
+    DATABASE_PATH = 'aiezzy_users.db'
+
 web_app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Create directories if they don't exist
+os.makedirs(web_app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(ASSETS_DIR, exist_ok=True)
+os.makedirs(VIDEOS_DIR, exist_ok=True)
+os.makedirs(CONVERSATIONS_DIR, exist_ok=True)
 
 # Initialize authentication
 init_auth(web_app)
@@ -99,8 +123,7 @@ feature_requests = {}
 # Store user conversations persistently
 user_conversations = {}
 
-# Create conversations directory for server-side storage
-os.makedirs('conversations', exist_ok=True)
+# Conversations directory already created above with CONVERSATIONS_DIR
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -508,11 +531,11 @@ def analyze_image():
 
 @web_app.route('/assets/<filename>')
 def serve_asset(filename):
-    return send_from_directory('assets', filename)
+    return send_from_directory(ASSETS_DIR, filename)
 
 @web_app.route('/uploads/<filename>')
 def serve_upload(filename):
-    return send_from_directory('uploads', filename)
+    return send_from_directory(web_app.config['UPLOAD_FOLDER'], filename)
 
 @web_app.route('/logo.png')
 def serve_logo():
@@ -524,7 +547,7 @@ def serve_favicon():
 
 @web_app.route('/videos/<filename>')
 def serve_video(filename):
-    return send_from_directory('videos', filename)
+    return send_from_directory(VIDEOS_DIR, filename)
 
 @web_app.route('/api/clear-context', methods=['POST'])
 def clear_context():
@@ -861,7 +884,7 @@ def save_conversation():
             return jsonify({'error': 'Missing conversation_id or conversation_data'}), 400
         
         # Create user-specific conversation directory
-        user_conv_dir = os.path.join('conversations', user_id)
+        user_conv_dir = os.path.join(CONVERSATIONS_DIR, user_id)
         os.makedirs(user_conv_dir, exist_ok=True)
         
         # Save conversation to file
@@ -907,7 +930,7 @@ def load_conversations():
             conversations = {}
             
         # Load from files if not in memory
-        user_conv_dir = os.path.join('conversations', user_id)
+        user_conv_dir = os.path.join(CONVERSATIONS_DIR, user_id)
         if os.path.exists(user_conv_dir):
             for filename in os.listdir(user_conv_dir):
                 if filename.endswith('.json'):
@@ -958,7 +981,7 @@ def get_conversation(conversation_id):
             conversation = user_conversations[user_id][conversation_id]
         else:
             # Load from file
-            conv_file_path = os.path.join('conversations', user_id, f'{conversation_id}.json')
+            conv_file_path = os.path.join(CONVERSATIONS_DIR, user_id, f'{conversation_id}.json')
             if os.path.exists(conv_file_path):
                 with open(conv_file_path, 'r', encoding='utf-8') as f:
                     conversation = json.load(f)
@@ -991,7 +1014,7 @@ def delete_conversation(conversation_id):
             del user_conversations[user_id][conversation_id]
         
         # Remove file
-        conv_file_path = os.path.join('conversations', user_id, f'{conversation_id}.json')
+        conv_file_path = os.path.join(CONVERSATIONS_DIR, user_id, f'{conversation_id}.json')
         if os.path.exists(conv_file_path):
             os.remove(conv_file_path)
             return jsonify({'success': True, 'message': 'Conversation deleted'})
@@ -1011,7 +1034,7 @@ def export_conversation(conversation_id):
         export_format = request.args.get('format', 'json').lower()
         
         # Get conversation data
-        conv_file_path = os.path.join('conversations', user_id, f'{conversation_id}.json')
+        conv_file_path = os.path.join(CONVERSATIONS_DIR, user_id, f'{conversation_id}.json')
         if not os.path.exists(conv_file_path):
             return jsonify({'error': 'Conversation not found'}), 404
         
@@ -1105,7 +1128,7 @@ def export_all_conversations():
         zip_buffer = BytesIO()
         
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
-            user_conv_dir = os.path.join('conversations', user_id)
+            user_conv_dir = os.path.join(CONVERSATIONS_DIR, user_id)
             
             if os.path.exists(user_conv_dir):
                 for filename in os.listdir(user_conv_dir):
@@ -1340,13 +1363,13 @@ def file_browser():
     try:
         # Get files from all directories
         file_data = {}
-        directories = ['assets', 'videos', 'uploads', 'shared', 'feature_requests', 'conversations']
+        directories = [ASSETS_DIR, VIDEOS_DIR, web_app.config['UPLOAD_FOLDER'], 'shared', 'feature_requests', CONVERSATIONS_DIR]
         
         for directory in directories:
             if os.path.exists(directory):
                 files = []
                 
-                if directory == 'conversations':
+                if directory == CONVERSATIONS_DIR:
                     # Special handling for conversations - look in user directories
                     for user_dir in os.listdir(directory):
                         user_path = os.path.join(directory, user_dir)

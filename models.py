@@ -12,8 +12,15 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, List
 import json
 
-# Database file path
-DB_PATH = 'aiezzy_users.db'
+# Database file path - use environment-specific path
+if os.environ.get('RAILWAY_ENVIRONMENT'):
+    # Production: Use Railway persistent volume
+    DB_PATH = '/app/data/aiezzy_users.db'
+    # Ensure data directory exists
+    os.makedirs('/app/data', exist_ok=True)
+else:
+    # Development: Use local file
+    DB_PATH = 'aiezzy_users.db'
 
 class Database:
     """Simple database manager for user authentication"""

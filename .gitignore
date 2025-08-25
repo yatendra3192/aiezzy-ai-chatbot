@@ -35,7 +35,16 @@ Thumbs.db
 *.tmp
 *.temp
 
-# User uploaded content (optional - you might want to include some sample images)
-# uploads/
-# assets/
-# videos/
+# Database files - these should persist across deployments
+*.db
+aiezzy_users.db
+
+# User generated content - stored in Railway persistent volumes
+uploads/
+assets/
+videos/
+conversations/
+
+# Temporary files
+*.tmp
+*.temp
