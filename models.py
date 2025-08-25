@@ -119,28 +119,43 @@ class UserManager:
         except:
             return False
     
-    def create_user(self, username: str, email: str, password: str, full_name: str = None) -> Dict:
+    def create_user(self, email: str, password: str, full_name: str = None) -> Dict:
         """Create a new user account"""
         conn = self.db.get_connection()
         try:
-            # Check if username or email already exists
+            # Check if email already exists
             existing = conn.execute(
-                'SELECT id FROM users WHERE username = ? OR email = ?', 
-                (username, email)
+                'SELECT id FROM users WHERE email = ?', 
+                (email,)
             ).fetchone()
             
             if existing:
-                return {'success': False, 'error': 'Username or email already exists'}
+                return {'success': False, 'error': 'Email already exists'}
             
             # Validate input
-            if len(username) < 3:
-                return {'success': False, 'error': 'Username must be at least 3 characters'}
-            
-            if len(password) < 6:
-                return {'success': False, 'error': 'Password must be at least 6 characters'}
-            
             if '@' not in email:
                 return {'success': False, 'error': 'Invalid email format'}
+            
+            if len(password) < 1:
+                return {'success': False, 'error': 'Password is required'}
+            
+            # Generate username from email (part before @)
+            username = email.split('@')[0]
+            
+            # Make sure username is unique by adding numbers if needed
+            base_username = username
+            counter = 1
+            while True:
+                existing_username = conn.execute(
+                    'SELECT id FROM users WHERE username = ?', 
+                    (username,)
+                ).fetchone()
+                
+                if not existing_username:
+                    break
+                    
+                username = f"{base_username}{counter}"
+                counter += 1
             
             # Create user
             password_hash = self.hash_password(password)
@@ -153,11 +168,12 @@ class UserManager:
             conn.commit()
             
             # Log activity
-            self.log_activity(user_id, 'account_created', {'username': username})
+            self.log_activity(user_id, 'account_created', {'username': username, 'email': email})
             
             return {
                 'success': True, 
                 'user_id': user_id,
+                'username': username,
                 'message': 'User created successfully'
             }
             

@@ -580,10 +580,8 @@ def api_register():
     """User registration API endpoint"""
     try:
         data = request.get_json()
-        username = sanitize_username(data.get('username', ''))
         email = data.get('email', '').strip().lower()
         password = data.get('password', '')
-        full_name = data.get('full_name', '').strip()
         
         # Rate limiting
         client_ip = get_client_ip()
@@ -591,36 +589,34 @@ def api_register():
             return jsonify({'error': 'Too many registration attempts. Try again later.'}), 429
         
         # Validation
-        if not username:
-            return jsonify({'error': 'Username is required'}), 400
-        
         if not email or not is_valid_email(email):
             return jsonify({'error': 'Valid email is required'}), 400
         
         if not password:
             return jsonify({'error': 'Password is required'}), 400
         
-        # Password strength validation
+        # Password strength validation (simplified)
         password_errors = validate_password_strength(password)
         if password_errors:
             return jsonify({'error': password_errors[0]}), 400  # Return first error
         
-        # Create user
-        result = user_manager.create_user(username, email, password, full_name)
+        # Create user (username will be auto-generated from email)
+        result = user_manager.create_user(email, password)
         
         if result['success']:
             # Log activity
             user_manager.log_activity(
                 result['user_id'], 
                 'account_created', 
-                {'username': username, 'email': email},
+                {'username': result['username'], 'email': email},
                 client_ip
             )
             
             return jsonify({
                 'success': True,
                 'message': 'Account created successfully. Please log in.',
-                'user_id': result['user_id']
+                'user_id': result['user_id'],
+                'username': result['username']
             })
         else:
             return jsonify(result), 400

@@ -161,26 +161,13 @@ def rate_limit_check(key, limit=5, window=300):
     return True
 
 def validate_password_strength(password):
-    """Validate password strength requirements"""
+    """Validate password strength requirements - simplified"""
     errors = []
     
-    if len(password) < 8:
-        errors.append("Password must be at least 8 characters long")
+    if len(password) < 1:
+        errors.append("Password is required")
     
-    if not any(c.isupper() for c in password):
-        errors.append("Password must contain at least one uppercase letter")
-    
-    if not any(c.islower() for c in password):
-        errors.append("Password must contain at least one lowercase letter")
-    
-    if not any(c.isdigit() for c in password):
-        errors.append("Password must contain at least one number")
-    
-    # Optional: check for special characters
-    # special_chars = "!@#$%^&*()_+-=[]{}|;:,.<>?"
-    # if not any(c in special_chars for c in password):
-    #     errors.append("Password must contain at least one special character")
-    
+    # No other requirements - users can use any password they like
     return errors
 
 def sanitize_username(username):

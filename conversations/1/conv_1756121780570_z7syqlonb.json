@@ -1,0 +1,37 @@
+{
+  "id": "conv_1756121780570_z7syqlonb",
+  "title": "Create 2 images one man with w...",
+  "lastUpdated": "2025-08-25T11:39:33.179Z",
+  "history": [
+    {
+      "role": "user",
+      "content": "Create 2 images one man with white hair and 2nd image of a woman in green hair then create a combined image of Man and woman in front of house then create a video of them walking together",
+      "hasImage": false,
+      "imagePath": null,
+      "timestamp": "2025-08-25T11:36:27.376Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Here are the results of your request:\n\n1. **Image of a Man with White Hair**:\n   <img src=\"/assets/img_1756121834.png\" class=\"message-image\" alt=\"Generated image\" onclick=\"openImageModal('/assets/img_1756121834.png')\">\n\n2. **Image of a Woman with Green Hair**:\n   <img src=\"/assets/img_1756121833.png\" class=\"message-image\" alt=\"Generated image\" onclick=\"openImageModal('/assets/img_1756121833.png')\">\n\n3. **Combined Image of the Man and Woman in Front of a House**:\n   <img src=\"/assets/multi_1756121872.png\" class=\"message-image\" alt=\"Multi-image generated\" onclick=\"openImageModal('/assets/multi_1756121872.png')\">\n\n4. **Video of Them Walking Together**:\n   <video controls class=\"message-video\" style=\"max-width: 500px; border-radius: 12px; margin: 12px 0;\"><source src=\"/videos/video_1756121908.mp4\" type=\"video/mp4\">Your browser does not support the video tag.</video>\n\nFeel free to view and download the images and video!",
+      "timestamp": "2025-08-25T11:38:31.323Z"
+    }
+  ],
+  "messages": [
+    {
+      "content": "Create 2 images one man with white hair and 2nd image of a woman in green hair then create a combined image of Man and woman in front of house then create a video of them walking together",
+      "isUser": true,
+      "timestamp": "05:06 PM",
+      "hasImage": false,
+      "imageData": null
+    },
+    {
+      "content": "Here are the results of your request:\n\n1. **Image of a Man with White Hair**:\n   <img src=\"/assets/img_1756121834.png\" class=\"message-image\" alt=\"Generated image\" onclick=\"openImageModal('/assets/img_1756121834.png')\">\n\n2. **Image of a Woman with Green Hair**:\n   <img src=\"/assets/img_1756121833.png\" class=\"message-image\" alt=\"Generated image\" onclick=\"openImageModal('/assets/img_1756121833.png')\">\n\n3. **Combined Image of the Man and Woman in Front of a House**:\n   <img src=\"/assets/multi_1756121872.png\" class=\"message-image\" alt=\"Multi-image generated\" onclick=\"openImageModal('/assets/multi_1756121872.png')\">\n\n4. **Video of Them Walking Together**:\n   <video controls class=\"message-video\" style=\"max-width: 500px; border-radius: 12px; margin: 12px 0;\"><source src=\"/videos/video_1756121908.mp4\" type=\"video/mp4\">Your browser does not support the video tag.</video>\n\nFeel free to view and download the images and video!",
+      "isUser": false,
+      "timestamp": "05:08 PM",
+      "imageData": null
+    }
+  ],
+  "saved_at": 1756121973.1953075,
+  "user_id": "1",
+  "server_saved": true
+}
