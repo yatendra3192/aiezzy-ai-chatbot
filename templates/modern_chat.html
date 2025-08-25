@@ -4005,31 +4005,50 @@
                         const result = await response.json();
                         
                         if (result.success) {
+                            // Show success message briefly
+                            sidebarLoginError.style.background = '#dcfce7';
+                            sidebarLoginError.style.color = '#16a34a';
+                            sidebarLoginError.style.borderLeftColor = '#16a34a';
+                            sidebarLoginError.textContent = '✓ Welcome back!';
+                            sidebarLoginError.style.display = 'block';
+                            
                             // Store session info
                             localStorage.setItem('session_token', result.session_token);
                             localStorage.setItem('current_user', JSON.stringify(result.user));
                             
-                            // Update current user and UI
-                            currentUser = result.user;
-                            updateUserInterface();
+                            // Update current user and UI after a brief delay
+                            setTimeout(() => {
+                                currentUser = result.user;
+                                updateUserInterface();
+                            }, 1000); // Show success message for 1 second
                             
                         } else {
+                            // Reset error styles for actual errors
+                            sidebarLoginError.style.background = '#fef2f2';
+                            sidebarLoginError.style.color = '#dc2626';
+                            sidebarLoginError.style.borderLeftColor = '#dc2626';
                             sidebarLoginError.textContent = result.error || 'Login failed';
                             sidebarLoginError.style.display = 'block';
                         }
                     } catch (error) {
+                        // Reset error styles for network errors
+                        sidebarLoginError.style.background = '#fef2f2';
+                        sidebarLoginError.style.color = '#dc2626';
+                        sidebarLoginError.style.borderLeftColor = '#dc2626';
                         sidebarLoginError.textContent = 'Network error. Please try again.';
                         sidebarLoginError.style.display = 'block';
-                    } finally {
-                        // Reset button
+                        
+                        // Reset button immediately for errors
                         sidebarLoginBtn.disabled = false;
                         sidebarSpinner.style.display = 'none';
                         sidebarLoginBtn.textContent = 'Sign In';
-                        
-                        if (currentUser) {
-                            // Clear form on success
-                            sidebarLoginForm.reset();
-                        }
+                    }
+                    
+                    // Only reset button for non-success cases (success is handled with delay above)
+                    if (!currentUser) {
+                        sidebarLoginBtn.disabled = false;
+                        sidebarSpinner.style.display = 'none';
+                        sidebarLoginBtn.textContent = 'Sign In';
                     }
                 });
             }
@@ -4084,31 +4103,50 @@
                         const result = await response.json();
                         
                         if (result.success) {
+                            // Show success message briefly
+                            sidebarRegisterError.style.background = '#dcfce7';
+                            sidebarRegisterError.style.color = '#16a34a';
+                            sidebarRegisterError.style.borderLeftColor = '#16a34a';
+                            sidebarRegisterError.textContent = '✓ Account created successfully! Welcome to AIezzy!';
+                            sidebarRegisterError.style.display = 'block';
+                            
                             // Store session info
                             localStorage.setItem('session_token', result.session_token);
                             localStorage.setItem('current_user', JSON.stringify(result.user));
                             
-                            // Update current user and UI
-                            currentUser = result.user;
-                            updateUserInterface();
+                            // Update current user and UI after a brief delay
+                            setTimeout(() => {
+                                currentUser = result.user;
+                                updateUserInterface();
+                            }, 1500); // Show success message for 1.5 seconds
                             
                         } else {
+                            // Reset error styles for actual errors
+                            sidebarRegisterError.style.background = '#fef2f2';
+                            sidebarRegisterError.style.color = '#dc2626';
+                            sidebarRegisterError.style.borderLeftColor = '#dc2626';
                             sidebarRegisterError.textContent = result.error || 'Registration failed';
                             sidebarRegisterError.style.display = 'block';
                         }
                     } catch (error) {
+                        // Reset error styles for network errors
+                        sidebarRegisterError.style.background = '#fef2f2';
+                        sidebarRegisterError.style.color = '#dc2626';
+                        sidebarRegisterError.style.borderLeftColor = '#dc2626';
                         sidebarRegisterError.textContent = 'Network error. Please try again.';
                         sidebarRegisterError.style.display = 'block';
-                    } finally {
-                        // Reset button
+                        
+                        // Reset button immediately for errors
                         sidebarRegisterBtn.disabled = false;
                         sidebarRegisterSpinner.style.display = 'none';
                         sidebarRegisterBtn.textContent = 'Create Account';
-                        
-                        if (currentUser) {
-                            // Clear form on success
-                            sidebarRegisterForm.reset();
-                        }
+                    }
+                    
+                    // Only reset button for non-success cases (success is handled with delay above)
+                    if (!currentUser) {
+                        sidebarRegisterBtn.disabled = false;
+                        sidebarRegisterSpinner.style.display = 'none';
+                        sidebarRegisterBtn.textContent = 'Create Account';
                     }
                 });
             }
