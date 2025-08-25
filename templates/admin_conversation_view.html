@@ -107,7 +107,7 @@
     </style>
 </head>
 <body>
-    <a href="/admin/files" class="back-btn">← Back to File Browser</a>
+    <a href="/admin/files?key={{ request.args.get('key', '') }}" class="back-btn">← Back to File Browser</a>
     
     <div class="header">
         <h1>{{ conversation.title or 'Untitled Conversation' }}</h1>

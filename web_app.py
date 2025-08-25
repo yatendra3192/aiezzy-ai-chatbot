@@ -1382,6 +1382,9 @@ def file_browser():
         """, 401
     
     try:
+        # Get admin key for passing to view URLs
+        admin_key = request.args.get('key', '')
+        
         # Get files from all directories
         file_data = {}
         # Directory mapping: (actual_path, display_name)
@@ -1424,7 +1427,7 @@ def file_browser():
                                         'modified': stat.st_mtime,
                                         'user_id': user_dir,
                                         'full_path': f'{directory_path}/{user_dir}/{filename}',
-                                        'url': f'/admin/view-conversation/{user_dir}/{conversation_id}',  # Now viewable!
+                                        'url': f'/admin/view-conversation/{user_dir}/{conversation_id}?key={admin_key}',  # Now viewable!
                                         'conversation_title': conversation_data.get('title', 'Untitled') if conversation_data else 'Untitled',
                                         'message_count': len(conversation_data.get('messages', [])) if conversation_data else 0,
                                         'last_updated': conversation_data.get('lastUpdated') if conversation_data else None,
@@ -1447,7 +1450,7 @@ def file_browser():
                             elif directory_path == 'shared' and filename.endswith('.json'):
                                 # Shared content - create view URL
                                 share_id = filename[:-5]  # Remove .json extension
-                                file_url = f'/admin/view-shared/{share_id}'
+                                file_url = f'/admin/view-shared/{share_id}?key={admin_key}'
                             elif directory_path == 'feature_requests' and filename.endswith('.json'):
                                 # Feature requests - could add view URL later
                                 file_url = None
@@ -1468,7 +1471,7 @@ def file_browser():
                 # Still add empty entry so it shows in the admin panel
                 file_data[display_name] = []
         
-        return render_template('file_browser.html', file_data=file_data)
+        return render_template('file_browser.html', file_data=file_data, admin_key=admin_key)
         
     except Exception as e:
         return f"Error browsing files: {str(e)}", 500
