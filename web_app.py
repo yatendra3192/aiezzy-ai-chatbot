@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, session, redirect, url_for
 import os
 import base64
 import uuid
@@ -8,10 +8,20 @@ import secrets
 from werkzeug.utils import secure_filename
 from app import app as langgraph_app, encode_image_to_content_block, set_recent_image_path, clear_thread_cache, clear_thread_context, reset_all_context, set_current_thread_id
 
+# Import authentication modules
+from models import UserManager
+from auth import login_required, admin_required, optional_auth, get_current_user, get_user_id, create_session, clear_session, get_client_ip, get_user_agent, rate_limit_check, validate_password_strength, sanitize_username, is_valid_email, init_auth
+
 # Initialize Flask app
 web_app = Flask(__name__)
 web_app.config['UPLOAD_FOLDER'] = 'uploads'
 web_app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+
+# Initialize authentication
+init_auth(web_app)
+
+# Initialize user manager
+user_manager = UserManager()
 
 # Add custom filter for timestamp formatting
 @web_app.template_filter('timestamp_to_date')
@@ -143,8 +153,13 @@ def get_step_context(history):
     return None
 
 @web_app.route('/')
+@optional_auth
 def index():
-    return render_template('modern_chat.html')
+    user = get_current_user()
+    if user:
+        return render_template('modern_chat.html')
+    else:
+        return redirect(url_for('login_page'))
 
 @web_app.route('/original')
 def original_interface():
@@ -159,6 +174,7 @@ def modern_interface():
     return render_template('modern_chat.html')
 
 @web_app.route('/api/chat', methods=['POST'])
+@login_required
 def chat():
     try:
         data = request.get_json()
@@ -368,6 +384,7 @@ def chat():
         return jsonify({'error': str(e)}), 500
 
 @web_app.route('/api/analyze-image', methods=['POST'])
+@login_required
 def analyze_image():
     try:
         # Handle both single and multiple image uploads automatically
@@ -540,6 +557,224 @@ def reset_context():
 
 # Removed analyze-multi-images endpoint - now handled by unified analyze-image endpoint
 
+# Authentication Endpoints
+@web_app.route('/login')
+def login_page():
+    """Login page"""
+    return render_template('auth/login.html')
+
+@web_app.route('/register')
+def register_page():
+    """Registration page"""
+    return render_template('auth/register.html')
+
+@web_app.route('/profile')
+@login_required
+def profile_page():
+    """User profile page"""
+    user = get_current_user()
+    return render_template('auth/profile.html', user=user)
+
+@web_app.route('/api/register', methods=['POST'])
+def api_register():
+    """User registration API endpoint"""
+    try:
+        data = request.get_json()
+        username = sanitize_username(data.get('username', ''))
+        email = data.get('email', '').strip().lower()
+        password = data.get('password', '')
+        full_name = data.get('full_name', '').strip()
+        
+        # Rate limiting
+        client_ip = get_client_ip()
+        if not rate_limit_check(f"register_{client_ip}", limit=5, window=3600):  # 5 attempts per hour
+            return jsonify({'error': 'Too many registration attempts. Try again later.'}), 429
+        
+        # Validation
+        if not username:
+            return jsonify({'error': 'Username is required'}), 400
+        
+        if not email or not is_valid_email(email):
+            return jsonify({'error': 'Valid email is required'}), 400
+        
+        if not password:
+            return jsonify({'error': 'Password is required'}), 400
+        
+        # Password strength validation
+        password_errors = validate_password_strength(password)
+        if password_errors:
+            return jsonify({'error': password_errors[0]}), 400  # Return first error
+        
+        # Create user
+        result = user_manager.create_user(username, email, password, full_name)
+        
+        if result['success']:
+            # Log activity
+            user_manager.log_activity(
+                result['user_id'], 
+                'account_created', 
+                {'username': username, 'email': email},
+                client_ip
+            )
+            
+            return jsonify({
+                'success': True,
+                'message': 'Account created successfully. Please log in.',
+                'user_id': result['user_id']
+            })
+        else:
+            return jsonify(result), 400
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/login', methods=['POST'])
+def api_login():
+    """User login API endpoint"""
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
+        remember_me = data.get('remember_me', False)
+        
+        # Rate limiting
+        client_ip = get_client_ip()
+        if not rate_limit_check(f"login_{client_ip}", limit=10, window=900):  # 10 attempts per 15 minutes
+            return jsonify({'error': 'Too many login attempts. Try again later.'}), 429
+        
+        if not username or not password:
+            return jsonify({'error': 'Username and password are required'}), 400
+        
+        # Authenticate user
+        result = user_manager.authenticate_user(
+            username, password, client_ip, get_user_agent()
+        )
+        
+        if result['success']:
+            # Create session
+            create_session(result['user'], result['session_token'])
+            
+            return jsonify({
+                'success': True,
+                'message': 'Login successful',
+                'user': result['user'],
+                'session_token': result['session_token']
+            })
+        else:
+            return jsonify(result), 401
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/logout', methods=['POST'])
+@login_required
+def api_logout():
+    """User logout API endpoint"""
+    try:
+        from auth import g
+        
+        # Get session token
+        session_token = getattr(g, 'session_token', None) or session.get('session_token')
+        
+        if session_token:
+            user_manager.logout_user(session_token)
+        
+        # Clear session
+        clear_session()
+        
+        return jsonify({'success': True, 'message': 'Logged out successfully'})
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/user/profile', methods=['GET'])
+@login_required
+def api_get_profile():
+    """Get user profile"""
+    try:
+        user = get_current_user()
+        user_id = user['id']
+        
+        # Get user stats
+        stats = user_manager.get_user_stats(user_id)
+        
+        return jsonify({
+            'success': True,
+            'user': user,
+            'stats': stats
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/user/profile', methods=['PUT'])
+@login_required
+def api_update_profile():
+    """Update user profile"""
+    try:
+        user = get_current_user()
+        user_id = user['id']
+        data = request.get_json()
+        
+        # Extract allowed fields
+        update_data = {}
+        if 'full_name' in data:
+            update_data['full_name'] = data['full_name'].strip()
+        if 'email' in data:
+            email = data['email'].strip().lower()
+            if not is_valid_email(email):
+                return jsonify({'error': 'Invalid email format'}), 400
+            update_data['email'] = email
+        
+        # Update profile
+        result = user_manager.update_user_profile(user_id, **update_data)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/user/change-password', methods=['PUT'])
+@login_required
+def api_change_password():
+    """Change user password"""
+    try:
+        user = get_current_user()
+        user_id = user['id']
+        data = request.get_json()
+        
+        old_password = data.get('old_password', '')
+        new_password = data.get('new_password', '')
+        
+        if not old_password or not new_password:
+            return jsonify({'error': 'Both old and new passwords are required'}), 400
+        
+        # Password strength validation
+        password_errors = validate_password_strength(new_password)
+        if password_errors:
+            return jsonify({'error': password_errors[0]}), 400
+        
+        # Change password
+        result = user_manager.change_password(user_id, old_password, new_password)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/api/user/check-auth', methods=['GET'])
+@optional_auth
+def api_check_auth():
+    """Check if user is authenticated"""
+    user = get_current_user()
+    if user:
+        return jsonify({
+            'authenticated': True,
+            'user': user
+        })
+    else:
+        return jsonify({'authenticated': False})
+
 @web_app.route('/api/share-conversation', methods=['POST'])
 def share_conversation():
     """Create a public link for sharing a conversation"""
@@ -623,13 +858,14 @@ def view_shared_conversation(share_id):
         return render_template('shared_error.html', error=str(e)), 500
 
 @web_app.route('/api/save-conversation', methods=['POST'])
+@login_required
 def save_conversation():
     """Save a conversation to server-side storage for persistence"""
     try:
         data = request.get_json()
         conversation_id = data.get('conversation_id')
         conversation_data = data.get('conversation_data')
-        user_id = data.get('user_id', 'default_user')  # For future user authentication
+        user_id = get_user_id()  # Get authenticated user ID
         
         if not conversation_id or not conversation_data:
             return jsonify({'error': 'Missing conversation_id or conversation_data'}), 400
@@ -668,10 +904,11 @@ def save_conversation():
         return jsonify({'error': str(e)}), 500
 
 @web_app.route('/api/load-conversations')
+@login_required
 def load_conversations():
     """Load all conversations for a user from server-side storage"""
     try:
-        user_id = request.args.get('user_id', 'default_user')
+        user_id = get_user_id()  # Get authenticated user ID
         
         # Load from memory first
         if user_id in user_conversations:
@@ -720,10 +957,11 @@ def load_conversations():
         return jsonify({'error': str(e)}), 500
 
 @web_app.route('/api/get-conversation/<conversation_id>')
+@login_required
 def get_conversation(conversation_id):
     """Get a specific conversation by ID"""
     try:
-        user_id = request.args.get('user_id', 'default_user')
+        user_id = get_user_id()  # Get authenticated user ID
         
         # Check memory first
         if user_id in user_conversations and conversation_id in user_conversations[user_id]:
@@ -752,10 +990,11 @@ def get_conversation(conversation_id):
         return jsonify({'error': str(e)}), 500
 
 @web_app.route('/api/delete-conversation/<conversation_id>', methods=['DELETE'])
+@login_required
 def delete_conversation(conversation_id):
     """Delete a conversation from server storage"""
     try:
-        user_id = request.args.get('user_id', 'default_user')
+        user_id = get_user_id()  # Get authenticated user ID
         
         # Remove from memory
         if user_id in user_conversations and conversation_id in user_conversations[user_id]:
@@ -774,10 +1013,11 @@ def delete_conversation(conversation_id):
         return jsonify({'error': str(e)}), 500
 
 @web_app.route('/api/export-conversation/<conversation_id>')
+@login_required
 def export_conversation(conversation_id):
     """Export a conversation as JSON, Markdown, or HTML"""
     try:
-        user_id = request.args.get('user_id', 'default_user')
+        user_id = get_user_id()  # Get authenticated user ID
         export_format = request.args.get('format', 'json').lower()
         
         # Get conversation data
@@ -861,10 +1101,11 @@ def export_conversation(conversation_id):
         return jsonify({'error': str(e)}), 500
 
 @web_app.route('/api/export-all-conversations')
+@login_required
 def export_all_conversations():
     """Export all conversations as a ZIP file"""
     try:
-        user_id = request.args.get('user_id', 'default_user')
+        user_id = get_user_id()  # Get authenticated user ID
         export_format = request.args.get('format', 'json').lower()
         
         import zipfile

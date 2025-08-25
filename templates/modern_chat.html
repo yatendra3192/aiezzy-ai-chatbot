@@ -53,6 +53,102 @@
         .sidebar-header {
             padding: 16px;
             border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: var(--bg-subtle);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            width: 100%;
+        }
+        
+        .user-profile:hover {
+            background: var(--border);
+        }
+        
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            flex-shrink: 0;
+        }
+        
+        .user-info {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .user-name {
+            font-size: 14px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: var(--text);
+        }
+        
+        .user-email {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .profile-dropdown {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 -4px 12px var(--shadow);
+            padding: 8px 0;
+            min-width: 160px;
+            z-index: 1000;
+            display: none;
+            margin-bottom: 8px;
+        }
+        
+        .profile-dropdown.show {
+            display: block;
+        }
+        
+        .dropdown-item {
+            display: block;
+            padding: 8px 16px;
+            color: var(--text);
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.2s ease;
+        }
+        
+        .dropdown-item:hover {
+            background: var(--bg-subtle);
+        }
+        
+        .dropdown-item.danger {
+            color: #dc2626;
+        }
+        
+        .dropdown-item.danger:hover {
+            background: #fef2f2;
         }
 
         .sidebar-nav {
@@ -1526,7 +1622,7 @@
         
         <!-- Sidebar -->
         <nav class="sidebar" role="navigation">
-            <div class="sidebar-header" style="display: flex; align-items: center; justify-content: center;">
+            <div class="sidebar-header">
                 <img src="/logo.png" alt="AIezzy Logo" style="height: 40px; width: auto; border-radius: 8px; object-fit: contain;">
             </div>
             
@@ -1562,15 +1658,19 @@
             </div>
             
             <div class="sidebar-footer">
-                <div class="account-chip">
-                    <div class="account-avatar">YA</div>
-                    <div class="account-info">
-                        <div class="account-name">Yatendra</div>
-                        <div class="account-plan">Plus</div>
+                <div class="user-profile" id="user-profile" onclick="toggleProfileDropdown()">
+                    <div class="user-avatar" id="user-avatar">U</div>
+                    <div class="user-info">
+                        <div class="user-name" id="user-name">Loading...</div>
+                        <div class="user-email" id="user-email"></div>
                     </div>
                     <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M7 10l5 5 5-5z"/>
                     </svg>
+                    <div class="profile-dropdown" id="profile-dropdown">
+                        <a href="/profile" class="dropdown-item">Profile Settings</a>
+                        <a href="#" class="dropdown-item danger" onclick="logout()">Logout</a>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -3513,10 +3613,113 @@
         }
 
         // Load conversations on page load
-        window.addEventListener('load', function() {
-            loadAllConversations();
+        // User authentication functions
+        let currentUser = null;
+        
+        async function loadCurrentUser() {
+            try {
+                const response = await fetch('/api/user/check-auth');
+                const result = await response.json();
+                
+                if (result.authenticated) {
+                    currentUser = result.user;
+                    updateUserInterface();
+                } else {
+                    // Not authenticated, redirect to login
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                window.location.href = '/login';
+            }
+        }
+        
+        function updateUserInterface() {
+            if (currentUser) {
+                const avatar = document.getElementById('user-avatar');
+                const userName = document.getElementById('user-name');
+                const userEmail = document.getElementById('user-email');
+                
+                // Update avatar with first letter of username
+                avatar.textContent = (currentUser.full_name || currentUser.username || 'U')[0].toUpperCase();
+                
+                // Update name and email
+                userName.textContent = currentUser.full_name || currentUser.username;
+                userEmail.textContent = currentUser.email;
+                
+                // Show user profile section
+                document.getElementById('user-profile').style.display = 'flex';
+            }
+        }
+        
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profile-dropdown');
+            dropdown.classList.toggle('show');
+        }
+        
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const profileSection = document.getElementById('user-profile');
+            const dropdown = document.getElementById('profile-dropdown');
             
-            // Start with a new conversation
+            if (!profileSection.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+        
+        async function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                try {
+                    await fetch('/api/logout', { method: 'POST' });
+                } catch (error) {
+                    console.error('Logout error:', error);
+                }
+                
+                // Clear local storage and redirect
+                localStorage.clear();
+                window.location.href = '/login';
+            }
+        }
+        
+        // Update API calls to include authentication
+        async function makeAuthenticatedRequest(url, options = {}) {
+            const sessionToken = localStorage.getItem('session_token');
+            
+            const defaultHeaders = {
+                'Content-Type': 'application/json',
+            };
+            
+            if (sessionToken) {
+                defaultHeaders['Authorization'] = `Bearer ${sessionToken}`;
+            }
+            
+            const mergedOptions = {
+                ...options,
+                headers: {
+                    ...defaultHeaders,
+                    ...options.headers
+                }
+            };
+            
+            const response = await fetch(url, mergedOptions);
+            
+            // Handle authentication errors
+            if (response.status === 401) {
+                console.log('Authentication required, redirecting to login');
+                localStorage.clear();
+                window.location.href = '/login';
+                throw new Error('Authentication required');
+            }
+            
+            return response;
+        }
+
+        window.addEventListener('load', async function() {
+            // Check authentication first
+            await loadCurrentUser();
+            
+            // Then load conversations and start chat
+            loadAllConversations();
             startNewChat();
         });
     </script>

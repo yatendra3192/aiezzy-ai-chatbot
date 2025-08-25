@@ -1,0 +1,187 @@
+{
+  "id": "conv_1756120297249_rhlucdv62",
+  "title": "hi",
+  "lastUpdated": "2025-08-25T11:17:23.538Z",
+  "history": [
+    {
+      "role": "user",
+      "content": "hi",
+      "hasImage": false,
+      "imagePath": null,
+      "timestamp": "2025-08-25T11:13:28.437Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! How can I assist you today?",
+      "timestamp": "2025-08-25T11:13:30.483Z"
+    },
+    {
+      "role": "user",
+      "content": "i am yatendra",
+      "hasImage": false,
+      "imagePath": null,
+      "timestamp": "2025-08-25T11:13:37.701Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello Yatendra! How can I assist you today?",
+      "timestamp": "2025-08-25T11:13:39.793Z"
+    },
+    {
+      "role": "user",
+      "content": "you know the name of my dog",
+      "hasImage": false,
+      "imagePath": null,
+      "timestamp": "2025-08-25T11:13:46.816Z"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm sorry, I don't have access to personal information like the name of your dog. If you'd like to share it, feel free to let me know!",
+      "timestamp": "2025-08-25T11:13:48.765Z"
+    },
+    {
+      "role": "user",
+      "content": "it's same a as my name",
+      "hasImage": false,
+      "imagePath": null,
+      "timestamp": "2025-08-25T11:13:59.847Z"
+    },
+    {
+      "role": "assistant",
+      "content": "That's interesting! So your dog's name is Yatendra as well. How can I assist you and Yatendra today?",
+      "timestamp": "2025-08-25T11:14:01.607Z"
+    },
+    {
+      "role": "user",
+      "content": "yes do you know thw name of my wife",
+      "hasImage": false,
+      "imagePath": null,
+      "timestamp": "2025-08-25T11:14:12.848Z"
+    },
+    {
+      "role": "assistant",
+      "content": "I'm sorry, I don't have access to personal information such as the name of your wife. If there's anything else you'd like to share or need help with, feel free to let me know!",
+      "timestamp": "2025-08-25T11:14:14.303Z"
+    },
+    {
+      "role": "user",
+      "content": "it's the same as my mother",
+      "hasImage": false,
+      "imagePath": null,
+      "timestamp": "2025-08-25T11:14:28.045Z"
+    },
+    {
+      "role": "assistant",
+      "content": "That's a unique and interesting coincidence! If there's anything specific you'd like to discuss or need help with, feel free to let me know.",
+      "timestamp": "2025-08-25T11:14:29.848Z"
+    },
+    {
+      "role": "user",
+      "content": "create a image of my name",
+      "hasImage": false,
+      "imagePath": null,
+      "timestamp": "2025-08-25T11:14:39.989Z"
+    },
+    {
+      "role": "assistant",
+      "content": "Here is an artistic representation of the name \"Yatendra\" in a creative and vibrant style:\n\n<img src=\"/assets/img_1756120523.png\" class=\"message-image\" alt=\"Generated image\" onclick=\"openImageModal('/assets/img_1756120523.png')\">\n\nI hope you like it! If you need any adjustments or another design, feel free to let me know.",
+      "timestamp": "2025-08-25T11:15:26.415Z"
+    }
+  ],
+  "messages": [
+    {
+      "content": "hi",
+      "isUser": true,
+      "timestamp": "04:43 PM",
+      "hasImage": false,
+      "imageData": null
+    },
+    {
+      "content": "Hello! How can I assist you today?",
+      "isUser": false,
+      "timestamp": "04:43 PM",
+      "imageData": null
+    },
+    {
+      "content": "i am yatendra",
+      "isUser": true,
+      "timestamp": "04:43 PM",
+      "hasImage": false,
+      "imageData": null
+    },
+    {
+      "content": "Hello Yatendra! How can I assist you today?",
+      "isUser": false,
+      "timestamp": "04:43 PM",
+      "imageData": null
+    },
+    {
+      "content": "you know the name of my dog",
+      "isUser": true,
+      "timestamp": "04:43 PM",
+      "hasImage": false,
+      "imageData": null
+    },
+    {
+      "content": "I'm sorry, I don't have access to personal information like the name of your dog. If you'd like to share it, feel free to let me know!",
+      "isUser": false,
+      "timestamp": "04:43 PM",
+      "imageData": null
+    },
+    {
+      "content": "it's same a as my name",
+      "isUser": true,
+      "timestamp": "04:43 PM",
+      "hasImage": false,
+      "imageData": null
+    },
+    {
+      "content": "That's interesting! So your dog's name is Yatendra as well. How can I assist you and Yatendra today?",
+      "isUser": false,
+      "timestamp": "04:44 PM",
+      "imageData": null
+    },
+    {
+      "content": "yes do you know thw name of my wife",
+      "isUser": true,
+      "timestamp": "04:44 PM",
+      "hasImage": false,
+      "imageData": null
+    },
+    {
+      "content": "I'm sorry, I don't have access to personal information such as the name of your wife. If there's anything else you'd like to share or need help with, feel free to let me know!",
+      "isUser": false,
+      "timestamp": "04:44 PM",
+      "imageData": null
+    },
+    {
+      "content": "it's the same as my mother",
+      "isUser": true,
+      "timestamp": "04:44 PM",
+      "hasImage": false,
+      "imageData": null
+    },
+    {
+      "content": "That's a unique and interesting coincidence! If there's anything specific you'd like to discuss or need help with, feel free to let me know.",
+      "isUser": false,
+      "timestamp": "04:44 PM",
+      "imageData": null
+    },
+    {
+      "content": "create a image of my name",
+      "isUser": true,
+      "timestamp": "04:44 PM",
+      "hasImage": false,
+      "imageData": null
+    },
+    {
+      "content": "Here is an artistic representation of the name \"Yatendra\" in a creative and vibrant style:\n\n<img src=\"/assets/img_1756120523.png\" class=\"message-image\" alt=\"Generated image\" onclick=\"openImageModal('/assets/img_1756120523.png')\">\n\nI hope you like it! If you need any adjustments or another design, feel free to let me know.",
+      "isUser": false,
+      "timestamp": "04:45 PM",
+      "imageData": null
+    }
+  ],
+  "saved_at": 1756120643.871055,
+  "user_id": "1",
+  "server_saved": true
+}
