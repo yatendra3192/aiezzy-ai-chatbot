@@ -4016,10 +4016,18 @@
                             localStorage.setItem('session_token', result.session_token);
                             localStorage.setItem('current_user', JSON.stringify(result.user));
                             
-                            // Update current user and UI after a brief delay
+                            // FIXED: Immediately set currentUser and use const to preserve scope
+                            const returningUser = result.user;
+                            currentUser = returningUser;
+                            
+                            // Update current user and UI after a brief delay to show success message
                             setTimeout(() => {
-                                currentUser = result.user;
+                                console.log('Login success: Continuing session for user', returningUser);
+                                currentUser = returningUser; // Ensure it's still set
                                 updateUserInterface();
+                                // Clear the form since we're now authenticated
+                                sidebarLoginForm.reset();
+                                console.log('Login success: Switched to authenticated UI');
                             }, 1000); // Show success message for 1 second
                             
                         } else {
@@ -4044,12 +4052,15 @@
                         sidebarLoginBtn.textContent = 'Sign In';
                     }
                     
-                    // Only reset button for non-success cases (success is handled with delay above)
-                    if (!currentUser) {
-                        sidebarLoginBtn.disabled = false;
-                        sidebarSpinner.style.display = 'none';
-                        sidebarLoginBtn.textContent = 'Sign In';
-                    }
+                    // Reset button state for any non-error cases (success will be handled by timeout)
+                    setTimeout(() => {
+                        if (currentUser) {
+                            // Success case - reset button after UI update
+                            sidebarLoginBtn.disabled = false;
+                            sidebarSpinner.style.display = 'none';
+                            sidebarLoginBtn.textContent = 'Sign In';
+                        }
+                    }, 1200); // Reset slightly after the UI update
                 });
             }
             
@@ -4114,10 +4125,18 @@
                             localStorage.setItem('session_token', result.session_token);
                             localStorage.setItem('current_user', JSON.stringify(result.user));
                             
-                            // Update current user and UI after a brief delay
+                            // FIXED: Immediately set currentUser and use let to preserve scope
+                            const newUser = result.user;
+                            currentUser = newUser;
+                            
+                            // Update current user and UI after a brief delay to show success message
                             setTimeout(() => {
-                                currentUser = result.user;
+                                console.log('Registration success: Auto-login with user', newUser);
+                                currentUser = newUser; // Ensure it's still set
                                 updateUserInterface();
+                                // Clear the form since we're now authenticated
+                                sidebarRegisterForm.reset();
+                                console.log('Registration success: Switched to authenticated UI');
                             }, 1500); // Show success message for 1.5 seconds
                             
                         } else {
@@ -4142,12 +4161,15 @@
                         sidebarRegisterBtn.textContent = 'Create Account';
                     }
                     
-                    // Only reset button for non-success cases (success is handled with delay above)
-                    if (!currentUser) {
-                        sidebarRegisterBtn.disabled = false;
-                        sidebarRegisterSpinner.style.display = 'none';
-                        sidebarRegisterBtn.textContent = 'Create Account';
-                    }
+                    // Reset button state for any non-error cases (success will be handled by timeout)
+                    setTimeout(() => {
+                        if (currentUser) {
+                            // Success case - reset button after UI update
+                            sidebarRegisterBtn.disabled = false;
+                            sidebarRegisterSpinner.style.display = 'none';
+                            sidebarRegisterBtn.textContent = 'Create Account';
+                        }
+                    }, 1700); // Reset slightly after the UI update
                 });
             }
         }
