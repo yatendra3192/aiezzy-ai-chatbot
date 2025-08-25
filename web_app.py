@@ -584,6 +584,7 @@ def api_register():
         password = data.get('password', '')
         
         # Rate limiting removed - allow unlimited registration attempts
+        client_ip = get_client_ip()  # Still needed for logging
         
         # Validation
         if not email or not is_valid_email(email):
@@ -631,6 +632,7 @@ def api_login():
         remember_me = data.get('remember_me', False)
         
         # Rate limiting removed - allow unlimited login attempts
+        client_ip = get_client_ip()  # Still needed for logging
         
         if not username or not password:
             return jsonify({'error': 'Username and password are required'}), 400
