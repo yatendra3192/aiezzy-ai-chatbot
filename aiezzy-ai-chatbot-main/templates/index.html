@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LangGraph Multi-Agent App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 30px;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #6b7280;
+            transition: all 0.3s ease;
+        }
+
+        .tab.active {
+            color: #4f46e5;
+            border-bottom: 3px solid #4f46e5;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .input-field {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1em;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+
+        .file-upload {
+            border: 2px dashed #d1d5db;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-upload:hover {
+            border-color: #4f46e5;
+            background: #f8fafc;
+        }
+
+        .file-upload.dragover {
+            border-color: #4f46e5;
+            background: #eef2ff;
+        }
+
+        .upload-icon {
+            font-size: 3em;
+            color: #9ca3af;
+            margin-bottom: 15px;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #4f46e5;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8fafc;
+            border-radius: 10px;
+            border-left: 4px solid #4f46e5;
+        }
+
+        .result h3 {
+            color: #374151;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .result-content {
+            color: #4b5563;
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+
+        .generated-image {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+
+        .error {
+            background: #fef2f2;
+            border-left-color: #ef4444;
+        }
+
+        .error .result-content {
+            color: #dc2626;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                text-align: left;
+                padding: 10px 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 LangGraph Multi-Agent</h1>
+            <p>Vision Analysis & Image Generation with AI Agents</p>
+        </div>
+        
+        <div class="main-content">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('chat')">💬 Text Chat</button>
+                <button class="tab" onclick="switchTab('vision')">👁️ Vision Analysis</button>
+                <button class="tab" onclick="switchTab('generate')">🎨 Image Generation</button>
+            </div>
+            
+            <!-- Text Chat Tab -->
+            <div id="chat-tab" class="tab-content active">
+                <div class="input-group">
+                    <label for="chat-message">Ask the AI anything:</label>
+                    <textarea id="chat-message" class="input-field" rows="4" 
+                              placeholder="E.g., Create a logo for my startup, or ask any question..."></textarea>
+                </div>
+                <button class="btn" onclick="sendChatMessage()">Send Message</button>
+            </div>
+            
+            <!-- Vision Analysis Tab -->
+            <div id="vision-tab" class="tab-content">
+                <div class="input-group">
+                    <label>Upload an image to analyze:</label>
+                    <div class="file-upload" onclick="document.getElementById('vision-file').click()" 
+                         ondrop="handleDrop(event, 'vision')" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)">
+                        <div class="upload-icon">📷</div>
+                        <p><strong>Click to upload</strong> or drag and drop</p>
+                        <p style="color: #6b7280; margin-top: 5px;">PNG, JPG, JPEG, GIF, WEBP up to 16MB</p>
+                    </div>
+                    <input type="file" id="vision-file" accept="image/*" style="display: none;" onchange="handleFileSelect(event, 'vision')">
+                </div>
+                
+                <div class="input-group">
+                    <label for="vision-question">What would you like to know about the image?</label>
+                    <input type="text" id="vision-question" class="input-field" 
+                           placeholder="E.g., What's in this image? Describe the scene..." 
+                           value="What's in this image? Give me a detailed description.">
+                </div>
+                
+                <button class="btn" onclick="analyzeImage()" id="vision-btn">Analyze Image</button>
+            </div>
+            
+            <!-- Image Generation Tab -->
+            <div id="generate-tab" class="tab-content">
+                <div class="input-group">
+                    <label for="generate-prompt">Describe the image you want to create:</label>
+                    <textarea id="generate-prompt" class="input-field" rows="4" 
+                              placeholder="E.g., A minimal, modern black-and-white logo of a fox with transparent background"></textarea>
+                </div>
+                <button class="btn" onclick="generateImage()">Generate Image</button>
+            </div>
+            
+            <!-- Loading indicator -->
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Processing your request...</p>
+            </div>
+            
+            <!-- Results -->
+            <div id="result" class="result" style="display: none;">
+                <h3>Response:</h3>
+                <div id="result-content" class="result-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content and mark tab as active
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+            
+            // Hide result when switching tabs
+            document.getElementById('result').style.display = 'none';
+        }
+
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+        }
+
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        function showResult(content, isError = false) {
+            const resultDiv = document.getElementById('result');
+            const resultContent = document.getElementById('result-content');
+            
+            resultDiv.className = 'result' + (isError ? ' error' : '');
+            resultContent.innerHTML = content;
+            resultDiv.style.display = 'block';
+        }
+
+        function sendChatMessage() {
+            const message = document.getElementById('chat-message').value.trim();
+            if (!message) {
+                alert('Please enter a message');
+                return;
+            }
+
+            showLoading();
+
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    showResult('Error: ' + data.error, true);
+                } else {
+                    let content = data.response;
+                    // Check if response contains image path
+                    if (content.includes('Image saved to')) {
+                        const imagePath = content.match(/assets\\(.*?\.png)/);
+                        if (imagePath) {
+                            content += '<br><br><img src="/assets/' + imagePath[1] + '" class="generated-image" alt="Generated image">';
+                        }
+                    }
+                    showResult(content);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showResult('Error: ' + error.message, true);
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.classList.add('dragover');
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.classList.remove('dragover');
+        }
+
+        function handleDrop(e, type) {
+            e.preventDefault();
+            e.currentTarget.classList.remove('dragover');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                selectedFile = files[0];
+                updateFileDisplay(type);
+            }
+        }
+
+        function handleFileSelect(e, type) {
+            selectedFile = e.target.files[0];
+            updateFileDisplay(type);
+        }
+
+        function updateFileDisplay(type) {
+            const uploadDiv = document.querySelector(`#${type}-tab .file-upload`);
+            if (selectedFile) {
+                uploadDiv.innerHTML = `
+                    <div class="upload-icon">✅</div>
+                    <p><strong>Selected:</strong> ${selectedFile.name}</p>
+                    <p style="color: #6b7280;">Click to change or drag a new file</p>
+                `;
+            }
+        }
+
+        function analyzeImage() {
+            if (!selectedFile) {
+                alert('Please select an image first');
+                return;
+            }
+
+            const question = document.getElementById('vision-question').value.trim();
+            if (!question) {
+                alert('Please enter a question about the image');
+                return;
+            }
+
+            showLoading();
+
+            const formData = new FormData();
+            formData.append('image', selectedFile);
+            formData.append('message', question);
+
+            fetch('/api/analyze-image', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    showResult('Error: ' + data.error, true);
+                } else {
+                    showResult(data.response);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showResult('Error: ' + error.message, true);
+            });
+        }
+
+        function generateImage() {
+            const prompt = document.getElementById('generate-prompt').value.trim();
+            if (!prompt) {
+                alert('Please enter a description for the image');
+                return;
+            }
+
+            showLoading();
+
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: prompt })
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideLoading();
+                if (data.error) {
+                    showResult('Error: ' + data.error, true);
+                } else {
+                    let content = data.response;
+                    // Check if response contains image path
+                    if (content.includes('Image saved to')) {
+                        const imagePath = content.match(/assets\\(.*?\.png)/);
+                        if (imagePath) {
+                            content += '<br><br><img src="/assets/' + imagePath[1] + '" class="generated-image" alt="Generated image">';
+                        }
+                    }
+                    showResult(content);
+                }
+            })
+            .catch(error => {
+                hideLoading();
+                showResult('Error: ' + error.message, true);
+            });
+        }
+
+        // Allow Enter key to submit in text areas
+        document.getElementById('chat-message').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                sendChatMessage();
+            }
+        });
+
+        document.getElementById('generate-prompt').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                generateImage();
+            }
+        });
+    </script>
+</body>
+</html>

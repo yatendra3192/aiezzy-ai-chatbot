@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(mkdir:*)",
+      "WebFetch(domain:platform.openai.com)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "Bash(del test_multi_upload.py)",
+      "Bash(rm:*)",
+      "Bash(taskkill:*)",
+      "Bash(pip install:*)",
+      "Bash(copy CLAUDE.md CLAUDE_backup_20250817.md)",
+      "Bash(copy README.md README_backup_20250817.md)",
+      "Bash(cp:*)",
+      "Bash(xcopy:*)",
+      "Bash(robocopy:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(del nul)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(timeout:*)",
+      "Bash(dir:*)",
+      "Bash(git remote add:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\Users\\User\\Desktop"
+    ]
+  }
+}

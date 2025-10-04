@@ -1,0 +1,13 @@
+langgraph
+langchain
+langchain-openai
+openai
+pillow
+python-dotenv
+flask
+werkzeug
+fal-client
+requests
+httpx
+tavily-python
+gunicorn==21.2.0
