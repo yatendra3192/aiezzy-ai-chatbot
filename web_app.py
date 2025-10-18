@@ -21,7 +21,8 @@ if os.environ.get('RAILWAY_ENVIRONMENT'):
     DATA_DIR = '/app/data'
     web_app.config['UPLOAD_FOLDER'] = f'{DATA_DIR}/uploads'
     ASSETS_DIR = f'{DATA_DIR}/assets'
-    VIDEOS_DIR = f'{DATA_DIR}/videos' 
+    VIDEOS_DIR = f'{DATA_DIR}/videos'
+    DOCUMENTS_DIR = f'{DATA_DIR}/documents'
     CONVERSATIONS_DIR = f'{DATA_DIR}/conversations'
     DATABASE_PATH = f'{DATA_DIR}/aiezzy_users.db'
 else:
@@ -30,15 +31,17 @@ else:
     web_app.config['UPLOAD_FOLDER'] = 'uploads'
     ASSETS_DIR = 'assets'
     VIDEOS_DIR = 'videos'
+    DOCUMENTS_DIR = 'documents'
     CONVERSATIONS_DIR = 'conversations'
     DATABASE_PATH = 'aiezzy_users.db'
 
-web_app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
+web_app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size (increased for documents)
 
 # Create directories if they don't exist
 os.makedirs(web_app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(ASSETS_DIR, exist_ok=True)
 os.makedirs(VIDEOS_DIR, exist_ok=True)
+os.makedirs(DOCUMENTS_DIR, exist_ok=True)
 os.makedirs(CONVERSATIONS_DIR, exist_ok=True)
 
 # Initialize authentication
@@ -111,6 +114,7 @@ os.makedirs('shared', exist_ok=True)
 os.makedirs('feature_requests', exist_ok=True)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
+ALLOWED_DOCUMENT_EXTENSIONS = {'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt'}
 
 # Store recent images for editing reference
 recent_images = {}
@@ -127,6 +131,9 @@ user_conversations = {}
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def allowed_document(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_DOCUMENT_EXTENSIONS
 
 def detect_multi_step_request(message, history):
     """Detect if this is a multi-step request"""
@@ -324,8 +331,17 @@ def chat():
                 "content": content
             })
         
-        # Add current message with context for image editing to ensure accurate responses
-        if is_edit_request and has_image_context:
+        # Check for document upload
+        document_path = data.get('document_path')
+        document_filename = data.get('document_filename')
+        document_type = data.get('document_type')
+
+        # Add current message with context for image editing or document processing
+        if document_path and document_filename:
+            # Document processing request
+            enhanced_message = f"{message}\n\nUser has uploaded a {document_type.upper()} document: {document_filename}\nFile path: {document_path}\n\nPlease help the user with this document. They may want to convert it to another format, extract information, or perform other document operations."
+            messages.append({"role": "user", "content": enhanced_message})
+        elif is_edit_request and has_image_context:
             current_timestamp = int(time.time())
             # CONTEXT RESET: Add system message to prevent referencing old context
             if len(history) <= 4:  # Likely a fresh conversation
@@ -576,6 +592,70 @@ def serve_favicon():
 @web_app.route('/videos/<filename>')
 def serve_video(filename):
     return send_from_directory(VIDEOS_DIR, filename)
+
+# === DOCUMENT PROCESSING ENDPOINTS ==========================================
+
+@web_app.route('/documents/<filename>')
+def serve_document(filename):
+    """Serve converted document files"""
+    return send_from_directory(DOCUMENTS_DIR, filename)
+
+@web_app.route('/api/upload-document', methods=['POST'])
+@optional_auth
+def upload_document():
+    """
+    Upload a document (PDF, Word, Excel, PowerPoint) for processing.
+    The AI can then convert it to other formats or analyze it.
+    """
+    try:
+        if 'document' not in request.files:
+            return jsonify({'error': 'No document file provided'}), 400
+
+        file = request.files['document']
+
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        # Validate file type
+        if not allowed_document(file.filename):
+            return jsonify({
+                'error': f'Invalid file type. Allowed: {", ".join(ALLOWED_DOCUMENT_EXTENSIONS)}'
+            }), 400
+
+        # Save the uploaded file
+        filename = secure_filename(file.filename)
+        timestamp = int(time.time())
+        unique_filename = f"{timestamp}_{filename}"
+
+        # Save to documents directory for permanent storage
+        file_path = os.path.join(DOCUMENTS_DIR, unique_filename)
+        file.save(file_path)
+
+        # Get file info
+        file_size = os.path.getsize(file_path)
+        file_ext = filename.rsplit('.', 1)[1].lower()
+
+        # Generate thread ID for this document session
+        thread_id = str(uuid.uuid4())
+
+        # Prepare response with file information
+        response_data = {
+            'success': True,
+            'file_path': file_path,
+            'filename': unique_filename,
+            'original_filename': filename,
+            'file_size': file_size,
+            'file_type': file_ext,
+            'thread_id': thread_id,
+            'message': f'✅ Uploaded {filename} ({file_size // 1024}KB). You can now ask me to convert or analyze it!'
+        }
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# =============================================================================
 
 @web_app.route('/api/clear-context', methods=['POST'])
 def clear_context():

@@ -1189,6 +1189,41 @@
             font-weight: 600;
         }
 
+        /* === DOCUMENT PREVIEW === */
+        .document-preview {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            margin: 8px 0;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            position: relative;
+        }
+
+        .document-icon {
+            font-size: 32px;
+            line-height: 1;
+        }
+
+        .document-info {
+            flex: 1;
+        }
+
+        .document-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 14px;
+            margin-bottom: 4px;
+            word-break: break-all;
+        }
+
+        .document-size {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
         .remove-image {
             position: absolute;
             top: 4px;
@@ -2106,6 +2141,13 @@
                     </svg>
                 </button>
                 <input type="file" id="image-input" accept="image/*" multiple style="display: none;" onchange="handleImageUpload(event)">
+
+                <button class="attach-btn" onclick="document.getElementById('document-input').click()" title="Upload document (PDF, Word, Excel, PowerPoint)">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                </button>
+                <input type="file" id="document-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" style="display: none;" onchange="handleDocumentUpload(event)">
                 
                 <textarea 
                     id="composer-input" 
@@ -2233,6 +2275,8 @@
         let uploadedImageData = null;
         let uploadedImages = []; // Array for multiple images
         let uploadedImagesData = []; // Array for multiple image data
+        let uploadedDocument = null; // For document uploads
+        let uploadedDocumentData = null; // Document metadata
         let conversationHistory = [];
         let isAtBottom = true;
         let currentConversationId = null;
@@ -2393,6 +2437,116 @@
             document.getElementById('image-preview-container').innerHTML = '';
             document.getElementById('image-input').value = '';
             updateSendButton();
+        }
+
+        // Handle document upload (PDF, Word, Excel, PowerPoint)
+        async function handleDocumentUpload(event) {
+            const file = event.target.files[0];
+
+            if (!file) {
+                return;
+            }
+
+            // Validate file type
+            const allowedTypes = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
+            const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+
+            if (!allowedTypes.includes(fileExt)) {
+                alert('Invalid file type. Allowed: PDF, Word, Excel, PowerPoint');
+                return;
+            }
+
+            // Validate file size (50MB max)
+            const maxSize = 50 * 1024 * 1024; // 50MB
+            if (file.size > maxSize) {
+                alert('File too large. Maximum size is 50MB');
+                return;
+            }
+
+            // Show loading indicator
+            showLoadingAnimation('Uploading document...');
+
+            try {
+                // Create FormData for upload
+                const formData = new FormData();
+                formData.append('document', file);
+
+                // Upload document
+                const response = await fetch('/api/upload-document', {
+                    method: 'POST',
+                    body: formData,
+                    headers: currentUser ? {
+                        'X-Session-Token': localStorage.getItem('session_token')
+                    } : {}
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Store document data
+                    uploadedDocument = file;
+                    uploadedDocumentData = result;
+
+                    // Update thread ID if returned
+                    if (result.thread_id) {
+                        currentThreadId = result.thread_id;
+                        localStorage.setItem('currentThreadId', currentThreadId);
+                    }
+
+                    // Show document preview
+                    const preview = document.getElementById('image-preview-container');
+                    const fileSize = (result.file_size / 1024).toFixed(1);
+                    const fileIcon = getDocumentIcon(result.file_type);
+
+                    preview.innerHTML = `
+                        <div class="document-preview">
+                            <div class="document-icon">${fileIcon}</div>
+                            <div class="document-info">
+                                <div class="document-name">${result.original_filename}</div>
+                                <div class="document-size">${fileSize} KB</div>
+                            </div>
+                            <button class="remove-image" onclick="clearDocument()">×</button>
+                        </div>
+                    `;
+
+                    // Add upload confirmation message to chat
+                    addMessage(result.message, false);
+
+                    hideLoadingAnimation();
+                    updateSendButton();
+                } else {
+                    hideLoadingAnimation();
+                    alert(result.error || 'Upload failed');
+                }
+            } catch (error) {
+                hideLoadingAnimation();
+                console.error('Document upload error:', error);
+                alert('Failed to upload document. Please try again.');
+            }
+
+            // Reset file input
+            event.target.value = '';
+        }
+
+        function clearDocument() {
+            uploadedDocument = null;
+            uploadedDocumentData = null;
+            document.getElementById('image-preview-container').innerHTML = '';
+            document.getElementById('document-input').value = '';
+            updateSendButton();
+        }
+
+        function getDocumentIcon(fileType) {
+            const icons = {
+                'pdf': '📄',
+                'doc': '📝',
+                'docx': '📝',
+                'xls': '📊',
+                'xlsx': '📊',
+                'ppt': '📊',
+                'pptx': '📊'
+            };
+            return icons[fileType] || '📄';
         }
 
         // Loading message functions
@@ -2748,25 +2902,32 @@
         async function sendMessage() {
             const input = document.getElementById('composer-input');
             const message = input.value.trim();
-            
-            if (!message && !uploadedImage && uploadedImages.length === 0) return;
+
+            if (!message && !uploadedImage && uploadedImages.length === 0 && !uploadedDocument) return;
             
             // Create new conversation if this is the first message
             if (!currentConversationId) {
                 currentConversationId = generateConversationId();
             }
             
-            // Store current image data for message display and API calls
+            // Store current image and document data for message display and API calls
             const hasUploadedImage = !!uploadedImage;
             const hasMultiImages = uploadedImages.length > 0;
+            const hasUploadedDoc = !!uploadedDocument;
             const imageForAPI = uploadedImage; // Store before clearing
             const imagesForAPI = [...uploadedImages]; // Store copy before clearing
-            
+            const documentForAPI = uploadedDocumentData; // Store before clearing
+
             // Add user message
             let userContent = message;
             let messageImageData = null;
-            
-            if (hasMultiImages) {
+
+            if (hasUploadedDoc) {
+                // Document uploaded
+                if (!message) {
+                    userContent = `Analyze this ${documentForAPI.file_type.toUpperCase()} document`;
+                }
+            } else if (hasMultiImages) {
                 // Multiple images - show the first image as preview in message
                 messageImageData = uploadedImagesData.length > 0 ? uploadedImagesData[0] : null;
                 if (!message) {
@@ -2779,28 +2940,33 @@
                     userContent = 'What\'s in this image?';
                 }
             }
-            
-            if (userContent || hasUploadedImage || hasMultiImages) {
+
+            if (userContent || hasUploadedImage || hasMultiImages || hasUploadedDoc) {
                 // Pass all image data for display
                 const multiImageDataForMessage = hasMultiImages ? uploadedImagesData : null;
                 addMessage(userContent, true, null, messageImageData, multiImageDataForMessage);
-                
+
                 const historyEntry = {
-                    role: 'user', 
+                    role: 'user',
                     content: userContent,
                     hasImage: hasUploadedImage || hasMultiImages,
+                    hasDocument: hasUploadedDoc,
+                    documentData: hasUploadedDoc ? documentForAPI : null,
                     imageData: messageImageData,
                     imagePath: hasUploadedImage ? 'pending' : null, // Will be updated when response arrives
                     imagePaths: hasMultiImages ? [] : null, // Will be updated when response arrives
                     timestamp: new Date().toISOString()
                 };
-                
+
                 conversationHistory.push(historyEntry);
             }
-            
+
             // Clear upload preview immediately after user message is added
             if (hasUploadedImage || hasMultiImages) {
                 clearImage();
+            }
+            if (hasUploadedDoc) {
+                clearDocument();
             }
             
             // Clear input
@@ -2921,26 +3087,36 @@
                     
                 } else {
                     // Show loading animation for text generation
-                    showLoadingMessage('Thinking');
-                    
-                    // Chat mode - text only
+                    showLoadingMessage(hasUploadedDoc ? 'Processing document' : 'Thinking');
+
+                    // Build request body
+                    const requestBody = {
+                        message: message,
+                        history: conversationHistory.slice(-10).map(msg => {
+                            const historyMsg = {
+                                role: msg.role,
+                                content: msg.content,
+                                hasImage: msg.hasImage,
+                                imagePath: msg.imagePath,
+                                timestamp: msg.timestamp
+                            };
+                            return historyMsg;
+                        }),
+                        thread_id: ensureThreadId()
+                    };
+
+                    // Add document info if present
+                    if (hasUploadedDoc && documentForAPI) {
+                        requestBody.document_path = documentForAPI.file_path;
+                        requestBody.document_filename = documentForAPI.original_filename;
+                        requestBody.document_type = documentForAPI.file_type;
+                    }
+
+                    // Chat mode - text or document
                     response = await fetch('/api/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            message: message,
-                            history: conversationHistory.slice(-10).map(msg => {
-                                const historyMsg = {
-                                    role: msg.role,
-                                    content: msg.content,
-                                    hasImage: msg.hasImage,
-                                    imagePath: msg.imagePath,
-                                    timestamp: msg.timestamp
-                                };
-                                return historyMsg;
-                            }),
-                            thread_id: ensureThreadId()
-                        })
+                        body: JSON.stringify(requestBody)
                     });
                     
                     const data = await response.json();
