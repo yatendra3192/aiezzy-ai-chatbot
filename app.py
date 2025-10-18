@@ -14,6 +14,7 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from langchain_openai import ChatOpenAI
 from langchain_core.tools import tool, InjectedToolCallId
+from langchain_core.runnables import RunnableConfig
 
 # Note: OpenAI client removed since we now use nano-banana for image generation
 
@@ -236,7 +237,7 @@ def clear_thread_context(thread_id):
 
 # --- Tool: image editing (FAL AI nano-banana/edit) ------------------------
 @tool
-def edit_image(prompt: str, state: Annotated[dict, InjectedState]) -> str:
+def edit_image(prompt: str, state: Annotated[dict, InjectedState], *, config: RunnableConfig) -> str:
     """
     Edit an existing image using FAL AI's nano-banana/edit model.
     Takes a prompt describing the desired changes.
@@ -244,16 +245,21 @@ def edit_image(prompt: str, state: Annotated[dict, InjectedState]) -> str:
     Returns HTML img tag for web display.
     """
     global _active_requests, _global_edit_lock, _thread_recent_edits, _langgraph_execution_tools
-    
-    # Get thread-specific context - use global thread ID as fallback
-    thread_id = state.get("configurable", {}).get("thread_id", "default")
-    if thread_id == "default":
+
+    # PROPER APPROACH: Read thread_id from RunnableConfig
+    thread_id = config.get("configurable", {}).get("thread_id") if config else None
+
+    # FAIL FAST: Don't guess or use fallbacks - require proper thread_id
+    if not thread_id or thread_id == "default":
+        # Only as a temporary compatibility measure, check global
         global _current_thread_id
-        thread_id = _current_thread_id
-        # DEFENSIVE CHECK: If global thread ID is also default, this means context wasn't properly set
-        if thread_id == "default":
+        if _current_thread_id and _current_thread_id != "default":
+            thread_id = _current_thread_id
+            print(f"WARNING: edit_image using global thread_id fallback = {thread_id}")
+        else:
             return "No active conversation context found. Please start a conversation or upload an image first."
-    print(f"DEBUG: edit_image using thread {thread_id}")
+
+    print(f"INFO: edit_image using thread_id = {thread_id}")
     context = get_thread_context(thread_id)
     recent_image_path = context['recent_path']
     print(f"DEBUG: edit_image recent_image_path = {recent_image_path}")
@@ -509,38 +515,31 @@ def generate_video_from_image(prompt: str,
                              aspect_ratio: str = "auto",
                              num_frames: int = 121,
                              frame_rate: int = 30,
-                             state: Annotated[dict, InjectedState] = None) -> str:
+                             state: Annotated[dict, InjectedState] = None,
+                             *,
+                             config: RunnableConfig = None) -> str:
     """
     Generate a video from an existing image and text prompt using FAL AI's LTX-Video-13B model.
     Intelligently selects the appropriate image based on the prompt content.
     Returns HTML video tag for web display.
     """
-    # Get thread-specific context - use global thread ID as fallback
-    thread_id = state.get("configurable", {}).get("thread_id", "default") if state else "default"
+    # PROPER APPROACH: Read thread_id from RunnableConfig (not from state or globals)
+    thread_id = config.get("configurable", {}).get("thread_id") if config else None
 
-    # ENHANCED FALLBACK: Try multiple methods to get the correct thread ID
-    if thread_id == "default":
+    # FAIL FAST: Don't guess or use fallbacks - require proper thread_id
+    if not thread_id or thread_id == "default":
+        # Only as a temporary compatibility measure, check global
         global _current_thread_id
-        if _current_thread_id != "default":
+        if _current_thread_id and _current_thread_id != "default":
             thread_id = _current_thread_id
-            print(f"DEBUG: generate_video_from_image using global thread_id = {thread_id}")
+            print(f"WARNING: generate_video_from_image using global thread_id fallback = {thread_id}")
         else:
-            # Last resort: Check if we have any non-default threads with images
-            global _thread_image_context
-            print(f"DEBUG: All thread contexts: {list(_thread_image_context.keys())}")
-            for tid in _thread_image_context.keys():
-                if tid != "default" and _thread_image_context[tid].get('uploaded_images'):
-                    thread_id = tid
-                    print(f"DEBUG: generate_video_from_image found active thread with images: {thread_id}")
-                    break
+            raise RuntimeError(
+                "Missing thread_id in config. This indicates a config propagation issue. "
+                "Please ensure RunnableConfig is passed through all node invocations."
+            )
 
-    print(f"DEBUG: generate_video_from_image final thread_id = {thread_id}")
-
-    # Additional debug to understand state structure
-    if state:
-        print(f"DEBUG: State keys = {list(state.keys()) if isinstance(state, dict) else 'Not a dict'}")
-        if isinstance(state, dict):
-            print(f"DEBUG: Configurable content = {state.get('configurable', 'No configurable key')}")
+    print(f"INFO: generate_video_from_image using thread_id = {thread_id}")
 
     context = get_thread_context(thread_id)
 
@@ -668,7 +667,9 @@ _multi_image_active = False
 @tool
 def generate_image_from_multiple(prompt: str,
                                 num_images: int = 1,
-                                state: Annotated[dict, InjectedState] = None) -> str:
+                                state: Annotated[dict, InjectedState] = None,
+                                *,
+                                config: RunnableConfig = None) -> str:
     """
     Generate a new image using multiple previously uploaded images as context.
     Combines elements from 2 or more uploaded images based on the text prompt using nano-banana/edit.
@@ -679,15 +680,28 @@ def generate_image_from_multiple(prompt: str,
     global _multi_image_active
     if _multi_image_active:
         return "Multi-image generation is already in progress. Please wait for the current request to complete."
-    
+
     try:
         _multi_image_active = True
-        
-        # Get thread-specific context - use global thread ID as fallback
-        thread_id = state.get("configurable", {}).get("thread_id", "default") if state else "default"
-        if thread_id == "default":
+
+        # PROPER APPROACH: Read thread_id from RunnableConfig
+        thread_id = config.get("configurable", {}).get("thread_id") if config else None
+
+        # FAIL FAST: Don't guess or use fallbacks - require proper thread_id
+        if not thread_id or thread_id == "default":
+            # Only as a temporary compatibility measure, check global
             global _current_thread_id
-            thread_id = _current_thread_id
+            if _current_thread_id and _current_thread_id != "default":
+                thread_id = _current_thread_id
+                print(f"WARNING: generate_image_from_multiple using global thread_id fallback = {thread_id}")
+            else:
+                _multi_image_active = False
+                raise RuntimeError(
+                    "Missing thread_id in config. This indicates a config propagation issue. "
+                    "Please ensure RunnableConfig is passed through all node invocations."
+                )
+
+        print(f"INFO: generate_image_from_multiple using thread_id = {thread_id}")
         context = get_thread_context(thread_id)
         uploaded_images = context['uploaded_images']
         
@@ -872,37 +886,28 @@ def evaluate_result_quality(user_request: str, operation_type: str, result_conte
         return f"VALID (evaluation unavailable: {str(e)})"
 
 @tool
-def check_image_context(state: Annotated[dict, InjectedState]) -> str:
+def check_image_context(state: Annotated[dict, InjectedState], *, config: RunnableConfig) -> str:
     """
     Check what images are available for editing or animation.
     Returns information about available images and uploaded image count.
     """
-    # Get thread-specific context using same pattern as other tools
-    thread_id = state.get("configurable", {}).get("thread_id", "default") if state else "default"
+    # PROPER APPROACH: Read thread_id from RunnableConfig (not from state or globals)
+    thread_id = config.get("configurable", {}).get("thread_id") if config else None
 
-    # ENHANCED FALLBACK: Try multiple methods to get the correct thread ID
-    if thread_id == "default":
+    # FAIL FAST: Don't guess or use fallbacks - require proper thread_id
+    if not thread_id or thread_id == "default":
+        # Only as a temporary compatibility measure, check global
         global _current_thread_id
-        if _current_thread_id != "default":
+        if _current_thread_id and _current_thread_id != "default":
             thread_id = _current_thread_id
-            print(f"DEBUG: check_image_context using global thread_id = {thread_id}")
+            print(f"WARNING: check_image_context using global thread_id fallback = {thread_id}")
         else:
-            # Last resort: Check if we have any non-default threads with images
-            global _thread_image_context
-            print(f"DEBUG: All thread contexts: {list(_thread_image_context.keys())}")
-            for tid in _thread_image_context.keys():
-                if tid != "default" and _thread_image_context[tid].get('uploaded_images'):
-                    thread_id = tid
-                    print(f"DEBUG: check_image_context found active thread with images: {thread_id}")
-                    break
+            raise RuntimeError(
+                "Missing thread_id in config. This indicates a config propagation issue. "
+                "Please ensure RunnableConfig is passed through all node invocations."
+            )
 
-    print(f"DEBUG: check_image_context final thread_id = {thread_id}")
-
-    # Additional debug to understand state structure
-    if state:
-        print(f"DEBUG: State keys = {list(state.keys()) if isinstance(state, dict) else 'Not a dict'}")
-        if isinstance(state, dict):
-            print(f"DEBUG: Configurable content = {state.get('configurable', 'No configurable key')}")
+    print(f"INFO: check_image_context using thread_id = {thread_id}")
 
     context = get_thread_context(thread_id)
     recent_image_path = context['recent_path']
@@ -1115,8 +1120,15 @@ def build_coordinator():
 def build_app():
     builder = StateGraph(MessagesState)
     coordinator = build_coordinator()
-    
-    builder.add_node("coordinator", coordinator)
+
+    # Wrapper node to ensure config is properly passed through
+    def coordinator_node(state: dict, *, config: RunnableConfig):
+        """Wrapper to ensure RunnableConfig propagates to the coordinator agent"""
+        print(f"INFO: coordinator_node invoked with thread_id = {config.get('configurable', {}).get('thread_id', 'MISSING')}")
+        # Pass config explicitly to ensure tools receive it
+        return coordinator.invoke(state, config=config)
+
+    builder.add_node("coordinator", coordinator_node)
     builder.add_edge(START, "coordinator")
     
     # DISABLED persistence to prevent image bleeding between conversations
