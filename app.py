@@ -22,6 +22,9 @@ from langchain_core.runnables import RunnableConfig
 import fal_client
 fal_client.api_key = os.getenv("FAL_KEY")
 
+# PDF Converter for document processing
+import pdf_converter
+
 # Configure persistent storage paths for Railway
 if os.environ.get('RAILWAY_ENVIRONMENT'):
     # Production: Use Railway persistent volume
@@ -983,6 +986,144 @@ def check_image_context(state: Annotated[dict, InjectedState], *, config: Runnab
 
     return "\n".join(context_info)
 
+# === PDF CONVERSION TOOLS ===================================================
+
+# --- Tool: PDF to Images Conversion ------------------------------------------
+@tool
+def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config: RunnableConfig) -> str:
+    """
+    Convert PDF pages to individual image files (PNG or JPG).
+    Each page becomes a separate image file.
+
+    Args:
+        file_path: Path to the PDF file
+        output_format: Output format ('png' or 'jpg', default: 'png')
+
+    Returns:
+        HTML with downloadable image links
+    """
+    try:
+        print(f"INFO: Converting PDF to {output_format} images: {file_path}")
+
+        # Validate file exists
+        if not os.path.exists(file_path):
+            return f"❌ Error: PDF file not found at {file_path}"
+
+        # Convert PDF to images
+        image_paths = pdf_converter.pdf_to_images(file_path, output_format=output_format)
+
+        # Generate HTML response with image thumbnails
+        html_parts = [f"✅ Successfully converted PDF to {len(image_paths)} {output_format.upper()} images:\n\n"]
+
+        for i, img_path in enumerate(image_paths, 1):
+            filename = os.path.basename(img_path)
+            html_parts.append(
+                f'<img src="/assets/{filename}" class="message-image" alt="Page {i}" '
+                f'onclick="openImageModal(\'/assets/{filename}\')" style="max-width: 150px; margin: 5px;">'
+            )
+
+        return "".join(html_parts)
+
+    except Exception as e:
+        return f"❌ Error converting PDF to images: {str(e)}"
+
+# --- Tool: PDF to Word Conversion --------------------------------------------
+@tool
+def convert_pdf_to_word(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert PDF document to Word (DOCX) format.
+    Extracts text and preserves basic formatting.
+
+    Args:
+        file_path: Path to the PDF file
+        output_name: Optional output filename
+
+    Returns:
+        HTML with download link for the generated Word document
+    """
+    try:
+        print(f"INFO: Converting PDF to Word: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: PDF file not found at {file_path}"
+
+        # Get PDF info first
+        pdf_info = pdf_converter.get_pdf_info(file_path)
+        page_count = pdf_info.get('pages', 0)
+
+        # Convert PDF to Word
+        docx_path = pdf_converter.pdf_to_word(file_path, output_name=output_name)
+        filename = os.path.basename(docx_path)
+
+        return f'✅ Successfully converted PDF ({page_count} pages) to Word: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting PDF to Word: {str(e)}"
+
+# --- Tool: PDF to Excel Conversion -------------------------------------------
+@tool
+def convert_pdf_to_excel(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert PDF document to Excel (XLSX) format.
+    Extracts text and table data.
+
+    Args:
+        file_path: Path to the PDF file
+        output_name: Optional output filename
+
+    Returns:
+        HTML with download link for the generated Excel file
+    """
+    try:
+        print(f"INFO: Converting PDF to Excel: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: PDF file not found at {file_path}"
+
+        # Convert PDF to Excel
+        xlsx_path = pdf_converter.pdf_to_excel(file_path, output_name=output_name)
+        filename = os.path.basename(xlsx_path)
+
+        return f'✅ Successfully converted PDF to Excel: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting PDF to Excel: {str(e)}"
+
+# --- Tool: PDF to PowerPoint Conversion --------------------------------------
+@tool
+def convert_pdf_to_powerpoint(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert PDF document to PowerPoint (PPTX) format.
+    Each PDF page becomes a slide with an image.
+
+    Args:
+        file_path: Path to the PDF file
+        output_name: Optional output filename
+
+    Returns:
+        HTML with download link for the generated PowerPoint file
+    """
+    try:
+        print(f"INFO: Converting PDF to PowerPoint: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: PDF file not found at {file_path}"
+
+        # Get PDF info
+        pdf_info = pdf_converter.get_pdf_info(file_path)
+        page_count = pdf_info.get('pages', 0)
+
+        # Convert PDF to PowerPoint
+        pptx_path = pdf_converter.pdf_to_powerpoint(file_path, output_name=output_name)
+        filename = os.path.basename(pptx_path)
+
+        return f'✅ Successfully converted PDF ({page_count} pages) to PowerPoint ({page_count} slides): <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting PDF to PowerPoint: {str(e)}"
+
+# =============================================================================
+
 @tool
 def analyze_user_intent(user_request: str) -> str:
     """
@@ -1011,7 +1152,22 @@ def build_coordinator():
     model = ChatOpenAI(model="gpt-4o", temperature=0)
     
     # Give the coordinator access to ALL tools for sequential execution
-    tools = [search_web, generate_image, edit_image, generate_video_from_text, generate_video_from_image, generate_image_from_multiple, analyze_user_intent, evaluate_result_quality, check_image_context]
+    tools = [
+        search_web,
+        generate_image,
+        edit_image,
+        generate_video_from_text,
+        generate_video_from_image,
+        generate_image_from_multiple,
+        analyze_user_intent,
+        evaluate_result_quality,
+        check_image_context,
+        # PDF Conversion tools
+        convert_pdf_to_images,
+        convert_pdf_to_word,
+        convert_pdf_to_excel,
+        convert_pdf_to_powerpoint
+    ]
     
     prompt = (
         "You are an intelligent AI coordinator powered by GPT-4o. You excel at understanding user intent and executing complex multi-step tasks.\n\n"
