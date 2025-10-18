@@ -838,20 +838,32 @@ def check_image_context(state: Annotated[dict, InjectedState]) -> str:
     print(f"DEBUG: All thread contexts: {list(_thread_image_context.keys())}")
     
     context_info = []
-    
+
     # Check recent image for editing
     if recent_image_path and os.path.exists(recent_image_path):
-        context_info.append(f"✅ Recent image available for editing: {recent_image_path}")
+        label = context.get('image_labels', {}).get(recent_image_path, 'unknown')
+        context_info.append(f"✅ Recent image available: {label} - {recent_image_path}")
     else:
-        context_info.append("❌ No recent image available for editing")
-    
-    # Check uploaded images for multi-image operations
+        context_info.append("❌ No recent image available")
+
+    # Check all available images with their labels
     valid_uploads = [img for img in uploaded_images if os.path.exists(img)]
-    if len(valid_uploads) >= 2:
-        context_info.append(f"✅ {len(valid_uploads)} images available for multi-image operations")
+    if valid_uploads:
+        context_info.append(f"✅ {len(valid_uploads)} images available:")
+        for img_path in valid_uploads:
+            label = context.get('image_labels', {}).get(img_path, 'unlabeled')
+            context_info.append(f"   - {label}: {os.path.basename(img_path)}")
     else:
-        context_info.append(f"❌ Only {len(valid_uploads)} image(s) available (need 2+ for multi-image)")
-    
+        context_info.append("❌ No images available in context")
+
+    # Add specific guidance
+    if valid_uploads:
+        context_info.append("\n📌 You can:")
+        context_info.append("- Use generate_video_from_image to animate any of these images")
+        context_info.append("- Use edit_image to modify the recent image")
+        if len(valid_uploads) >= 2:
+            context_info.append("- Use generate_image_from_multiple to combine images")
+
     return "\n".join(context_info)
 
 @tool
@@ -937,7 +949,8 @@ def build_coordinator():
         "- 'combine', 'merge' + check_image_context shows 2+ images -> Use generate_image_from_multiple\n"
         "- 'create 2 images' -> Use generate_image twice, then user can combine them\n"
         "- 'create video', 'generate video' + NO images -> Use generate_video_from_text\n"
-        "- 'make video of [subject]' + previously generated images -> Use generate_video_from_image (will auto-select matching image)\n"
+        "- 'make video of [subject]' -> FIRST use check_image_context, THEN use generate_video_from_image if images available\n"
+        "- 'video' or 'animate' request -> ALWAYS check_image_context first to see what's available\n"
         "- Single image uploaded + 'video', 'animate' -> Use generate_video_from_image (NOT generate_image)\n"
         "- Single image uploaded + 'edit', 'modify' -> Use edit_image (NOT generate_image)\n"
         "- Single image uploaded + ANY request (including 'create', 'make', 'wearing') -> Use edit_image to modify the uploaded image\n"
@@ -976,7 +989,8 @@ def build_coordinator():
         "- Be specific about what modifications were made to the image\n\n"
         "MULTI-STEP WORKFLOW EXAMPLES:\n"
         "- User: 'create 2 images of man and woman, then combine them' -> 1) generate_image (man), 2) generate_image (woman), 3) check_image_context, 4) generate_image_from_multiple\n"
-        "- User: 'combine the images' (after generating multiple) -> 1) check_image_context, 2) generate_image_from_multiple if 2+ images available\n\n"
+        "- User: 'combine the images' (after generating multiple) -> 1) check_image_context, 2) generate_image_from_multiple if 2+ images available\n"
+        "- User: 'create 3 images: cat, dog, cow' THEN 'make video of dog' -> 1) check_image_context (will show labeled images), 2) generate_video_from_image (will auto-select dog)\n\n"
         "CRITICAL: Execute ALL required steps in sequence. Don't stop after just one tool.\n"
         "Show your work and provide rich, complete responses with accurate descriptions."
     )
