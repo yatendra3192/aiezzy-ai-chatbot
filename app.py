@@ -185,6 +185,22 @@ def generate_image(prompt: str,
     context['uploaded_images'].append(str(path))
     if len(context['uploaded_images']) > 5:
         context['uploaded_images'] = context['uploaded_images'][-5:]
+
+    # Extract key subject from prompt for labeling (e.g., "cat", "dog", "cow")
+    import re
+    # Common animals and objects to look for in prompts
+    subjects = ['cat', 'dog', 'cow', 'horse', 'bird', 'man', 'woman', 'person', 'car', 'tree', 'house', 'flower', 'mountain', 'ocean', 'sunset']
+    prompt_lower = prompt.lower()
+    found_subject = None
+    for subject in subjects:
+        if subject in prompt_lower:
+            found_subject = subject
+            break
+
+    if found_subject:
+        context['image_labels'][str(path)] = found_subject
+        print(f"GENERATE_IMAGE: Labeled image as '{found_subject}'")
+
     print(f"GENERATE_IMAGE: Added to thread {thread_id} context: {path}")
     print(f"GENERATE_IMAGE: Thread now has {len(context['uploaded_images'])} images")
     
@@ -192,14 +208,15 @@ def generate_image(prompt: str,
     return f'<img src="/assets/{filename}" class="message-image" alt="Generated image" onclick="openImageModal(\'/assets/{filename}\')"> Image generated with nano-banana: {prompt}. Saved to {path}'
 
 # Thread-specific image storage to prevent cross-conversation contamination
-_thread_image_context = {}  # {thread_id: {'recent_path': path, 'uploaded_images': [paths]}}
+_thread_image_context = {}  # {thread_id: {'recent_path': path, 'uploaded_images': [paths], 'image_labels': {}}}
 
 def get_thread_context(thread_id):
     """Get or create thread-specific image context"""
     if thread_id not in _thread_image_context:
         _thread_image_context[thread_id] = {
             'recent_path': None,
-            'uploaded_images': []
+            'uploaded_images': [],
+            'image_labels': {}  # Map of path -> label (e.g., "cat", "dog", "cow")
         }
     return _thread_image_context[thread_id]
 
@@ -495,7 +512,7 @@ def generate_video_from_image(prompt: str,
                              state: Annotated[dict, InjectedState] = None) -> str:
     """
     Generate a video from an existing image and text prompt using FAL AI's LTX-Video-13B model.
-    Animates the most recently uploaded image based on the text description.
+    Intelligently selects the appropriate image based on the prompt content.
     Returns HTML video tag for web display.
     """
     # Get thread-specific context - use global thread ID as fallback
@@ -505,15 +522,30 @@ def generate_video_from_image(prompt: str,
         thread_id = _current_thread_id
     print(f"DEBUG: generate_video_from_image using thread {thread_id}")
     context = get_thread_context(thread_id)
-    recent_image_path = context['recent_path']
-    print(f"DEBUG: recent_image_path = {recent_image_path}")
+
+    # Smart image selection based on prompt content
+    image_path = None
+    prompt_lower = prompt.lower()
+
+    # First, try to find an image that matches a subject in the prompt
+    if context['image_labels']:
+        print(f"DEBUG: Available image labels: {context['image_labels']}")
+        for path, label in context['image_labels'].items():
+            if label.lower() in prompt_lower:
+                if os.path.exists(path):
+                    image_path = path
+                    print(f"DEBUG: Selected image with label '{label}' matching prompt")
+                    break
+
+    # If no matching label found, use the most recent image
+    if not image_path:
+        image_path = context['recent_path']
+        print(f"DEBUG: No matching label found, using recent image: {image_path}")
     
     try:
-        # Use the thread-specific recent image path
-        if recent_image_path is None:
+        # Check if we have a valid image path
+        if image_path is None:
             return "No image available for video generation. Please upload an image first."
-        
-        image_path = recent_image_path
         
         # Check if file exists before proceeding
         if not image_path.startswith(('http://', 'https://')):
@@ -895,7 +927,8 @@ def build_coordinator():
         "- If message has multiple images: use generate_image_from_multiple\n"
         "- If message has single image + analysis: analyze the uploaded image directly\n"
         "- If no images uploaded but image requested: use generate_image\n"
-        "- Only use check_image_context when you need to verify what's available\n\n"
+        "- Only use check_image_context when you need to verify what's available\n"
+        "- IMPORTANT: When generating multiple images then creating a video, the video tool will automatically select the matching image based on your prompt\n\n"
         "DECISION LOGIC:\n"
         "- 'news', 'latest', 'current' -> Use search_web\n"
         "- 'create image', 'generate image' + NO uploads -> Use generate_image\n"
