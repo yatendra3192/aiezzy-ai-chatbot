@@ -2464,7 +2464,7 @@
             }
 
             // Show loading indicator
-            showLoadingAnimation('Uploading document...');
+            showLoadingMessage('Uploading document...');
 
             try {
                 // Create FormData for upload
@@ -2512,14 +2512,14 @@
                     // Add upload confirmation message to chat
                     addMessage(result.message, false);
 
-                    hideLoadingAnimation();
+                    hideLoadingMessage();
                     updateSendButton();
                 } else {
-                    hideLoadingAnimation();
+                    hideLoadingMessage();
                     alert(result.error || 'Upload failed');
                 }
             } catch (error) {
-                hideLoadingAnimation();
+                hideLoadingMessage();
                 console.error('Document upload error:', error);
                 alert('Failed to upload document. Please try again.');
             }
