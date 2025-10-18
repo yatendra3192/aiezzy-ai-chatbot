@@ -367,12 +367,9 @@ def edit_image(prompt: str, state: Annotated[dict, InjectedState]) -> str:
                 print(f"EDIT_IMAGE: Added to thread {thread_id} context: {edited_path}")
                 print(f"EDIT_IMAGE: Thread now has {len(context['uploaded_images'])} images")
                 
-                # Clean up active request and global lock
+                # Clean up active request
                 if request_key in _active_requests:
                     del _active_requests[request_key]
-                if global_lock_key in _global_edit_lock:
-                    del _global_edit_lock[global_lock_key]
-                print(f"EDIT REQUEST: Completed successfully, cleaned up key {request_key} and global lock {global_lock_key}")
                 
                 return f'<img src="/assets/{filename}" class="message-image" alt="Edited image" onclick="openImageModal(\'/assets/{filename}\')"> Image edited with nano-banana: {clean_prompt}\nSaved as {edited_path}\nTimestamp: {int(time.time())}'
             else:
@@ -428,44 +425,48 @@ def generate_video_from_text(prompt: str,
         _active_requests = {k: v for k, v in _active_requests.items() if current_time - v < 300}
         _active_requests[request_key] = current_time
         result = fal_client.subscribe(
-            "fal-ai/ltx-video-13b-distilled",
+            "fal-ai/ltx-video",
             arguments={
                 "prompt": prompt,
-                "negative_prompt": "worst quality, inconsistent motion, blurry, jittery, distorted",
-                "resolution": resolution,
-                "aspect_ratio": aspect_ratio,
-                "num_frames": num_frames,
-                "frame_rate": frame_rate,
-                "enable_safety_checker": True,
-                "expand_prompt": True  # Let the model enhance the prompt
+                "num_inference_steps": 30,
+                "guidance_scale": 7.5,
+                "negative_prompt": "worst quality, inconsistent motion, blurry, jittery, distorted"
             },
             with_logs=True
         )
         
-        if result and result.get('video') and result['video'].get('url'):
-            video_url = result['video']['url']
+        # Check for video URL in result (FAL AI may return different structures)
+        video_url = None
+        if result:
+            if isinstance(result, dict):
+                # Try different possible response structures
+                if 'video' in result and result['video']:
+                    if isinstance(result['video'], dict) and 'url' in result['video']:
+                        video_url = result['video']['url']
+                    elif isinstance(result['video'], str):
+                        video_url = result['video']
+                elif 'url' in result:
+                    video_url = result['url']
+                elif 'output' in result:
+                    video_url = result['output']
+
+        if video_url:
             
             # Download and save the video locally
             try:
                 local_video_path = save_video_from_url(video_url)
                 filename = pathlib.Path(local_video_path).name
                 
-                # Clean up active request and global lock
+                # Clean up active request
                 if request_key in _active_requests:
                     del _active_requests[request_key]
-                if global_lock_key in _global_edit_lock:
-                    del _global_edit_lock[global_lock_key]
-                print(f"EDIT REQUEST: Completed successfully, cleaned up key {request_key} and global lock {global_lock_key}")
                 
                 # Return HTML video element for web display
                 return f'<video controls class="message-video" style="max-width: 500px; border-radius: 12px; margin: 12px 0;"><source src="/videos/{filename}" type="video/mp4">Your browser does not support the video tag.</video>Successfully generated video: {prompt}\nVideo saved to {local_video_path}'
             except Exception as download_error:
-                # Clean up active request and global lock
+                # Clean up active request
                 if request_key in _active_requests:
                     del _active_requests[request_key]
-                if global_lock_key in _global_edit_lock:
-                    del _global_edit_lock[global_lock_key]
-                print(f"EDIT REQUEST: Completed successfully, cleaned up key {request_key} and global lock {global_lock_key}")
                 # Fallback: use the direct URL if download fails
                 return f'<video controls class="message-video" style="max-width: 500px; border-radius: 12px; margin: 12px 0;"><source src="{video_url}" type="video/mp4">Your browser does not support the video tag.</video>Video generated: {video_url}'
         else:
@@ -476,9 +477,13 @@ def generate_video_from_text(prompt: str,
             
     except Exception as e:
         # Clean up active request on error
-        if request_key in _active_requests:
+        if 'request_key' in locals() and request_key in _active_requests:
             del _active_requests[request_key]
-        return f"Error generating video: {str(e)}"
+        print(f"ERROR in generate_video_from_text: {str(e)}")
+        print(f"Full error details: {type(e).__name__}: {e}")
+        import traceback
+        print(f"Traceback: {traceback.format_exc()}")
+        return f"Error generating video: {str(e)}. The FAL AI video generation service might be temporarily unavailable or the API key might need to be verified."
 
 # --- Tool: image-to-video generation (FAL AI LTX-Video) -------------------
 @tool
@@ -539,8 +544,22 @@ def generate_video_from_image(prompt: str,
             with_logs=True
         )
         
-        if result and result.get('video') and result['video'].get('url'):
-            video_url = result['video']['url']
+        # Check for video URL in result (FAL AI may return different structures)
+        video_url = None
+        if result:
+            if isinstance(result, dict):
+                # Try different possible response structures
+                if 'video' in result and result['video']:
+                    if isinstance(result['video'], dict) and 'url' in result['video']:
+                        video_url = result['video']['url']
+                    elif isinstance(result['video'], str):
+                        video_url = result['video']
+                elif 'url' in result:
+                    video_url = result['url']
+                elif 'output' in result:
+                    video_url = result['output']
+
+        if video_url:
             
             # Download and save the video locally
             try:
