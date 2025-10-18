@@ -212,7 +212,8 @@ def chat():
         print(f"MOBILE FIX: Using thread_id = {thread_id}")
         
         # CRITICAL FIX: If this is a new conversation (no history), clear any old image context
-        if not history or len(history) == 0:
+        # BUT: Don't clear if this is the same thread continuing a conversation
+        if (not history or len(history) == 0) and thread_id not in thread_image_context:
             clear_thread_context(thread_id)
             # Also clear web_app level context
             if thread_id in thread_image_context:
@@ -220,13 +221,19 @@ def chat():
             # ADDITIONAL FIX: Reset the global current thread ID to prevent cross-conversation contamination
             reset_all_context()
             print(f"NEW CONVERSATION FIX: Cleared all global context for fresh start")
+        else:
+            print(f"CONTINUING CONVERSATION: Keeping thread {thread_id} context intact")
         
         # ENHANCED FIX: Also clear context when starting multi-step tasks to prevent contamination
+        # BUT: Don't clear if we already have images in context (continuing a workflow)
         is_multi_step_start = any(keyword in message.lower() for keyword in ['create', 'combine', 'generate', 'make']) and len(message.split('.')) >= 2
-        if is_multi_step_start and len(history) <= 1:
+        has_existing_images = thread_id in thread_image_context and thread_image_context[thread_id]
+        if is_multi_step_start and len(history) <= 1 and not has_existing_images:
             clear_thread_context(thread_id)
             reset_all_context()
             print(f"MULTI-STEP START FIX: Cleared context for clean multi-step execution")
+        elif is_multi_step_start and has_existing_images:
+            print(f"MULTI-STEP CONTINUATION: Keeping existing images in context")
         
         # DEBUG: Log what history is being sent
         print(f"DEBUG HISTORY: thread_id={thread_id}, history_length={len(history) if history else 0}")

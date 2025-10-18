@@ -937,6 +937,7 @@ def build_coordinator():
         "- 'combine', 'merge' + check_image_context shows 2+ images -> Use generate_image_from_multiple\n"
         "- 'create 2 images' -> Use generate_image twice, then user can combine them\n"
         "- 'create video', 'generate video' + NO images -> Use generate_video_from_text\n"
+        "- 'make video of [subject]' + previously generated images -> Use generate_video_from_image (will auto-select matching image)\n"
         "- Single image uploaded + 'video', 'animate' -> Use generate_video_from_image (NOT generate_image)\n"
         "- Single image uploaded + 'edit', 'modify' -> Use edit_image (NOT generate_image)\n"
         "- Single image uploaded + ANY request (including 'create', 'make', 'wearing') -> Use edit_image to modify the uploaded image\n"
