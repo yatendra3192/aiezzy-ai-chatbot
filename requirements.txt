@@ -11,3 +11,12 @@ requests
 httpx
 tavily-python
 gunicorn==21.2.0
+
+# PDF Conversion & Processing Libraries
+pypdf
+PyMuPDF
+img2pdf
+pdf2image
+python-docx
+openpyxl
+python-pptx
