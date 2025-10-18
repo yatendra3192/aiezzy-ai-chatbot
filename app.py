@@ -517,20 +517,72 @@ def generate_video_from_image(prompt: str,
     """
     # Get thread-specific context - use global thread ID as fallback
     thread_id = state.get("configurable", {}).get("thread_id", "default") if state else "default"
+
+    # ENHANCED FALLBACK: Try multiple methods to get the correct thread ID
     if thread_id == "default":
         global _current_thread_id
-        thread_id = _current_thread_id
-    print(f"DEBUG: generate_video_from_image using thread {thread_id}")
+        if _current_thread_id != "default":
+            thread_id = _current_thread_id
+            print(f"DEBUG: generate_video_from_image using global thread_id = {thread_id}")
+        else:
+            # Last resort: Check if we have any non-default threads with images
+            global _thread_image_context
+            print(f"DEBUG: All thread contexts: {list(_thread_image_context.keys())}")
+            for tid in _thread_image_context.keys():
+                if tid != "default" and _thread_image_context[tid].get('uploaded_images'):
+                    thread_id = tid
+                    print(f"DEBUG: generate_video_from_image found active thread with images: {thread_id}")
+                    break
+
+    print(f"DEBUG: generate_video_from_image final thread_id = {thread_id}")
+
+    # Additional debug to understand state structure
+    if state:
+        print(f"DEBUG: State keys = {list(state.keys()) if isinstance(state, dict) else 'Not a dict'}")
+        if isinstance(state, dict):
+            print(f"DEBUG: Configurable content = {state.get('configurable', 'No configurable key')}")
+
     context = get_thread_context(thread_id)
+
+    # FALLBACK: If context is empty, try to recover from message history
+    if not context['uploaded_images'] and state and 'messages' in state:
+        messages = state.get('messages', [])
+        print(f"DEBUG: Context empty, checking {len(messages)} messages for images")
+        for msg in messages[-10:]:  # Check last 10 messages
+            if hasattr(msg, 'content') and isinstance(msg.content, str):
+                import re
+                pattern = r'/(?:app/data/)?assets/img_\d+\.png'
+                found_paths = re.findall(pattern, msg.content)
+                for path in found_paths:
+                    # Normalize path
+                    if not path.startswith('/app/data'):
+                        if path.startswith('/assets'):
+                            path = f"/app/data{path}"
+                        else:
+                            path = f"/app/data/assets/{os.path.basename(path)}"
+
+                    if os.path.exists(path) and path not in context['uploaded_images']:
+                        context['uploaded_images'].append(path)
+                        # Extract label from message
+                        label_patterns = ['cat', 'dog', 'cow', 'horse', 'bird', 'man', 'woman']
+                        for label in label_patterns:
+                            if label in msg.content.lower():
+                                context.setdefault('image_labels', {})[path] = label
+                                print(f"FALLBACK: Found {label} image at {path}")
+                                break
+
+        if context['uploaded_images'] and not context['recent_path']:
+            context['recent_path'] = context['uploaded_images'][-1]
 
     # Smart image selection based on prompt content
     image_path = None
     prompt_lower = prompt.lower()
 
     # First, try to find an image that matches a subject in the prompt
-    if context['image_labels']:
-        print(f"DEBUG: Available image labels: {context['image_labels']}")
-        for path, label in context['image_labels'].items():
+    image_labels = context.get('image_labels', {})
+    if image_labels:
+        print(f"DEBUG: Available image labels: {image_labels}")
+        for path, label in image_labels.items():
             if label.lower() in prompt_lower:
                 if os.path.exists(path):
                     image_path = path
@@ -819,19 +871,79 @@ def evaluate_result_quality(user_request: str, operation_type: str, result_conte
     except Exception as e:
         return f"VALID (evaluation unavailable: {str(e)})"
 
-@tool  
+@tool
 def check_image_context(state: Annotated[dict, InjectedState]) -> str:
     """
     Check what images are available for editing or animation.
     Returns information about available images and uploaded image count.
     """
     # Get thread-specific context using same pattern as other tools
-    thread_id = state.get("configurable", {}).get("thread_id", "default")
-    print(f"DEBUG: check_image_context thread_id = {thread_id}")
+    thread_id = state.get("configurable", {}).get("thread_id", "default") if state else "default"
+
+    # ENHANCED FALLBACK: Try multiple methods to get the correct thread ID
+    if thread_id == "default":
+        global _current_thread_id
+        if _current_thread_id != "default":
+            thread_id = _current_thread_id
+            print(f"DEBUG: check_image_context using global thread_id = {thread_id}")
+        else:
+            # Last resort: Check if we have any non-default threads with images
+            global _thread_image_context
+            print(f"DEBUG: All thread contexts: {list(_thread_image_context.keys())}")
+            for tid in _thread_image_context.keys():
+                if tid != "default" and _thread_image_context[tid].get('uploaded_images'):
+                    thread_id = tid
+                    print(f"DEBUG: check_image_context found active thread with images: {thread_id}")
+                    break
+
+    print(f"DEBUG: check_image_context final thread_id = {thread_id}")
+
+    # Additional debug to understand state structure
+    if state:
+        print(f"DEBUG: State keys = {list(state.keys()) if isinstance(state, dict) else 'Not a dict'}")
+        if isinstance(state, dict):
+            print(f"DEBUG: Configurable content = {state.get('configurable', 'No configurable key')}")
+
     context = get_thread_context(thread_id)
     recent_image_path = context['recent_path']
     uploaded_images = context['uploaded_images']
-    
+
+    # FALLBACK: If no images in context, check recent messages for generated images
+    if not uploaded_images and state and 'messages' in state:
+        messages = state.get('messages', [])
+        for msg in messages[-10:]:  # Check last 10 messages
+            if hasattr(msg, 'content') and isinstance(msg.content, str):
+                # Look for image paths in message content
+                import re
+                # Pattern to find saved image paths
+                pattern = r'/(?:app/data/)?assets/img_\d+\.png'
+                found_paths = re.findall(pattern, msg.content)
+                for path in found_paths:
+                    # Normalize path
+                    if not path.startswith('/app/data'):
+                        if path.startswith('/assets'):
+                            path = f"/app/data{path}"
+                        else:
+                            path = f"/app/data/assets/{os.path.basename(path)}"
+
+                    if os.path.exists(path) and path not in uploaded_images:
+                        uploaded_images.append(path)
+                        context['uploaded_images'].append(path)
+
+                        # Try to extract label from the message
+                        label_patterns = ['cat', 'dog', 'cow', 'horse', 'bird', 'man', 'woman']
+                        for label in label_patterns:
+                            if label in msg.content.lower():
+                                context.setdefault('image_labels', {})[path] = label
+                                break
+
+        if uploaded_images:
+            print(f"FALLBACK: Found {len(uploaded_images)} images in message history")
+            # Set the most recent as the recent_path
+            if not recent_image_path and uploaded_images:
+                context['recent_path'] = uploaded_images[-1]
+                recent_image_path = uploaded_images[-1]
+
     print(f"DEBUG: check_image_context for thread {thread_id}")
     print(f"DEBUG: recent_image_path = {recent_image_path}")
     print(f"DEBUG: uploaded_images = {uploaded_images}")
