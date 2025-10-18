@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Browser - Aiezzy Admin</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <style>
+        :root {
+            --bg: #FFFFFF;
+            --bg-subtle: #F5F7F9;
+            --text: #111827;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --accent: #0EA5E9;
+            --shadow: rgba(0,0,0,0.08);
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+            background: var(--bg-subtle);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .header {
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+            margin-bottom: 32px;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .logo {
+            height: 32px;
+            width: auto;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-subtle);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background: var(--border);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .stats-bar {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 32px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 24px;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .directory-section {
+            background: var(--bg);
+            border-radius: 12px;
+            margin-bottom: 24px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .directory-header {
+            background: var(--bg-subtle);
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .directory-title {
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .directory-count {
+            background: var(--accent);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .file-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: grid;
+            grid-template-columns: 40px 1fr auto auto auto;
+            gap: 12px;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .file-item:hover {
+            background: var(--bg-subtle);
+        }
+
+        .file-item:last-child {
+            border-bottom: none;
+        }
+
+        .file-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .file-icon.image {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .file-icon.video {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .file-icon.json {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .file-info {
+            min-width: 0;
+        }
+
+        .file-name {
+            font-weight: 500;
+            color: var(--text);
+            word-break: break-all;
+            margin-bottom: 2px;
+        }
+
+        .file-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .file-size {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .file-date {
+            font-size: 12px;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            border: none;
+            transition: all 0.2s ease;
+        }
+
+        .btn-view {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-view:hover {
+            background: #0284c7;
+        }
+
+        .btn-delete {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #dc2626;
+        }
+
+        .empty-directory {
+            padding: 40px 20px;
+            text-align: center;
+            color: var(--text-muted);
+        }
+
+        .empty-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+            opacity: 0.5;
+        }
+
+        .total-size {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .header-content {
+                padding: 0 16px;
+            }
+
+            .file-item {
+                grid-template-columns: 40px 1fr auto;
+                gap: 8px;
+            }
+
+            .file-size,
+            .file-date {
+                display: none;
+            }
+
+            .file-actions {
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .stats-bar {
+                grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+                padding: 16px;
+            }
+        }
+
+        /* Confirmation Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 400px;
+            margin: 20px;
+            text-align: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .modal-text {
+            color: var(--text-muted);
+            margin-bottom: 20px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .btn-cancel {
+            background: var(--bg-subtle);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-cancel:hover {
+            background: var(--border);
+        }
+
+        .btn-confirm {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-confirm:hover {
+            background: #dc2626;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="header-title">
+                <img src="/logo.png" alt="Aiezzy" class="logo">
+                <h1>File Browser</h1>
+            </div>
+            <a href="/" class="back-btn">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Back to Chat
+            </a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="stats-bar">
+            <div class="stat">
+                <div class="stat-number" id="total-files">-</div>
+                <div class="stat-label">Total Files</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">{{ file_data.get('assets', []) | length }}</div>
+                <div class="stat-label">Generated Images</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">{{ file_data.get('videos', []) | length }}</div>
+                <div class="stat-label">Generated Videos</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">{{ file_data.get('uploads', []) | length }}</div>
+                <div class="stat-label">Uploaded Files</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">{{ file_data.get('feature_requests', []) | length }}</div>
+                <div class="stat-label">Feature Requests</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number">{{ file_data.get('conversations', []) | length }}</div>
+                <div class="stat-label">Conversations</div>
+            </div>
+        </div>
+
+        {% for directory, files in file_data.items() %}
+        <div class="directory-section">
+            <div class="directory-header">
+                <div class="directory-title">
+                    {% if directory == 'assets' %}📁 Generated Assets
+                    {% elif directory == 'videos' %}🎬 Generated Videos
+                    {% elif directory == 'uploads' %}📤 Uploaded Files
+                    {% elif directory == 'shared' %}🔗 Shared Conversations
+                    {% elif directory == 'feature_requests' %}💡 Feature Requests
+                    {% elif directory == 'conversations' %}💬 User Conversations
+                    {% else %}📂 {{ directory.title() }}
+                    {% endif %}
+                    <span class="directory-count">{{ files | length }}</span>
+                </div>
+                {% if files %}
+                <div class="total-size">
+                    Total: {{ files | length }} files
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if files %}
+            <div class="file-list">
+                {% for file in files %}
+                <div class="file-item">
+                    <div class="file-icon {{ file.name | get_file_type }}">
+                        {% if directory == 'conversations' %}💬
+                        {% elif file.name.endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp')) %}🖼️
+                        {% elif file.name.endswith('.mp4') %}🎬
+                        {% elif file.name.endswith('.json') %}📄
+                        {% else %}📄
+                        {% endif %}
+                    </div>
+                    
+                    <div class="file-info">
+                        {% if directory == 'conversations' %}
+                        <div class="file-name">{{ file.conversation_title }}</div>
+                        <div class="file-meta">
+                            {{ file.message_count }} messages • User: {{ file.user_id }}
+                            {% if file.last_updated %}
+                            <br><small>Updated: {{ file.last_updated[:10] }}</small>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <div class="file-name">{{ file.name }}</div>
+                        <div class="file-meta">
+                            {% if directory == 'assets' and 'img_' in file.name %}Generated Image
+                            {% elif directory == 'assets' and 'multi_' in file.name %}Multi-Image Fusion
+                            {% elif directory == 'assets' and 'edited_' in file.name %}Edited Image
+                            {% elif directory == 'videos' %}Generated Video
+                            {% elif directory == 'uploads' %}User Upload
+                            {% elif directory == 'shared' %}Shared Chat
+                            {% elif directory == 'feature_requests' %}Feature Request
+                            {% else %}File
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="file-size">{{ (file.size / 1024) | round(1) }} KB</div>
+                    <div class="file-date">{{ file.modified | timestamp_to_date }}</div>
+                    
+                    <div class="file-actions">
+                        {% if directory == 'conversations' %}
+                        <button class="btn btn-view" onclick="viewConversation('{{ file.conversation_id }}', '{{ file.user_id }}')">View</button>
+                        <button class="btn" style="background: var(--success); color: white;" onclick="downloadConversation('{{ file.conversation_id }}', '{{ file.user_id }}')">Export</button>
+                        <button class="btn btn-delete" onclick="deleteConversation('{{ file.conversation_id }}', '{{ file.user_id }}', '{{ file.conversation_title }}')">Delete</button>
+                        {% else %}
+                        {% if file.url %}
+                        <a href="{{ file.url }}" target="_blank" class="btn btn-view">View</a>
+                        {% endif %}
+                        {% if directory in ['assets', 'videos', 'uploads'] %}
+                        <button class="btn btn-delete" onclick="confirmDelete('{{ directory }}/{{ file.name }}', '{{ file.name }}')">Delete</button>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-directory">
+                <div class="empty-icon">📁</div>
+                <div>No files in this directory</div>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Confirmation Modal -->
+    <div class="modal" id="delete-modal">
+        <div class="modal-content">
+            <div class="modal-title">Delete File?</div>
+            <div class="modal-text" id="delete-text">Are you sure you want to delete this file? This action cannot be undone.</div>
+            <div class="modal-actions">
+                <button class="btn btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                <button class="btn btn-confirm" onclick="deleteFile()" id="confirm-delete">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let fileToDelete = null;
+
+        function confirmDelete(filePath, fileName) {
+            fileToDelete = filePath;
+            document.getElementById('delete-text').textContent = `Are you sure you want to delete "${fileName}"? This action cannot be undone.`;
+            document.getElementById('delete-modal').classList.add('show');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('delete-modal').classList.remove('show');
+            fileToDelete = null;
+        }
+
+        async function deleteFile() {
+            if (!fileToDelete) return;
+
+            try {
+                const response = await fetch('/admin/delete-file', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ file_path: fileToDelete })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Reload the page to refresh file list
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (result.error || 'Failed to delete file'));
+                }
+            } catch (error) {
+                alert('Error: Failed to delete file');
+                console.error('Delete error:', error);
+            } finally {
+                closeDeleteModal();
+            }
+        }
+
+        // Close modal when clicking outside
+        document.getElementById('delete-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDeleteModal();
+            }
+        });
+        
+        // Conversation-specific functions
+        async function viewConversation(conversationId, userId) {
+            try {
+                const response = await fetch(`/api/get-conversation/${conversationId}?user_id=${userId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const conversation = result.conversation;
+                    
+                    // Open a new window with conversation details
+                    const newWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+                    newWindow.document.write(`
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <title>${conversation.title}</title>
+                            <style>
+                                body { font-family: -apple-system, sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+                                .message { margin: 20px 0; padding: 15px; border-radius: 8px; }
+                                .user { background: #f0f9ff; border-left: 4px solid #0ea5e9; }
+                                .assistant { background: #f9fafb; border-left: 4px solid #6b7280; }
+                                .timestamp { color: #6b7280; font-size: 12px; margin-top: 5px; }
+                                img { max-width: 100%; height: auto; border-radius: 4px; }
+                            </style>
+                        </head>
+                        <body>
+                            <h1>${conversation.title}</h1>
+                            <p><em>Conversation ID: ${conversation.id}</em></p>
+                            <p><em>Last Updated: ${conversation.lastUpdated}</em></p>
+                            <hr>
+                    `);
+                    
+                    conversation.messages?.forEach(message => {
+                        const cssClass = message.isUser ? 'user' : 'assistant';
+                        const sender = message.isUser ? 'You' : 'AIezzy';
+                        newWindow.document.write(`
+                            <div class="message ${cssClass}">
+                                <strong>${sender}:</strong>
+                                <div>${message.content}</div>
+                                ${message.timestamp ? `<div class="timestamp">${message.timestamp}</div>` : ''}
+                            </div>
+                        `);
+                    });
+                    
+                    newWindow.document.write('</body></html>');
+                    newWindow.document.close();
+                } else {
+                    alert('Error loading conversation: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error loading conversation');
+                console.error('View conversation error:', error);
+            }
+        }
+        
+        async function downloadConversation(conversationId, userId) {
+            const format = prompt('Export format:\n1. JSON (raw data)\n2. Markdown (formatted text)\n3. HTML (web page)\n\nEnter 1, 2, or 3:');
+            
+            if (!format) return;
+            
+            let exportFormat;
+            switch(format.trim()) {
+                case '1': exportFormat = 'json'; break;
+                case '2': exportFormat = 'markdown'; break;
+                case '3': exportFormat = 'html'; break;
+                default:
+                    alert('Invalid choice. Please enter 1, 2, or 3.');
+                    return;
+            }
+            
+            try {
+                const response = await fetch(`/api/export-conversation/${conversationId}?user_id=${userId}&format=${exportFormat}`);
+                
+                if (!response.ok) {
+                    throw new Error(`Export failed: ${response.statusText}`);
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                
+                const extension = exportFormat === 'json' ? 'json' : exportFormat === 'markdown' ? 'md' : 'html';
+                a.download = `conversation_${conversationId.slice(0, 8)}.${extension}`;
+                
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                
+                alert(`Conversation exported as ${exportFormat.toUpperCase()}`);
+                
+            } catch (error) {
+                alert('Error exporting conversation');
+                console.error('Export conversation error:', error);
+            }
+        }
+        
+        async function deleteConversation(conversationId, userId, title) {
+            if (!confirm(`Are you sure you want to delete the conversation "${title}"?\n\nThis will permanently remove it from server storage and cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/delete-conversation/${conversationId}?user_id=${userId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Conversation deleted successfully');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Error deleting conversation');
+                console.error('Delete conversation error:', error);
+            }
+        }
+        
+        // Calculate total files on page load
+        window.addEventListener('load', function() {
+            let totalFiles = 0;
+            {% for directory, files in file_data.items() %}
+            totalFiles += {{ files | length }};
+            {% endfor %}
+            document.getElementById('total-files').textContent = totalFiles;
+        });
+    </script>
+</body>
+</html>

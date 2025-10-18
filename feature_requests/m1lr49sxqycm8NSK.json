@@ -1,0 +1,13 @@
+{
+  "id": "m1lr49sxqycm8NSK",
+  "feature_name": "meeting note from Audio recording",
+  "feature_details": "option to upload the audio recording and it will generate the meeting notes and action items",
+  "requested_by": "aadhya",
+  "votes": 1,
+  "voters": [
+    "127.0.0.1"
+  ],
+  "status": "open",
+  "created_at": 1755953262.8936167,
+  "updated_at": 1755953377.437847
+}

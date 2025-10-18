@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Content: {{ share_id }} - Aiezzy Admin</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <style>
+        :root {
+            --bg: #FFFFFF;
+            --bg-subtle: #F5F7F9;
+            --text: #111827;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --accent: #0EA5E9;
+            --shadow: rgba(0,0,0,0.08);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-subtle);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .header {
+            background: var(--bg);
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px var(--shadow);
+        }
+
+        .header h1 {
+            margin: 0 0 10px 0;
+            color: var(--text);
+        }
+
+        .header .meta {
+            color: var(--text-muted);
+            font-size: 14px;
+        }
+
+        .back-btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .back-btn:hover {
+            background: #0284c7;
+        }
+
+        .content {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px var(--shadow);
+        }
+
+        .public-link {
+            background: #EFF6FF;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .public-link h3 {
+            margin: 0 0 10px 0;
+            color: var(--text);
+        }
+
+        .public-link a {
+            color: var(--accent);
+            text-decoration: none;
+            font-family: monospace;
+            background: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        .message {
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .message.user {
+            background: #EFF6FF;
+            border-left: 4px solid var(--accent);
+        }
+
+        .message.assistant {
+            background: #F9FAFB;
+            border-left: 4px solid #10B981;
+        }
+
+        .message-role {
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: capitalize;
+            color: var(--text);
+        }
+
+        .message-content {
+            color: var(--text);
+            white-space: pre-wrap;
+        }
+
+        .message-image {
+            max-width: 300px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        /* Styles for embedded content in messages */
+        .message-content img {
+            max-width: 400px;
+            border-radius: 8px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        .message-content video {
+            max-width: 500px;
+            border-radius: 12px;
+            margin: 12px 0;
+        }
+
+        .timestamp {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 8px;
+        }
+    </style>
+</head>
+<body>
+    <a href="/admin/files?key={{ request.args.get('key', '') }}" class="back-btn">← Back to File Browser</a>
+    
+    <div class="header">
+        <h1>{{ shared_content.title or 'Untitled Shared Content' }}</h1>
+        <div class="meta">
+            <strong>Share ID:</strong> {{ share_id }} | 
+            <strong>Messages:</strong> {{ shared_content.messages|length or 0 }} |
+            <strong>Shared:</strong> {{ shared_content.shared_at or 'Unknown' }}
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="public-link">
+            <h3>🔗 Public Link</h3>
+            <a href="/shared/{{ share_id }}" target="_blank">{{ request.url_root }}shared/{{ share_id }}</a>
+        </div>
+
+        {% if shared_content.messages %}
+            {% for message in shared_content.messages %}
+            <div class="message {{ 'user' if message.isUser else 'assistant' }}">
+                <div class="message-role">{{ 'User' if message.isUser else 'Assistant' }}</div>
+                <div class="message-content">{{ message.content|safe }}</div>
+                {% if message.imageData %}
+                    <img src="{{ message.imageData }}" class="message-image" alt="Message image">
+                {% endif %}
+                <div class="timestamp">{{ message.timestamp or 'Unknown time' }}</div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="color: var(--text-muted); text-align: center; padding: 40px;">
+                No messages in this shared content.
+            </p>
+        {% endif %}
+    </div>
+</body>
+</html>
