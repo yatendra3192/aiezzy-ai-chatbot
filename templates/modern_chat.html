@@ -1837,6 +1837,29 @@
             60% { content: '..'; }
             80%, 100% { content: '...'; }
         }
+
+        /* Clipboard paste notification animations */
+        @keyframes slideInUp {
+            from {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOutDown {
+            from {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateY(100px);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -4265,6 +4288,81 @@
             });
         }
 
+        // === CLIPBOARD PASTE FUNCTIONALITY ===
+        function initializeClipboardPaste() {
+            // Listen for paste events globally on the document
+            document.addEventListener('paste', async function(e) {
+                // Check if paste is happening in the message input or in general
+                const messageInput = document.getElementById('message-input');
+                const isInputFocused = document.activeElement === messageInput;
+
+                // Get clipboard items
+                const clipboardData = e.clipboardData || window.clipboardData;
+                if (!clipboardData || !clipboardData.items) {
+                    return;
+                }
+
+                // Look for image files in clipboard
+                const imageFiles = [];
+                for (let i = 0; i < clipboardData.items.length; i++) {
+                    const item = clipboardData.items[i];
+
+                    // Check if item is an image
+                    if (item.type.indexOf('image') !== -1) {
+                        const file = item.getAsFile();
+                        if (file) {
+                            imageFiles.push(file);
+                        }
+                    }
+                }
+
+                // If we found images, handle them
+                if (imageFiles.length > 0) {
+                    e.preventDefault(); // Prevent default paste behavior
+
+                    if (imageFiles.length > 5) {
+                        alert('Maximum 5 images allowed at once');
+                        return;
+                    }
+
+                    console.log(`Pasted ${imageFiles.length} image(s) from clipboard`);
+
+                    // Show a brief notification
+                    showPasteNotification(imageFiles.length);
+
+                    // Call the existing handleImageUpload function
+                    handleImageUpload(imageFiles);
+                }
+            });
+        }
+
+        function showPasteNotification(count) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                background: #10a37f;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 8px;
+                font-size: 14px;
+                z-index: 10000;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                animation: slideInUp 0.3s ease;
+            `;
+            notification.textContent = `✓ ${count} image${count > 1 ? 's' : ''} pasted from clipboard`;
+
+            document.body.appendChild(notification);
+
+            // Remove after 2 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOutDown 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 2000);
+        }
+
         window.addEventListener('load', async function() {
             // Check authentication first
             await loadCurrentUser();
@@ -4274,7 +4372,10 @@
 
             // Initialize drag and drop
             initializeDragAndDrop();
-            
+
+            // Initialize clipboard paste
+            initializeClipboardPaste();
+
             // Start new chat
             startNewChat();
         });
