@@ -690,8 +690,8 @@ def upload_documents():
         # Get the count of documents
         count = int(request.form.get('count', 0))
 
-        if count == 0 or count > 5:
-            return jsonify({'error': 'Please upload 1-5 documents'}), 400
+        if count == 0 or count > 20:
+            return jsonify({'error': 'Please upload 1-20 documents'}), 400
 
         uploaded_docs = []
 
