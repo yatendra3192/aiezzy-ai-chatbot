@@ -380,7 +380,18 @@ def edit_image(prompt: str, state: Annotated[dict, InjectedState], *, config: Ru
             import requests
             response = requests.get(edited_image_url)
             if response.status_code == 200:
-                edited_path = ASSETS_DIR / f"edited_{int(time.time())}.png"
+                # Use microsecond precision to avoid filename collisions in bulk operations
+                import time as time_module
+                timestamp = int(time_module.time() * 1000000)  # Microsecond timestamp
+                edited_path = ASSETS_DIR / f"edited_{timestamp}.png"
+
+                # Ensure unique filename in case of collisions
+                counter = 1
+                while edited_path.exists():
+                    timestamp = int(time_module.time() * 1000000)
+                    edited_path = ASSETS_DIR / f"edited_{timestamp}_{counter}.png"
+                    counter += 1
+
                 edited_path.write_bytes(response.content)
                 filename = edited_path.name
                 
