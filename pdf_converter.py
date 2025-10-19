@@ -533,19 +533,19 @@ def merge_pdfs(pdf_paths: List[str], output_name: str = None) -> str:
 
         output_path = os.path.join(DOCUMENTS_DIR, output_name)
 
-        # Create PDF merger
-        merger = pypdf.PdfMerger()
+        # Create PDF writer for merging
+        writer = pypdf.PdfWriter()
 
         # Add each PDF
         for pdf_path in pdf_paths:
             print(f"Adding PDF to merge: {pdf_path}")
-            merger.append(pdf_path)
+            reader = pypdf.PdfReader(pdf_path)
+            for page in reader.pages:
+                writer.add_page(page)
 
         # Write merged PDF
         with open(output_path, 'wb') as output_file:
-            merger.write(output_file)
-
-        merger.close()
+            writer.write(output_file)
 
         print(f"Successfully merged {len(pdf_paths)} PDFs into: {output_path}")
         return output_path
