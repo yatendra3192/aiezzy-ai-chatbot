@@ -358,8 +358,18 @@ def chat():
         # Add current message with context for document processing
         if documents and document_count > 0:
             # Multiple documents
+            file_paths = [doc['file_path'] for doc in documents]
             file_list = '\n'.join([f"  - {doc['filename']} ({doc['file_type'].upper()}): {doc['file_path']}" for doc in documents])
-            enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User has uploaded {document_count} documents:]\n{file_list}\n\nPlease use the appropriate conversion or merge tools with these exact file paths."
+
+            # Check if user wants to combine/merge
+            merge_keywords = ['combine', 'merge', 'single pdf', 'into pdf', 'one pdf', 'join']
+            wants_merge = any(keyword in message.lower() for keyword in merge_keywords)
+
+            if wants_merge:
+                # Explicit instruction to use convert_and_merge_documents
+                enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User has uploaded {document_count} documents and wants to COMBINE/MERGE them:]\n{file_list}\n\n[CRITICAL INSTRUCTION: Call convert_and_merge_documents tool with file_paths parameter: {file_paths}]\n\nDO NOT make up links - call the tool and use its returned HTML link exactly."
+            else:
+                enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User has uploaded {document_count} documents:]\n{file_list}\n\nPlease use the appropriate conversion or merge tools with these exact file paths."
             messages.append({"role": "user", "content": enhanced_message})
         elif document_path and document_filename:
             # Single document processing request
