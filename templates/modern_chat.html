@@ -4422,13 +4422,39 @@
             }
 
             function handleDroppedFiles(files) {
-                // Filter for image files only
+                // Separate image files and document files
                 const imageFiles = Array.from(files).filter(file => {
                     return file.type.startsWith('image/');
                 });
 
+                const documentFiles = Array.from(files).filter(file => {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    return ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext);
+                });
+
+                // Handle based on what was dropped
+                if (documentFiles.length > 0 && imageFiles.length > 0) {
+                    alert('Please drop either images OR documents, not both at the same time');
+                    return;
+                }
+
+                if (documentFiles.length > 1) {
+                    alert('Please drop only one document at a time');
+                    return;
+                }
+
+                if (documentFiles.length === 1) {
+                    // Handle document upload
+                    const fileInput = document.getElementById('document-input');
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(documentFiles[0]);
+                    fileInput.files = dataTransfer.files;
+                    handleDocumentUpload({ target: fileInput });
+                    return;
+                }
+
                 if (imageFiles.length === 0) {
-                    alert('Please drop only image files (PNG, JPG, GIF, etc.)');
+                    alert('Please drop image files (PNG, JPG, GIF) or document files (PDF, Word, Excel, PowerPoint)');
                     return;
                 }
 
@@ -4437,7 +4463,7 @@
                     return;
                 }
 
-                // Reset the file input
+                // Reset the file input for images
                 const fileInput = document.getElementById('image-input');
                 fileInput.value = '';
 
