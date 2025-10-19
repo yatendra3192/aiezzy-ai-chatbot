@@ -500,5 +500,59 @@ def validate_file_type(file_path: str, allowed_extensions: List[str]) -> bool:
     return ext in [f'.{e}' if not e.startswith('.') else e for e in allowed_extensions]
 
 
+# ==================== PDF Merge ====================
+
+def merge_pdfs(pdf_paths: List[str], output_name: str = None) -> str:
+    """
+    Merge multiple PDF files into a single PDF
+
+    Args:
+        pdf_paths: List of PDF file paths to merge
+        output_name: Optional output filename
+
+    Returns:
+        Path to merged PDF file
+    """
+    try:
+        if not pdf_paths or len(pdf_paths) == 0:
+            raise Exception("No PDF files provided for merging")
+
+        # Validate all files exist and are PDFs
+        for pdf_path in pdf_paths:
+            if not os.path.exists(pdf_path):
+                raise Exception(f"PDF file not found: {pdf_path}")
+            if not pdf_path.lower().endswith('.pdf'):
+                raise Exception(f"Not a PDF file: {pdf_path}")
+
+        # Generate output name if not provided
+        if not output_name:
+            output_name = f"merged_{int(time.time())}.pdf"
+
+        if not output_name.endswith('.pdf'):
+            output_name += '.pdf'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Create PDF merger
+        merger = pypdf.PdfMerger()
+
+        # Add each PDF
+        for pdf_path in pdf_paths:
+            print(f"Adding PDF to merge: {pdf_path}")
+            merger.append(pdf_path)
+
+        # Write merged PDF
+        with open(output_path, 'wb') as output_file:
+            merger.write(output_file)
+
+        merger.close()
+
+        print(f"Successfully merged {len(pdf_paths)} PDFs into: {output_path}")
+        return output_path
+
+    except Exception as e:
+        raise Exception(f"Failed to merge PDFs: {str(e)}")
+
+
 # Add time import that was missing
 import time

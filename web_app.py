@@ -666,6 +666,83 @@ def upload_document():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@web_app.route('/api/upload-documents', methods=['POST'])
+@optional_auth
+def upload_documents():
+    """
+    Upload multiple documents (up to 5) for batch processing.
+    Supports PDF, Word, Excel, PowerPoint files.
+    """
+    try:
+        # Get the count of documents
+        count = int(request.form.get('count', 0))
+
+        if count == 0 or count > 5:
+            return jsonify({'error': 'Please upload 1-5 documents'}), 400
+
+        uploaded_docs = []
+
+        # Process each document
+        for i in range(count):
+            file_key = f'document{i}'
+            if file_key not in request.files:
+                continue
+
+            file = request.files[file_key]
+
+            if file.filename == '':
+                continue
+
+            # Validate file type
+            if not allowed_document(file.filename):
+                return jsonify({
+                    'error': f'Invalid file type: {file.filename}. Allowed: {", ".join(ALLOWED_DOCUMENT_EXTENSIONS)}'
+                }), 400
+
+            # Save the uploaded file
+            filename = secure_filename(file.filename)
+            timestamp = int(time.time())
+            unique_filename = f"{timestamp}_{i}_{filename}"
+
+            # Save to documents directory
+            file_path = os.path.join(DOCUMENTS_DIR, unique_filename)
+            file.save(file_path)
+
+            # Get file info
+            file_size = os.path.getsize(file_path)
+            file_ext = filename.rsplit('.', 1)[1].lower()
+
+            uploaded_docs.append({
+                'file_path': file_path,
+                'filename': unique_filename,
+                'original_filename': filename,
+                'file_size': file_size,
+                'file_type': file_ext
+            })
+
+        if len(uploaded_docs) == 0:
+            return jsonify({'error': 'No valid documents uploaded'}), 400
+
+        # Generate thread ID for this batch
+        thread_id = str(uuid.uuid4())
+
+        # Prepare response
+        total_size = sum(doc['file_size'] for doc in uploaded_docs)
+        filenames = ', '.join(doc['original_filename'] for doc in uploaded_docs)
+
+        response_data = {
+            'success': True,
+            'documents': uploaded_docs,
+            'count': len(uploaded_docs),
+            'thread_id': thread_id,
+            'message': f'✅ Uploaded {len(uploaded_docs)} document(s) ({total_size // 1024}KB total): {filenames}. You can now ask me to convert or analyze them!'
+        }
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # =============================================================================
 
 @web_app.route('/api/clear-context', methods=['POST'])

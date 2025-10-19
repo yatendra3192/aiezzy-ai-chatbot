@@ -1255,6 +1255,52 @@ def convert_images_to_pdf(output_name: str = None, *, config: RunnableConfig) ->
     except Exception as e:
         return f"❌ Error converting images to PDF: {str(e)}"
 
+# --- Tool: Merge PDFs --------------------------------------------------------
+@tool
+def merge_pdfs(file_paths: List[str], output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Merge multiple PDF files into a single PDF document.
+    Use this when the user uploads multiple PDFs and wants to combine them.
+
+    Args:
+        file_paths: List of PDF file paths to merge (must be absolute paths)
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for the merged PDF
+    """
+    try:
+        if not file_paths or len(file_paths) == 0:
+            return "❌ Error: No PDF files provided for merging."
+
+        if len(file_paths) == 1:
+            return "❌ Error: Need at least 2 PDF files to merge. Only 1 PDF provided."
+
+        print(f"INFO: Merging {len(file_paths)} PDF files")
+
+        # Validate all paths exist
+        valid_paths = []
+        for path in file_paths:
+            if os.path.exists(path):
+                valid_paths.append(path)
+            else:
+                print(f"WARNING: PDF not found: {path}")
+
+        if len(valid_paths) == 0:
+            return "❌ Error: None of the PDF files could be found."
+
+        if len(valid_paths) == 1:
+            return f"❌ Error: Only 1 valid PDF found. Need at least 2 PDFs to merge."
+
+        # Merge PDFs
+        merged_path = pdf_converter.merge_pdfs(valid_paths, output_name)
+        filename = os.path.basename(merged_path)
+
+        return f'✅ Successfully merged {len(valid_paths)} PDF file(s) into: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error merging PDFs: {str(e)}"
+
 # =============================================================================
 
 @tool
@@ -1304,7 +1350,9 @@ def build_coordinator():
         convert_word_to_pdf,
         convert_excel_to_pdf,
         convert_powerpoint_to_pdf,
-        convert_images_to_pdf
+        convert_images_to_pdf,
+        # PDF Utilities
+        merge_pdfs
     ]
     
     prompt = (

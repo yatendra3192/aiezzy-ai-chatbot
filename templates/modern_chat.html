@@ -2147,7 +2147,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
                     </svg>
                 </button>
-                <input type="file" id="document-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" style="display: none;" onchange="handleDocumentUpload(event)">
+                <input type="file" id="document-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" multiple style="display: none;" onchange="handleDocumentUpload(event)">
                 
                 <textarea 
                     id="composer-input" 
@@ -2441,38 +2441,48 @@
 
         // Handle document upload (PDF, Word, Excel, PowerPoint)
         async function handleDocumentUpload(event) {
-            const file = event.target.files[0];
+            const files = Array.from(event.target.files);
 
-            if (!file) {
+            if (files.length === 0) {
                 return;
             }
 
-            // Validate file type
+            // Validate file count
+            if (files.length > 5) {
+                alert('Maximum 5 documents allowed at once');
+                return;
+            }
+
+            // Validate all files
             const allowedTypes = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
-            const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+            const maxSize = 50 * 1024 * 1024; // 50MB per file
 
-            if (!allowedTypes.includes(fileExt)) {
-                alert('Invalid file type. Allowed: PDF, Word, Excel, PowerPoint');
-                return;
-            }
-
-            // Validate file size (50MB max)
-            const maxSize = 50 * 1024 * 1024; // 50MB
-            if (file.size > maxSize) {
-                alert('File too large. Maximum size is 50MB');
-                return;
+            for (const file of files) {
+                const fileExt = '.' + file.name.split('.').pop().toLowerCase();
+                if (!allowedTypes.includes(fileExt)) {
+                    alert(`Invalid file type: ${file.name}. Allowed: PDF, Word, Excel, PowerPoint`);
+                    return;
+                }
+                if (file.size > maxSize) {
+                    alert(`File too large: ${file.name}. Maximum size is 50MB per file`);
+                    return;
+                }
             }
 
             // Show loading indicator
-            showLoadingMessage('Uploading document...');
+            const fileWord = files.length === 1 ? 'document' : 'documents';
+            showLoadingMessage(`Uploading ${files.length} ${fileWord}...`);
 
             try {
                 // Create FormData for upload
                 const formData = new FormData();
-                formData.append('document', file);
+                files.forEach((file, index) => {
+                    formData.append(`document${index}`, file);
+                });
+                formData.append('count', files.length);
 
-                // Upload document
-                const response = await fetch('/api/upload-document', {
+                // Upload documents
+                const response = await fetch('/api/upload-documents', {
                     method: 'POST',
                     body: formData,
                     headers: currentUser ? {
@@ -2483,9 +2493,9 @@
                 const result = await response.json();
 
                 if (result.success) {
-                    // Store document data
-                    uploadedDocument = file;
-                    uploadedDocumentData = result;
+                    // Store document data (for multiple docs, store the array)
+                    uploadedDocument = files;
+                    uploadedDocumentData = result.documents || [result]; // Handle both single and multiple
 
                     // Update thread ID if returned
                     if (result.thread_id) {
@@ -2493,24 +2503,30 @@
                         localStorage.setItem('currentThreadId', currentThreadId);
                     }
 
-                    // Show document preview
+                    // Show document previews
                     const preview = document.getElementById('image-preview-container');
-                    const fileSize = (result.file_size / 1024).toFixed(1);
-                    const fileIcon = getDocumentIcon(result.file_type);
+                    const docs = result.documents || [result];
 
-                    preview.innerHTML = `
-                        <div class="document-preview">
-                            <div class="document-icon">${fileIcon}</div>
-                            <div class="document-info">
-                                <div class="document-name">${result.original_filename}</div>
-                                <div class="document-size">${fileSize} KB</div>
+                    preview.innerHTML = docs.map((doc, index) => {
+                        const fileSize = (doc.file_size / 1024).toFixed(1);
+                        const fileIcon = getDocumentIcon(doc.file_type);
+                        return `
+                            <div class="document-preview" data-doc-index="${index}">
+                                <div class="document-icon">${fileIcon}</div>
+                                <div class="document-info">
+                                    <div class="document-name">${doc.original_filename}</div>
+                                    <div class="document-size">${fileSize} KB</div>
+                                </div>
+                                <button class="remove-image" onclick="removeDocument(${index})">×</button>
                             </div>
-                            <button class="remove-image" onclick="clearDocument()">×</button>
-                        </div>
-                    `;
+                        `;
+                    }).join('');
 
                     // Add upload confirmation message to chat
-                    addMessage(result.message, false);
+                    const message = files.length === 1
+                        ? result.message || `Uploaded: ${docs[0].original_filename}`
+                        : `Uploaded ${files.length} documents: ${docs.map(d => d.original_filename).join(', ')}`;
+                    addMessage(message, false);
 
                     hideLoadingMessage();
                     updateSendButton();
@@ -2521,7 +2537,7 @@
             } catch (error) {
                 hideLoadingMessage();
                 console.error('Document upload error:', error);
-                alert('Failed to upload document. Please try again.');
+                alert('Failed to upload documents. Please try again.');
             }
 
             // Reset file input
@@ -2534,6 +2550,34 @@
             document.getElementById('image-preview-container').innerHTML = '';
             document.getElementById('document-input').value = '';
             updateSendButton();
+        }
+
+        function removeDocument(index) {
+            if (Array.isArray(uploadedDocumentData)) {
+                uploadedDocumentData.splice(index, 1);
+                if (uploadedDocumentData.length === 0) {
+                    clearDocument();
+                } else {
+                    // Re-render preview without the removed document
+                    const preview = document.getElementById('image-preview-container');
+                    preview.innerHTML = uploadedDocumentData.map((doc, i) => {
+                        const fileSize = (doc.file_size / 1024).toFixed(1);
+                        const fileIcon = getDocumentIcon(doc.file_type);
+                        return `
+                            <div class="document-preview" data-doc-index="${i}">
+                                <div class="document-icon">${fileIcon}</div>
+                                <div class="document-info">
+                                    <div class="document-name">${doc.original_filename}</div>
+                                    <div class="document-size">${fileSize} KB</div>
+                                </div>
+                                <button class="remove-image" onclick="removeDocument(${i})">×</button>
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } else {
+                clearDocument();
+            }
         }
 
         function getDocumentIcon(fileType) {
@@ -4438,16 +4482,16 @@
                     return;
                 }
 
-                if (documentFiles.length > 1) {
-                    alert('Please drop only one document at a time');
+                if (documentFiles.length > 5) {
+                    alert('Maximum 5 documents allowed at once');
                     return;
                 }
 
-                if (documentFiles.length === 1) {
-                    // Handle document upload
+                if (documentFiles.length >= 1) {
+                    // Handle single or multiple document upload
                     const fileInput = document.getElementById('document-input');
                     const dataTransfer = new DataTransfer();
-                    dataTransfer.items.add(documentFiles[0]);
+                    documentFiles.forEach(file => dataTransfer.items.add(file));
                     fileInput.files = dataTransfer.files;
                     handleDocumentUpload({ target: fileInput });
                     return;
