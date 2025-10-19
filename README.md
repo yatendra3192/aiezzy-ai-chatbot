@@ -4,9 +4,27 @@ A production-ready ChatGPT-style web application featuring advanced LangGraph mu
 
 **🌐 Live at: [aiezzy.com](https://aiezzy.com)**
 
-## 🆕 Latest Updates (August 25, 2025)
+## 🆕 Latest Updates (October 19, 2025)
 
-### 🔐 **User Authentication & Management System**
+### 📄 **Complete Document Processing Suite**
+- **PDF Conversion**: Convert PDFs to Word, Excel, PowerPoint, or images with table preservation
+- **Office to PDF**: Convert Word, Excel, PowerPoint documents to PDF format
+- **Multi-Format Support**: Handle PDF, DOCX, XLSX, PPTX, PNG, JPG, JPEG, GIF, WEBP files
+- **Document Merging**: Combine multiple documents of different types into a single PDF
+- **Mixed File Uploads**: Upload images alongside documents in a single operation
+- **Table Preservation**: PyMuPDF-powered table detection maintains formatting in conversions
+- **Batch Processing**: Upload and process up to 100 documents simultaneously
+- **Smart Conversion**: Automatically routes documents to appropriate conversion tools
+- **Intelligent Merging**: One-click combining of PDF, Word, Excel, PowerPoint, and images
+
+### 📤 **Enhanced Upload Capabilities**
+- **100 File Limit**: Upload up to 100 images or 100 documents (increased from 5/20)
+- **Mixed File Types**: Upload both images and documents together without restrictions
+- **Drag & Drop**: Supports combined drag-and-drop for any file type
+- **Smart Routing**: System automatically determines whether files are images or documents
+- **Unified Processing**: All document types converted and merged in single operation
+
+### 🔐 **User Authentication & Management System** (August 25, 2025)
 - **Complete Authentication**: Secure user registration, login, and session management
 - **Guest Access**: Non-registered users can use all AI features without signing up
 - **Sidebar Login**: Integrated login form in sidebar for seamless authentication
@@ -70,6 +88,18 @@ A production-ready ChatGPT-style web application featuring advanced LangGraph mu
 - **Smart Routing**: Automatically detects when web search is needed
 - **Reliable Sources**: Focuses on credible and recent information
 - **Agent-Optimized**: Uses Tavily's API specifically designed for AI agents
+
+### 📄 **Advanced Document Processing**
+- **PDF to Office**: Convert PDFs to Word (.docx), Excel (.xlsx), PowerPoint (.pptx), or images
+- **Office to PDF**: Convert Word, Excel, PowerPoint documents to PDF format
+- **Table Preservation**: Maintains table structure and formatting during PDF conversions
+- **Image to PDF**: Convert image files (PNG, JPG, JPEG, GIF, WEBP) to PDF documents
+- **Document Merging**: Combine multiple documents of mixed types into single PDF
+- **Batch Processing**: Process up to 100 documents in a single operation
+- **Mixed File Support**: Upload and process images alongside documents seamlessly
+- **Smart Conversion**: AI automatically selects appropriate conversion tools
+- **LibreOffice Integration**: Uses headless LibreOffice for Office format conversions
+- **PyMuPDF Powered**: Advanced PDF processing with table detection and extraction
 
 ### 💬 **Modern Chat Interface with Progress Feedback**
 - **ChatGPT-Style UI**: Clean, modern interface matching ChatGPT's design
@@ -176,8 +206,12 @@ python app.py
 6. **Image Animation**: Upload an image and ask to "Animate this image" or "Make this picture move"
 7. **Multi-Image Fusion**: Upload multiple images and request "Combine these images" or "Merge these photos"
 8. **Web Search**: Ask "What are the latest..." or "Current news about..."
-9. **Multi-Step Workflows**: Complex requests like "Get news, create a video, write a post"
-10. **Authentication Features**:
+9. **Document Processing**:
+    - Upload documents and request "Convert this PDF to Word"
+    - Upload multiple documents and request "Combine them into a single PDF"
+    - Mix images and documents: "Merge these files into one PDF"
+10. **Multi-Step Workflows**: Complex requests like "Get news, create a video, write a post"
+11. **Authentication Features**:
     - **Guests**: Use sidebar login form or continue without registration
     - **Users**: Access Recent Chats, profile settings, and persistent conversations
     - **Account Management**: Change password, update profile, view statistics
@@ -192,6 +226,9 @@ python app.py
 - **Image Animation**: "Animate this portrait with gentle movement" (with uploaded image)
 - **Multi-Image**: "Combine these two photos into one artistic composition" (with 2+ uploaded images)
 - **Web Search**: "What are the latest AI developments this week?"
+- **PDF Conversion**: "Convert this PDF to Word" (with uploaded PDF)
+- **Document Merging**: "Combine these documents into a single PDF" (with uploaded documents)
+- **Mixed File Merging**: "Merge all these files into one PDF" (with PDFs, Word, Excel, images)
 
 #### **Multi-Step Workflow Examples**
 - **News + Video + Post**: "Get latest news from Mumbai, create a video about it, write a LinkedIn post"
@@ -205,8 +242,15 @@ python app.py
 | `/` | GET | Modern chat interface with progress indicators |
 | `/api/chat` | POST | Multi-agent conversations with progress tracking |
 | `/api/analyze-image` | POST | Image upload and analysis with context preservation |
+| `/api/upload-documents` | POST | Upload up to 100 documents for batch processing |
+| `/api/register` | POST | User registration with email and password |
+| `/api/login` | POST | User authentication and session creation |
+| `/api/logout` | POST | Session termination and cleanup |
+| `/api/user/profile` | GET/POST | User profile management and settings |
+| `/api/user/check-auth` | GET | Authentication status verification |
 | `/assets/<filename>` | GET | Serve generated/edited/multi images |
 | `/videos/<filename>` | GET | Serve generated video files |
+| `/documents/<filename>` | GET | Serve converted/merged documents |
 
 ## 🏗️ Enhanced Architecture
 
@@ -229,15 +273,20 @@ python app.py
 ## 📁 Project Structure
 
 ```
-├── app.py                 # Enhanced LangGraph coordinator with intelligent routing
-├── web_app.py            # Flask server with UNIFIED image upload endpoint
-├── requirements.txt      # Python dependencies (includes video libraries)
+├── app.py                 # Enhanced LangGraph coordinator with document processing tools
+├── web_app.py            # Flask server with unified upload endpoint and auth system
+├── pdf_converter.py      # Document conversion utilities (PDF/Word/Excel/PowerPoint)
+├── requirements.txt      # Python dependencies (includes document processing libraries)
 ├── .env                  # Environment variables (all API keys)
 ├── templates/
-│   └── modern_chat.html  # Simplified ChatGPT-style interface (no popups)
+│   └── modern_chat.html  # ChatGPT-style interface with 100-file upload support
 ├── assets/               # Generated, edited, and multi-fusion images
 ├── videos/               # Generated video files
 ├── uploads/              # Temporary uploaded image files
+├── data/
+│   ├── documents/        # Converted and merged document files
+│   ├── uploads/          # Uploaded document files
+│   └── database.db       # SQLite user authentication database
 ├── README.md            # This comprehensive documentation
 └── CLAUDE.md            # Detailed development context and history
 ```
@@ -256,15 +305,23 @@ python app.py
 ### Key Dependencies
 - **LangGraph**: Multi-agent orchestration and coordination
 - **LangChain**: AI model integration and tool management
-- **Flask**: Web framework with multimedia serving
+- **Flask**: Web framework with multimedia serving and authentication
 - **OpenAI**: GPT models and image generation
 - **FAL Client**: Image editing, video generation, and multi-image fusion
 - **Tavily Python**: Real-time web search capabilities
+- **PyMuPDF (fitz)**: Advanced PDF processing with table detection
+- **python-docx**: Word document creation and manipulation
+- **openpyxl**: Excel file handling and formatting
+- **img2pdf**: Image to PDF conversion
+- **Pillow (PIL)**: Image processing and manipulation
+- **LibreOffice**: Headless document conversion (Office formats)
 
 ### Data Storage
 - **Conversations**: Browser localStorage (JSON format with HTML preservation)
 - **Images**: Local filesystem in `/assets` and `/uploads` directories
 - **Videos**: Local filesystem in `/videos` directory
+- **Documents**: Local filesystem in `/data/documents` and `/data/uploads` directories
+- **User Data**: SQLite database (`/data/database.db`) for authentication and profiles
 - **Session Management**: In-memory for active conversations with context tracking
 - **Multi-Image Context**: Last 5 uploaded images maintained for fusion operations
 
@@ -280,6 +337,11 @@ python app.py
 - **Image animation** via FAL AI LTX-Video-13B (image-to-video)
 - **Multi-image fusion** via FAL AI FLUX Pro Kontext Multi
 - **Web search** via Tavily AI for real-time information
+- **Complete document processing suite** with PDF/Office conversions and merging
+- **100-file upload support** for both images and documents
+- **Mixed file type uploads** without restrictions
+- **Table-preserving PDF conversions** using PyMuPDF
+- **User authentication system** with guest access
 - **Complete conversation management** with media persistence
 - **Recent chats sidebar** with enhanced multimedia history
 - **Auto-generated conversation titles**
@@ -414,7 +476,8 @@ For issues or enhancements, check the conversation history in Recent Chats or st
 
 ---
 
-**Last Updated**: August 17, 2025  
-**Latest**: Multi-image bug fixes - thread context isolation and persistence issues resolved ✅  
-**Status**: Production Ready with fully functional multi-image fusion and stable architecture  
-**Interface**: Advanced ChatGPT-style UI with bulletproof multi-image support and smart AI decisions
+**Last Updated**: October 19, 2025
+**Latest**: Complete document processing suite - PDF/Office conversions, merging, and 100-file upload support ✅
+**Status**: Production Ready with full multimedia capabilities and comprehensive document processing
+**Interface**: Advanced ChatGPT-style UI with 100-file upload support, mixed file types, and intelligent document merging
+**New Features**: PDF ↔ Word/Excel/PowerPoint conversions, table preservation, document merging, batch processing
