@@ -2402,19 +2402,29 @@
                 return;
             }
 
-            if (files.length > 100) {
+            // Combine with existing uploaded images if any
+            let existingFiles = [];
+            if (uploadedImage) {
+                existingFiles.push(uploadedImage);
+            } else if (uploadedImages && uploadedImages.length > 0) {
+                existingFiles = Array.from(uploadedImages);
+            }
+
+            const allFiles = [...existingFiles, ...files];
+
+            if (allFiles.length > 100) {
                 alert('Maximum 100 images allowed');
                 return;
             }
-            
+
             const preview = document.getElementById('image-preview-container');
-            
-            if (files.length === 1) {
+
+            if (allFiles.length === 1) {
                 // Single image upload
-                uploadedImage = files[0];
+                uploadedImage = allFiles[0];
                 uploadedImages = []; // Keep as empty array for consistency
                 uploadedImagesData = [];
-                
+
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     uploadedImageData = e.target.result;
@@ -2427,21 +2437,21 @@
                     `;
                     updateSendButton(); // Update button when single image is loaded
                 };
-                reader.readAsDataURL(files[0]);
+                reader.readAsDataURL(allFiles[0]);
             } else {
                 // Multiple images upload
-                uploadedImages = files;
+                uploadedImages = allFiles;
                 uploadedImage = null;
                 uploadedImageData = null;
                 uploadedImagesData = [];
-                
-                files.forEach((file, index) => {
+
+                allFiles.forEach((file, index) => {
                     const reader = new FileReader();
                     reader.onload = function(e) {
                         uploadedImagesData[index] = e.target.result;
-                        
+
                         // Update preview when all images are loaded
-                        if (uploadedImagesData.filter(data => data).length === files.length) {
+                        if (uploadedImagesData.filter(data => data).length === allFiles.length) {
                             let fullPreviewHTML = '<div class="multi-image-preview">';
                             uploadedImagesData.forEach((data, i) => {
                                 fullPreviewHTML += `
@@ -2453,7 +2463,7 @@
                             });
                             fullPreviewHTML += `
                                 <button class="remove-image" onclick="clearImage()">×</button>
-                                <div class="image-label">${files.length} Images</div>
+                                <div class="image-label">${allFiles.length} Images</div>
                             </div>`;
                             preview.innerHTML = fullPreviewHTML;
                             updateSendButton(); // Update button when all images are loaded
