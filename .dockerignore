@@ -40,7 +40,13 @@ videos/
 documents/
 *.db
 *.sqlite
+*.sqlite3
+aiezzy_users.db
 
 # Backups
 *backup*
 *_backup_*
+
+# Logs
+logs/
+*.log.*
