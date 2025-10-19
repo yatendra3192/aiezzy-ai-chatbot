@@ -1223,11 +1223,12 @@ def convert_images_to_pdf(output_name: str = None, *, config: RunnableConfig) ->
         thread_id = config.get("configurable", {}).get("thread_id", "default")
 
         # Get recent image paths from conversation context
-        from app import get_recent_image_paths
         image_paths = get_recent_image_paths(thread_id)
 
         if not image_paths or len(image_paths) == 0:
             return "❌ Error: No images found. Please upload images first before converting to PDF."
+
+        print(f"INFO: Found {len(image_paths)} images for thread {thread_id}: {image_paths}")
 
         # Verify all images exist
         valid_paths = []
