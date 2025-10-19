@@ -286,7 +286,7 @@ def edit_image(prompt: str, state: Annotated[dict, InjectedState], *, config: Ru
     prompt_hash = hash(clean_prompt)
     request_key = f"edit_{thread_id}_{prompt_hash}_{recent_image_path}"
     global_lock_key = f"{thread_id}_{prompt_hash}"
-    execution_key = f"edit_image_{thread_id}"
+    execution_key = f"edit_image_{thread_id}_{prompt_hash}"  # Include prompt hash for bulk operations
     
     print(f"DEBUG: Original prompt: {prompt}")
     print(f"DEBUG: Cleaned prompt: {clean_prompt}")
