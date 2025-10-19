@@ -336,10 +336,21 @@ def chat():
         document_filename = data.get('document_filename')
         document_type = data.get('document_type')
 
+        # Also check history for recent document uploads
+        if not document_path:
+            for msg in reversed(history):
+                if msg.get('hasDocument') and msg.get('documentData'):
+                    doc_data = msg.get('documentData')
+                    document_path = doc_data.get('file_path')
+                    document_filename = doc_data.get('original_filename')
+                    document_type = doc_data.get('file_type')
+                    print(f"Found document in history: {document_filename} at {document_path}")
+                    break
+
         # Add current message with context for image editing or document processing
         if document_path and document_filename:
             # Document processing request
-            enhanced_message = f"{message}\n\nUser has uploaded a {document_type.upper()} document: {document_filename}\nFile path: {document_path}\n\nPlease help the user with this document. They may want to convert it to another format, extract information, or perform other document operations."
+            enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User has uploaded a {document_type.upper()} document: {document_filename}]\n[FILE PATH: {document_path}]\n\nPlease use the appropriate conversion tool with this exact file path."
             messages.append({"role": "user", "content": enhanced_message})
         elif is_edit_request and has_image_context:
             current_timestamp = int(time.time())
