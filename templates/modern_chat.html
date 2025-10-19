@@ -4488,29 +4488,9 @@
                     return ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext);
                 });
 
-                // Handle based on what was dropped
-                if (documentFiles.length > 0 && imageFiles.length > 0) {
-                    alert('Please drop either images OR documents, not both at the same time');
-                    return;
-                }
-
+                // Validate limits
                 if (documentFiles.length > 20) {
                     alert('Maximum 20 documents allowed at once');
-                    return;
-                }
-
-                if (documentFiles.length >= 1) {
-                    // Handle single or multiple document upload
-                    const fileInput = document.getElementById('document-input');
-                    const dataTransfer = new DataTransfer();
-                    documentFiles.forEach(file => dataTransfer.items.add(file));
-                    fileInput.files = dataTransfer.files;
-                    handleDocumentUpload({ target: fileInput });
-                    return;
-                }
-
-                if (imageFiles.length === 0) {
-                    alert('Please drop image files (PNG, JPG, GIF) or document files (PDF, Word, Excel, PowerPoint)');
                     return;
                 }
 
@@ -4519,12 +4499,26 @@
                     return;
                 }
 
-                // Reset the file input for images
-                const fileInput = document.getElementById('image-input');
-                fileInput.value = '';
+                if (documentFiles.length === 0 && imageFiles.length === 0) {
+                    alert('Please drop image files (PNG, JPG, GIF) or document files (PDF, Word, Excel, PowerPoint)');
+                    return;
+                }
 
-                // Call the existing handleImageUpload function
-                handleImageUpload(imageFiles);
+                // Handle documents if present
+                if (documentFiles.length >= 1) {
+                    const docInput = document.getElementById('document-input');
+                    const docTransfer = new DataTransfer();
+                    documentFiles.forEach(file => docTransfer.items.add(file));
+                    docInput.files = docTransfer.files;
+                    handleDocumentUpload({ target: docInput });
+                }
+
+                // Handle images if present
+                if (imageFiles.length >= 1) {
+                    const imgInput = document.getElementById('image-input');
+                    imgInput.value = '';
+                    handleImageUpload(imageFiles);
+                }
             }
 
             // Add visual feedback for composer hover
