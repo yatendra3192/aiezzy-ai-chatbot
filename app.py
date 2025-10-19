@@ -1122,6 +1122,87 @@ def convert_pdf_to_powerpoint(file_path: str, output_name: str = None, *, config
     except Exception as e:
         return f"❌ Error converting PDF to PowerPoint: {str(e)}"
 
+# --- Tool: Word to PDF Conversion --------------------------------------------
+@tool
+def convert_word_to_pdf(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert Word document (DOCX/DOC) to PDF format using LibreOffice.
+
+    Args:
+        file_path: Path to the Word file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for converted PDF
+    """
+    try:
+        print(f"INFO: Converting Word to PDF: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Word file not found at {file_path}"
+
+        pdf_path = pdf_converter.word_to_pdf(file_path, output_name)
+        filename = os.path.basename(pdf_path)
+
+        return f'✅ Successfully converted Word document to PDF: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting Word to PDF: {str(e)}"
+
+# --- Tool: Excel to PDF Conversion -------------------------------------------
+@tool
+def convert_excel_to_pdf(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert Excel spreadsheet (XLSX/XLS) to PDF format using LibreOffice.
+
+    Args:
+        file_path: Path to the Excel file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for converted PDF
+    """
+    try:
+        print(f"INFO: Converting Excel to PDF: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Excel file not found at {file_path}"
+
+        pdf_path = pdf_converter.excel_to_pdf(file_path, output_name)
+        filename = os.path.basename(pdf_path)
+
+        return f'✅ Successfully converted Excel spreadsheet to PDF: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting Excel to PDF: {str(e)}"
+
+# --- Tool: PowerPoint to PDF Conversion --------------------------------------
+@tool
+def convert_powerpoint_to_pdf(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert PowerPoint presentation (PPTX/PPT) to PDF format using LibreOffice.
+
+    Args:
+        file_path: Path to the PowerPoint file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for converted PDF
+    """
+    try:
+        print(f"INFO: Converting PowerPoint to PDF: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: PowerPoint file not found at {file_path}"
+
+        pdf_path = pdf_converter.powerpoint_to_pdf(file_path, output_name)
+        filename = os.path.basename(pdf_path)
+
+        return f'✅ Successfully converted PowerPoint presentation to PDF: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting PowerPoint to PDF: {str(e)}"
+
 # =============================================================================
 
 @tool
@@ -1162,11 +1243,15 @@ def build_coordinator():
         analyze_user_intent,
         evaluate_result_quality,
         check_image_context,
-        # PDF Conversion tools
+        # PDF Conversion tools - FROM PDF
         convert_pdf_to_images,
         convert_pdf_to_word,
         convert_pdf_to_excel,
-        convert_pdf_to_powerpoint
+        convert_pdf_to_powerpoint,
+        # Office Conversion tools - TO PDF
+        convert_word_to_pdf,
+        convert_excel_to_pdf,
+        convert_powerpoint_to_pdf
     ]
     
     prompt = (

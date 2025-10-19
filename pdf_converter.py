@@ -279,8 +279,7 @@ def pdf_to_powerpoint(pdf_path: str, output_name: str = None, slides_per_page: b
 
 def word_to_pdf(docx_path: str, output_name: str = None) -> str:
     """
-    Convert Word document to PDF
-    Note: This is a basic conversion. For better quality, consider using LibreOffice or an API
+    Convert Word document to PDF using LibreOffice
 
     Args:
         docx_path: Path to Word file
@@ -290,18 +289,156 @@ def word_to_pdf(docx_path: str, output_name: str = None) -> str:
         Path to generated PDF file
     """
     try:
-        # This is a placeholder - proper Word to PDF conversion requires:
-        # - LibreOffice (best quality, requires installation)
-        # - Online API (Adobe, CloudConvert)
-        # - python-docx2pdf (Windows only, requires MS Word)
+        import subprocess
 
-        raise NotImplementedError(
-            "Word to PDF conversion requires additional setup. "
-            "Please install LibreOffice or use an online conversion service."
-        )
+        # Validate file exists
+        if not os.path.exists(docx_path):
+            raise Exception(f"Word file not found: {docx_path}")
 
+        # Generate output name
+        if not output_name:
+            docx_name = pathlib.Path(docx_path).stem
+            output_name = f"{docx_name}_converted.pdf"
+
+        if not output_name.endswith('.pdf'):
+            output_name += '.pdf'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Use LibreOffice to convert to PDF
+        # --headless: run without GUI
+        # --convert-to pdf: output format
+        # --outdir: output directory
+        subprocess.run([
+            'libreoffice',
+            '--headless',
+            '--convert-to', 'pdf',
+            '--outdir', DOCUMENTS_DIR,
+            docx_path
+        ], check=True, capture_output=True, timeout=60)
+
+        # LibreOffice creates the file with original name + .pdf extension
+        # Rename if needed
+        temp_output = os.path.join(DOCUMENTS_DIR, pathlib.Path(docx_path).stem + '.pdf')
+        if temp_output != output_path and os.path.exists(temp_output):
+            os.rename(temp_output, output_path)
+
+        return output_path
+
+    except subprocess.TimeoutExpired:
+        raise Exception("Conversion timed out (>60 seconds)")
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"LibreOffice conversion failed: {e.stderr.decode() if e.stderr else str(e)}")
     except Exception as e:
         raise Exception(f"Failed to convert Word to PDF: {str(e)}")
+
+
+# ==================== Excel to PDF ====================
+
+def excel_to_pdf(xlsx_path: str, output_name: str = None) -> str:
+    """
+    Convert Excel spreadsheet to PDF using LibreOffice
+
+    Args:
+        xlsx_path: Path to Excel file
+        output_name: Optional output filename
+
+    Returns:
+        Path to generated PDF file
+    """
+    try:
+        import subprocess
+
+        # Validate file exists
+        if not os.path.exists(xlsx_path):
+            raise Exception(f"Excel file not found: {xlsx_path}")
+
+        # Generate output name
+        if not output_name:
+            xlsx_name = pathlib.Path(xlsx_path).stem
+            output_name = f"{xlsx_name}_converted.pdf"
+
+        if not output_name.endswith('.pdf'):
+            output_name += '.pdf'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Use LibreOffice to convert to PDF
+        subprocess.run([
+            'libreoffice',
+            '--headless',
+            '--convert-to', 'pdf',
+            '--outdir', DOCUMENTS_DIR,
+            xlsx_path
+        ], check=True, capture_output=True, timeout=60)
+
+        # LibreOffice creates the file with original name + .pdf extension
+        temp_output = os.path.join(DOCUMENTS_DIR, pathlib.Path(xlsx_path).stem + '.pdf')
+        if temp_output != output_path and os.path.exists(temp_output):
+            os.rename(temp_output, output_path)
+
+        return output_path
+
+    except subprocess.TimeoutExpired:
+        raise Exception("Conversion timed out (>60 seconds)")
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"LibreOffice conversion failed: {e.stderr.decode() if e.stderr else str(e)}")
+    except Exception as e:
+        raise Exception(f"Failed to convert Excel to PDF: {str(e)}")
+
+
+# ==================== PowerPoint to PDF ====================
+
+def powerpoint_to_pdf(pptx_path: str, output_name: str = None) -> str:
+    """
+    Convert PowerPoint presentation to PDF using LibreOffice
+
+    Args:
+        pptx_path: Path to PowerPoint file
+        output_name: Optional output filename
+
+    Returns:
+        Path to generated PDF file
+    """
+    try:
+        import subprocess
+
+        # Validate file exists
+        if not os.path.exists(pptx_path):
+            raise Exception(f"PowerPoint file not found: {pptx_path}")
+
+        # Generate output name
+        if not output_name:
+            pptx_name = pathlib.Path(pptx_path).stem
+            output_name = f"{pptx_name}_converted.pdf"
+
+        if not output_name.endswith('.pdf'):
+            output_name += '.pdf'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Use LibreOffice to convert to PDF
+        subprocess.run([
+            'libreoffice',
+            '--headless',
+            '--convert-to', 'pdf',
+            '--outdir', DOCUMENTS_DIR,
+            pptx_path
+        ], check=True, capture_output=True, timeout=60)
+
+        # LibreOffice creates the file with original name + .pdf extension
+        temp_output = os.path.join(DOCUMENTS_DIR, pathlib.Path(pptx_path).stem + '.pdf')
+        if temp_output != output_path and os.path.exists(temp_output):
+            os.rename(temp_output, output_path)
+
+        return output_path
+
+    except subprocess.TimeoutExpired:
+        raise Exception("Conversion timed out (>60 seconds)")
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"LibreOffice conversion failed: {e.stderr.decode() if e.stderr else str(e)}")
+    except Exception as e:
+        raise Exception(f"Failed to convert PowerPoint to PDF: {str(e)}")
 
 
 # ==================== Utility Functions ====================
