@@ -1261,6 +1261,40 @@ def convert_images_to_pdf(output_name: str = None, *, config: RunnableConfig) ->
     except Exception as e:
         return f"❌ Error converting images to PDF: {str(e)}"
 
+# --- Tool: Convert Image File to PDF ----------------------------------------
+@tool
+def convert_image_file_to_pdf(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert a single image file (PNG, JPG, JPEG, GIF, WEBP) to PDF format.
+    Use this for image files that were uploaded as documents.
+
+    Args:
+        file_path: Path to the image file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for converted PDF
+    """
+    try:
+        print(f"INFO: Converting image file to PDF: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Image file not found at {file_path}"
+
+        # Check if it's an image file
+        ext = file_path.lower().split('.')[-1]
+        if ext not in ['png', 'jpg', 'jpeg', 'gif', 'webp']:
+            return f"❌ Error: File is not an image. Extension: {ext}"
+
+        # Convert single image to PDF
+        pdf_path = pdf_converter.images_to_pdf([file_path], output_name)
+        filename = os.path.basename(pdf_path)
+
+        return f'✅ Successfully converted image to PDF: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting image to PDF: {str(e)}"
+
 # --- Tool: Merge PDFs --------------------------------------------------------
 @tool
 def merge_pdfs(file_paths: List[str], output_name: str = None, *, config: RunnableConfig) -> str:
@@ -1356,6 +1390,7 @@ def build_coordinator():
         convert_word_to_pdf,
         convert_excel_to_pdf,
         convert_powerpoint_to_pdf,
+        convert_image_file_to_pdf,
         convert_images_to_pdf,
         # PDF Utilities
         merge_pdfs
