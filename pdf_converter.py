@@ -84,10 +84,18 @@ def images_to_pdf(image_paths: List[str], output_name: str = None) -> str:
 
         output_path = os.path.join(DOCUMENTS_DIR, output_name)
 
+        # Validate that all image files exist
+        for img_path in image_paths:
+            if not os.path.exists(img_path):
+                raise Exception(f"Image file not found: {img_path}")
+
         # Try using img2pdf first (faster, better quality)
+        # img2pdf can accept file paths directly when passed as a list
         try:
             with open(output_path, "wb") as f:
+                # Pass image paths as a list - img2pdf will handle them correctly
                 f.write(img2pdf.convert(image_paths))
+            print(f"Successfully converted {len(image_paths)} images to PDF using img2pdf")
             return output_path
         except Exception as img2pdf_error:
             print(f"img2pdf failed: {img2pdf_error}, trying PIL fallback...")

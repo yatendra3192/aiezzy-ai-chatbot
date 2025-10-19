@@ -233,6 +233,11 @@ def set_recent_image_path(path, thread_id="default"):
     if len(context['uploaded_images']) > 5:
         context['uploaded_images'] = context['uploaded_images'][-5:]
 
+def get_recent_image_paths(thread_id="default"):
+    """Get list of recent image paths for specific thread"""
+    context = get_thread_context(thread_id)
+    return context['uploaded_images']
+
 def clear_thread_context(thread_id):
     """Clear image context for a specific thread"""
     if thread_id in _thread_image_context:
