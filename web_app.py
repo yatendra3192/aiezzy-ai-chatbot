@@ -683,15 +683,15 @@ def upload_document():
 @optional_auth
 def upload_documents():
     """
-    Upload multiple documents (up to 20) for batch processing.
+    Upload multiple documents (up to 100) for batch processing.
     Supports PDF, Word, Excel, PowerPoint files, and images for PDF conversion.
     """
     try:
         # Get the count of documents
         count = int(request.form.get('count', 0))
 
-        if count == 0 or count > 20:
-            return jsonify({'error': 'Please upload 1-20 documents'}), 400
+        if count == 0 or count > 100:
+            return jsonify({'error': 'Please upload 1-100 documents'}), 400
 
         uploaded_docs = []
 
