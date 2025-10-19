@@ -1203,6 +1203,52 @@ def convert_powerpoint_to_pdf(file_path: str, output_name: str = None, *, config
     except Exception as e:
         return f"❌ Error converting PowerPoint to PDF: {str(e)}"
 
+# --- Tool: Images to PDF Conversion ------------------------------------------
+@tool
+def convert_images_to_pdf(output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Combine multiple uploaded images into a single PDF document.
+    Uses the most recently uploaded images from the current conversation.
+
+    Args:
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for the combined PDF
+    """
+    try:
+        print(f"INFO: Converting images to PDF")
+
+        # Get thread_id from config
+        thread_id = config.get("configurable", {}).get("thread_id", "default")
+
+        # Get recent image paths from conversation context
+        from app import get_recent_image_paths
+        image_paths = get_recent_image_paths(thread_id)
+
+        if not image_paths or len(image_paths) == 0:
+            return "❌ Error: No images found. Please upload images first before converting to PDF."
+
+        # Verify all images exist
+        valid_paths = []
+        for path in image_paths:
+            if os.path.exists(path):
+                valid_paths.append(path)
+            else:
+                print(f"WARNING: Image not found: {path}")
+
+        if len(valid_paths) == 0:
+            return "❌ Error: None of the uploaded images could be found. Please upload images again."
+
+        # Convert images to PDF
+        pdf_path = pdf_converter.images_to_pdf(valid_paths, output_name)
+        filename = os.path.basename(pdf_path)
+
+        return f'✅ Successfully combined {len(valid_paths)} image(s) into PDF: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting images to PDF: {str(e)}"
+
 # =============================================================================
 
 @tool
@@ -1251,7 +1297,8 @@ def build_coordinator():
         # Office Conversion tools - TO PDF
         convert_word_to_pdf,
         convert_excel_to_pdf,
-        convert_powerpoint_to_pdf
+        convert_powerpoint_to_pdf,
+        convert_images_to_pdf
     ]
     
     prompt = (
