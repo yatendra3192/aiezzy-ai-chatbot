@@ -3151,9 +3151,21 @@
 
                     // Add document info if present
                     if (hasUploadedDoc && documentForAPI) {
-                        requestBody.document_path = documentForAPI.file_path;
-                        requestBody.document_filename = documentForAPI.original_filename;
-                        requestBody.document_type = documentForAPI.file_type;
+                        // Check if documentForAPI is an array (multiple documents)
+                        if (Array.isArray(documentForAPI)) {
+                            // Multiple documents
+                            requestBody.documents = documentForAPI.map(doc => ({
+                                file_path: doc.file_path,
+                                filename: doc.original_filename,
+                                file_type: doc.file_type
+                            }));
+                            requestBody.document_count = documentForAPI.length;
+                        } else {
+                            // Single document (backward compatibility)
+                            requestBody.document_path = documentForAPI.file_path;
+                            requestBody.document_filename = documentForAPI.original_filename;
+                            requestBody.document_type = documentForAPI.file_type;
+                        }
                     }
 
                     // Chat mode - text or document
