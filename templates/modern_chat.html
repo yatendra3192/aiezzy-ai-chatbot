@@ -2439,7 +2439,7 @@
             updateSendButton();
         }
 
-        // Handle document upload (PDF, Word, Excel, PowerPoint)
+        // Handle document upload (PDF, Word, Excel, PowerPoint, and Images for PDF conversion)
         async function handleDocumentUpload(event) {
             const files = Array.from(event.target.files);
 
@@ -2453,14 +2453,14 @@
                 return;
             }
 
-            // Validate all files
-            const allowedTypes = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'];
+            // Validate all files - allow images for PDF conversion/combination
+            const allowedTypes = ['.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.png', '.jpg', '.jpeg', '.gif', '.webp'];
             const maxSize = 50 * 1024 * 1024; // 50MB per file
 
             for (const file of files) {
                 const fileExt = '.' + file.name.split('.').pop().toLowerCase();
                 if (!allowedTypes.includes(fileExt)) {
-                    alert(`Invalid file type: ${file.name}. Allowed: PDF, Word, Excel, PowerPoint`);
+                    alert(`Invalid file type: ${file.name}. Allowed: PDF, Word, Excel, PowerPoint, Images (PNG, JPG, GIF)`);
                     return;
                 }
                 if (file.size > maxSize) {
@@ -4488,33 +4488,47 @@
                     return ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx'].includes(ext);
                 });
 
-                // Validate limits
-                if (documentFiles.length > 20) {
-                    alert('Maximum 20 documents allowed at once');
+                // Validate total file count
+                const totalFiles = documentFiles.length + imageFiles.length;
+                if (totalFiles > 20) {
+                    alert('Maximum 20 files allowed at once');
                     return;
                 }
 
-                if (imageFiles.length > 5) {
-                    alert('Maximum 5 images allowed at once');
-                    return;
-                }
-
-                if (documentFiles.length === 0 && imageFiles.length === 0) {
+                if (totalFiles === 0) {
                     alert('Please drop image files (PNG, JPG, GIF) or document files (PDF, Word, Excel, PowerPoint)');
                     return;
                 }
 
-                // Handle documents if present
+                // If both documents and images are present, combine them for document processing
+                // (useful for combining into single PDF)
+                if (documentFiles.length >= 1 && imageFiles.length >= 1) {
+                    const docInput = document.getElementById('document-input');
+                    const docTransfer = new DataTransfer();
+                    // Add all files (documents + images) for combined processing
+                    documentFiles.forEach(file => docTransfer.items.add(file));
+                    imageFiles.forEach(file => docTransfer.items.add(file));
+                    docInput.files = docTransfer.files;
+                    handleDocumentUpload({ target: docInput });
+                    return;
+                }
+
+                // Handle documents only
                 if (documentFiles.length >= 1) {
                     const docInput = document.getElementById('document-input');
                     const docTransfer = new DataTransfer();
                     documentFiles.forEach(file => docTransfer.items.add(file));
                     docInput.files = docTransfer.files;
                     handleDocumentUpload({ target: docInput });
+                    return;
                 }
 
-                // Handle images if present
+                // Handle images only (max 5 for image operations)
                 if (imageFiles.length >= 1) {
+                    if (imageFiles.length > 5) {
+                        alert('Maximum 5 images allowed for image operations. For PDF conversion, use document upload.');
+                        return;
+                    }
                     const imgInput = document.getElementById('image-input');
                     imgInput.value = '';
                     handleImageUpload(imageFiles);

@@ -114,7 +114,7 @@ os.makedirs('shared', exist_ok=True)
 os.makedirs('feature_requests', exist_ok=True)
 
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
-ALLOWED_DOCUMENT_EXTENSIONS = {'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt'}
+ALLOWED_DOCUMENT_EXTENSIONS = {'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt', 'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 # Store recent images for editing reference
 recent_images = {}
@@ -683,8 +683,8 @@ def upload_document():
 @optional_auth
 def upload_documents():
     """
-    Upload multiple documents (up to 5) for batch processing.
-    Supports PDF, Word, Excel, PowerPoint files.
+    Upload multiple documents (up to 20) for batch processing.
+    Supports PDF, Word, Excel, PowerPoint files, and images for PDF conversion.
     """
     try:
         # Get the count of documents
