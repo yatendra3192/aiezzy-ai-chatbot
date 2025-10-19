@@ -134,7 +134,7 @@ def images_to_pdf(image_paths: List[str], output_name: str = None) -> str:
 def pdf_to_word(pdf_path: str, output_name: str = None) -> str:
     """
     Convert PDF to Word document (DOCX)
-    Extracts text and attempts to preserve basic formatting
+    Preserves tables and basic formatting
 
     Args:
         pdf_path: Path to PDF file
@@ -150,17 +150,96 @@ def pdf_to_word(pdf_path: str, output_name: str = None) -> str:
         # Create Word document
         doc_word = Document()
 
-        # Extract text from each page
+        # Process each page
         for page_num in range(len(doc_pdf)):
             page = doc_pdf[page_num]
-            text = page.get_text()
 
-            # Add page heading
+            # Add page break after first page
             if page_num > 0:
                 doc_word.add_page_break()
 
-            # Add text content
-            doc_word.add_paragraph(text)
+            # Find tables on page using PyMuPDF's table detection
+            try:
+                tables = page.find_tables()
+
+                if tables and len(tables.tables) > 0:
+                    # Page contains tables
+                    print(f"Found {len(tables.tables)} tables on page {page_num + 1}")
+
+                    # Get all text blocks with their positions
+                    blocks = page.get_text("dict")["blocks"]
+                    text_blocks = []
+
+                    for block in blocks:
+                        if block.get("type") == 0:  # Text block
+                            bbox = block["bbox"]
+                            text = ""
+                            for line in block.get("lines", []):
+                                for span in line.get("spans", []):
+                                    text += span.get("text", "")
+                                text += "\n"
+                            if text.strip():
+                                text_blocks.append({
+                                    "bbox": bbox,
+                                    "text": text.strip(),
+                                    "y0": bbox[1]  # Top Y coordinate for sorting
+                                })
+
+                    # Sort blocks by vertical position
+                    text_blocks.sort(key=lambda x: x["y0"])
+
+                    # Process tables and text in order
+                    table_bboxes = []
+                    for table in tables.tables:
+                        bbox = table.bbox
+                        table_bboxes.append({
+                            "bbox": bbox,
+                            "table": table,
+                            "y0": bbox[1]
+                        })
+
+                    # Combine and sort all elements
+                    all_elements = text_blocks + table_bboxes
+                    all_elements.sort(key=lambda x: x["y0"])
+
+                    # Add elements to Word doc in order
+                    for element in all_elements:
+                        if "table" in element:
+                            # Add table to Word
+                            table = element["table"]
+                            table_data = table.extract()
+
+                            if table_data and len(table_data) > 0:
+                                # Create Word table
+                                rows = len(table_data)
+                                cols = max(len(row) for row in table_data) if table_data else 0
+
+                                if rows > 0 and cols > 0:
+                                    word_table = doc_word.add_table(rows=rows, cols=cols)
+                                    word_table.style = 'Table Grid'
+
+                                    # Fill table cells
+                                    for i, row in enumerate(table_data):
+                                        for j, cell in enumerate(row):
+                                            if j < cols and cell:
+                                                word_table.rows[i].cells[j].text = str(cell)
+                        else:
+                            # Add text paragraph
+                            if element["text"].strip():
+                                doc_word.add_paragraph(element["text"])
+
+                else:
+                    # No tables found, extract text normally
+                    text = page.get_text()
+                    if text.strip():
+                        doc_word.add_paragraph(text)
+
+            except Exception as table_error:
+                print(f"Table detection failed on page {page_num + 1}: {table_error}")
+                # Fallback to plain text extraction
+                text = page.get_text()
+                if text.strip():
+                    doc_word.add_paragraph(text)
 
         # Generate output path
         if not output_name:
@@ -185,7 +264,7 @@ def pdf_to_word(pdf_path: str, output_name: str = None) -> str:
 def pdf_to_excel(pdf_path: str, output_name: str = None) -> str:
     """
     Convert PDF to Excel spreadsheet (XLSX)
-    Extracts tables and text data
+    Preserves table structure and formatting
 
     Args:
         pdf_path: Path to PDF file
@@ -203,22 +282,74 @@ def pdf_to_excel(pdf_path: str, output_name: str = None) -> str:
         ws = wb.active
         ws.title = "Extracted Data"
 
-        # Extract text from each page
         current_row = 1
+
+        # Process each page
         for page_num in range(len(doc)):
             page = doc[page_num]
-            text = page.get_text()
 
             # Add page header
             ws.cell(row=current_row, column=1, value=f"Page {page_num + 1}")
+            ws.cell(row=current_row, column=1).font = ws.cell(row=current_row, column=1).font.copy(bold=True)
             current_row += 1
 
-            # Split text into lines and add to cells
-            lines = text.split('\n')
-            for line in lines:
-                if line.strip():
-                    ws.cell(row=current_row, column=1, value=line)
-                    current_row += 1
+            # Try to find tables on the page
+            try:
+                tables = page.find_tables()
+
+                if tables and len(tables.tables) > 0:
+                    # Page contains tables
+                    print(f"Found {len(tables.tables)} tables on page {page_num + 1}")
+
+                    for table_idx, table in enumerate(tables.tables):
+                        table_data = table.extract()
+
+                        if table_data and len(table_data) > 0:
+                            # Add table to Excel with proper structure
+                            start_row = current_row
+
+                            for row_idx, row in enumerate(table_data):
+                                for col_idx, cell in enumerate(row):
+                                    if cell:
+                                        ws.cell(row=current_row, column=col_idx + 1, value=str(cell))
+
+                                        # Bold header row if first row
+                                        if row_idx == 0:
+                                            ws.cell(row=current_row, column=col_idx + 1).font = \
+                                                ws.cell(row=current_row, column=col_idx + 1).font.copy(bold=True)
+
+                                current_row += 1
+
+                            current_row += 1  # Add space after table
+
+                            # Auto-adjust column widths for table
+                            for col_idx in range(len(table_data[0]) if table_data else 0):
+                                col_letter = ws.cell(row=start_row, column=col_idx + 1).column_letter
+                                max_length = 0
+                                for row_idx in range(start_row, current_row - 1):
+                                    cell_value = ws.cell(row=row_idx, column=col_idx + 1).value
+                                    if cell_value:
+                                        max_length = max(max_length, len(str(cell_value)))
+                                ws.column_dimensions[col_letter].width = min(max_length + 2, 50)
+
+                else:
+                    # No tables found, extract text normally
+                    text = page.get_text()
+                    lines = text.split('\n')
+                    for line in lines:
+                        if line.strip():
+                            ws.cell(row=current_row, column=1, value=line)
+                            current_row += 1
+
+            except Exception as table_error:
+                print(f"Table detection failed on page {page_num + 1}: {table_error}")
+                # Fallback to plain text extraction
+                text = page.get_text()
+                lines = text.split('\n')
+                for line in lines:
+                    if line.strip():
+                        ws.cell(row=current_row, column=1, value=line)
+                        current_row += 1
 
             current_row += 1  # Add space between pages
 
