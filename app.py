@@ -1341,6 +1341,94 @@ def merge_pdfs(file_paths: List[str], output_name: str = None, *, config: Runnab
     except Exception as e:
         return f"❌ Error merging PDFs: {str(e)}"
 
+# --- Tool: Convert All Documents to PDF and Merge ---------------------------
+@tool
+def convert_and_merge_documents(file_paths: List[str], output_name: str = "combined_document", *, config: RunnableConfig) -> str:
+    """
+    Convert all uploaded documents (Word, Excel, PowerPoint, Images) to PDF format and merge them into a single PDF.
+    This is a one-stop tool for combining mixed document types.
+
+    Args:
+        file_paths: List of document file paths (can be mix of PDF, DOCX, XLSX, PPTX, images, etc.)
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for the merged PDF containing all documents
+    """
+    try:
+        if not file_paths or len(file_paths) == 0:
+            return "❌ Error: No files provided for conversion and merging."
+
+        print(f"INFO: Converting and merging {len(file_paths)} files")
+
+        converted_pdfs = []
+        conversion_details = []
+
+        for file_path in file_paths:
+            if not os.path.exists(file_path):
+                print(f"WARNING: File not found: {file_path}")
+                conversion_details.append(f"❌ Skipped (not found): {os.path.basename(file_path)}")
+                continue
+
+            filename = os.path.basename(file_path)
+            ext = file_path.lower().split('.')[-1]
+
+            try:
+                if ext == 'pdf':
+                    # Already PDF, just add to list
+                    converted_pdfs.append(file_path)
+                    conversion_details.append(f"✅ {filename} (already PDF)")
+
+                elif ext in ['doc', 'docx']:
+                    # Convert Word to PDF
+                    pdf_path = pdf_converter.word_to_pdf(file_path)
+                    converted_pdfs.append(pdf_path)
+                    conversion_details.append(f"✅ {filename} → PDF")
+
+                elif ext in ['xls', 'xlsx']:
+                    # Convert Excel to PDF
+                    pdf_path = pdf_converter.excel_to_pdf(file_path)
+                    converted_pdfs.append(pdf_path)
+                    conversion_details.append(f"✅ {filename} → PDF")
+
+                elif ext in ['ppt', 'pptx']:
+                    # Convert PowerPoint to PDF
+                    pdf_path = pdf_converter.powerpoint_to_pdf(file_path)
+                    converted_pdfs.append(pdf_path)
+                    conversion_details.append(f"✅ {filename} → PDF")
+
+                elif ext in ['png', 'jpg', 'jpeg', 'gif', 'webp']:
+                    # Convert image to PDF
+                    pdf_path = pdf_converter.images_to_pdf([file_path])
+                    converted_pdfs.append(pdf_path)
+                    conversion_details.append(f"✅ {filename} → PDF")
+
+                else:
+                    conversion_details.append(f"⚠️ Skipped (unsupported format): {filename}")
+
+            except Exception as e:
+                print(f"ERROR: Failed to convert {filename}: {e}")
+                conversion_details.append(f"❌ Failed: {filename} - {str(e)}")
+
+        if len(converted_pdfs) == 0:
+            return "❌ Error: No files could be converted to PDF. Please check the file formats."
+
+        if len(converted_pdfs) == 1:
+            # Only one file, return it directly
+            filename = os.path.basename(converted_pdfs[0])
+            details = "\n".join(conversion_details)
+            return f'✅ Converted 1 file to PDF:\n{details}\n\n<a href="/documents/{filename}" download>{filename}</a>'
+
+        # Merge all PDFs
+        merged_path = pdf_converter.merge_pdfs(converted_pdfs, output_name)
+        merged_filename = os.path.basename(merged_path)
+
+        details = "\n".join(conversion_details)
+        return f'✅ Successfully converted and merged {len(converted_pdfs)} files into a single PDF:\n\n{details}\n\n📄 Download: <a href="/documents/{merged_filename}" download>{merged_filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting and merging documents: {str(e)}"
+
 # =============================================================================
 
 @tool
@@ -1393,7 +1481,8 @@ def build_coordinator():
         convert_image_file_to_pdf,
         convert_images_to_pdf,
         # PDF Utilities
-        merge_pdfs
+        merge_pdfs,
+        convert_and_merge_documents
     ]
     
     prompt = (
