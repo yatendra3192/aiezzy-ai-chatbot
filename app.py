@@ -307,14 +307,9 @@ def edit_image(prompt: str, state: Annotated[dict, InjectedState], *, config: Ru
                 similar_request_found = True
                 break
         
-        # BULLETPROOF FIX: Block ANY edit request on same thread within 60 seconds (regardless of prompt)
-        if thread_id in _thread_recent_edits:
-            last_edit_time = _thread_recent_edits[thread_id]
-            time_since_last = current_time - last_edit_time
-            if time_since_last < 60:  # Block any edit within 60 seconds
-                print(f"BULLETPROOF BLOCK: Edit blocked - last edit {time_since_last:.1f}s ago on thread {thread_id}")
-                return f"Please wait {60 - int(time_since_last)} seconds before making another edit request on this image."
-        
+        # REMOVED: Old 60-second bulletproof block that prevented bulk operations
+        # Now allowing multiple edits with different prompts for bulk operations like "5 different styles"
+
         # LANGGRAPH EXECUTION TRACKING: Prevent coordinator from calling edit_image twice
         if execution_key in _langgraph_execution_tools:
             last_call_time = _langgraph_execution_tools[execution_key]
