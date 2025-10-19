@@ -515,9 +515,9 @@ def analyze_image():
         for i, file in enumerate(uploaded_files):
             if not allowed_file(file.filename):
                 return jsonify({'error': f'Invalid file type in image {i+1}. Allowed: png, jpg, jpeg, gif, webp'}), 400
-        
-        if len(uploaded_files) > 5:
-            return jsonify({'error': 'Maximum 5 images allowed'}), 400
+
+        if len(uploaded_files) > 100:
+            return jsonify({'error': 'Maximum 100 images allowed'}), 400
         
         # Save all uploaded files
         saved_paths = []
