@@ -94,16 +94,25 @@ def images_to_pdf(image_paths: List[str], output_name: str = None) -> str:
 
             # Fallback: Use PIL to convert images to RGB and then to PDF
             images = []
-            for img_path in image_paths:
-                img = Image.open(img_path)
-                # Convert to RGB if necessary (handles RGBA, P, etc.)
-                if img.mode != 'RGB':
-                    img = img.convert('RGB')
-                images.append(img)
+            for i, img_path in enumerate(image_paths):
+                print(f"Processing image {i+1}/{len(image_paths)}: {img_path}")
+                try:
+                    img = Image.open(img_path)
+                    print(f"  Original mode: {img.mode}, size: {img.size}")
+                    # Convert to RGB if necessary (handles RGBA, P, etc.)
+                    if img.mode != 'RGB':
+                        img = img.convert('RGB')
+                        print(f"  Converted to RGB")
+                    images.append(img)
+                except Exception as img_error:
+                    print(f"  ERROR processing image: {img_error}")
+                    # Continue with other images
+                    continue
 
             # Save as PDF
             if images:
-                images[0].save(output_path, save_all=True, append_images=images[1:] if len(images) > 1 else [])
+                print(f"Saving {len(images)} images to PDF: {output_path}")
+                images[0].save(output_path, save_all=True, append_images=images[1:] if len(images) > 1 else [], format='PDF')
                 return output_path
             else:
                 raise Exception("No valid images to convert")
