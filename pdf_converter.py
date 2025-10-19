@@ -84,11 +84,29 @@ def images_to_pdf(image_paths: List[str], output_name: str = None) -> str:
 
         output_path = os.path.join(DOCUMENTS_DIR, output_name)
 
-        # Convert images to PDF
-        with open(output_path, "wb") as f:
-            f.write(img2pdf.convert(image_paths))
+        # Try using img2pdf first (faster, better quality)
+        try:
+            with open(output_path, "wb") as f:
+                f.write(img2pdf.convert(image_paths))
+            return output_path
+        except Exception as img2pdf_error:
+            print(f"img2pdf failed: {img2pdf_error}, trying PIL fallback...")
 
-        return output_path
+            # Fallback: Use PIL to convert images to RGB and then to PDF
+            images = []
+            for img_path in image_paths:
+                img = Image.open(img_path)
+                # Convert to RGB if necessary (handles RGBA, P, etc.)
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                images.append(img)
+
+            # Save as PDF
+            if images:
+                images[0].save(output_path, save_all=True, append_images=images[1:] if len(images) > 1 else [])
+                return output_path
+            else:
+                raise Exception("No valid images to convert")
 
     except Exception as e:
         raise Exception(f"Failed to convert images to PDF: {str(e)}")
