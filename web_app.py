@@ -1580,6 +1580,135 @@ def require_admin_auth():
         return False
     return True
 
+@web_app.route('/admin/users')
+def admin_users():
+    """Admin panel - Users section"""
+    if not require_admin_auth():
+        return "Admin access required", 401
+
+    try:
+        admin_key = request.args.get('key', '')
+        conn = user_manager.db.get_connection()
+
+        # Get all users with stats
+        users = conn.execute('''
+            SELECT
+                u.id, u.username, u.email, u.full_name, u.is_active, u.is_admin,
+                u.created_at, u.last_login,
+                (SELECT COUNT(*) FROM user_activity WHERE user_id = u.id) as activity_count,
+                (SELECT COUNT(*) FROM user_sessions WHERE user_id = u.id AND is_active = TRUE) as active_sessions
+            FROM users u
+            ORDER BY u.created_at DESC
+        ''').fetchall()
+
+        # Get conversation counts for each user
+        user_data = []
+        for user in users:
+            conv_dir = os.path.join(CONVERSATIONS_DIR, str(user['id']))
+            conversation_count = 0
+            if os.path.exists(conv_dir):
+                conversation_count = len([f for f in os.listdir(conv_dir) if f.endswith('.json')])
+
+            user_data.append({
+                **dict(user),
+                'conversation_count': conversation_count
+            })
+
+        conn.close()
+        return render_template('admin_users.html', users=user_data, admin_key=admin_key)
+
+    except Exception as e:
+        return f"Error loading users: {str(e)}", 500
+
+@web_app.route('/admin/analytics')
+def admin_analytics():
+    """Admin panel - Analytics section"""
+    if not require_admin_auth():
+        return "Admin access required", 401
+
+    try:
+        admin_key = request.args.get('key', '')
+        conn = user_manager.db.get_connection()
+
+        # Get analytics data
+        total_users = conn.execute('SELECT COUNT(*) as count FROM users').fetchone()['count']
+        active_users = conn.execute('SELECT COUNT(*) as count FROM users WHERE last_login > date("now", "-7 days")').fetchone()['count']
+        total_conversations = 0
+        total_images = len([f for f in os.listdir(ASSETS_DIR) if os.path.isfile(os.path.join(ASSETS_DIR, f))]) if os.path.exists(ASSETS_DIR) else 0
+        total_videos = len([f for f in os.listdir(VIDEOS_DIR) if os.path.isfile(os.path.join(VIDEOS_DIR, f))]) if os.path.exists(VIDEOS_DIR) else 0
+
+        # Count all conversations
+        if os.path.exists(CONVERSATIONS_DIR):
+            for user_dir in os.listdir(CONVERSATIONS_DIR):
+                user_path = os.path.join(CONVERSATIONS_DIR, user_dir)
+                if os.path.isdir(user_path):
+                    total_conversations += len([f for f in os.listdir(user_path) if f.endswith('.json')])
+
+        # Get recent activity
+        recent_activity = conn.execute('''
+            SELECT ua.*, u.username, u.email
+            FROM user_activity ua
+            JOIN users u ON ua.user_id = u.id
+            ORDER BY ua.created_at DESC
+            LIMIT 50
+        ''').fetchall()
+
+        # Get activity by type
+        activity_by_type = conn.execute('''
+            SELECT activity_type, COUNT(*) as count
+            FROM user_activity
+            GROUP BY activity_type
+            ORDER BY count DESC
+        ''').fetchall()
+
+        conn.close()
+
+        analytics_data = {
+            'total_users': total_users,
+            'active_users': active_users,
+            'total_conversations': total_conversations,
+            'total_images': total_images,
+            'total_videos': total_videos,
+            'recent_activity': [dict(row) for row in recent_activity],
+            'activity_by_type': [dict(row) for row in activity_by_type]
+        }
+
+        return render_template('admin_analytics.html', analytics=analytics_data, admin_key=admin_key)
+
+    except Exception as e:
+        return f"Error loading analytics: {str(e)}", 500
+
+@web_app.route('/admin/settings')
+def admin_settings():
+    """Admin panel - Settings section"""
+    if not require_admin_auth():
+        return "Admin access required", 401
+
+    try:
+        admin_key = request.args.get('key', '')
+
+        # Get system info
+        settings_data = {
+            'admin_key': os.environ.get('ADMIN_KEY', 'default_dev_key_2025'),
+            'environment': 'Production' if os.environ.get('RAILWAY_ENVIRONMENT') else 'Development',
+            'data_dir': DATA_DIR,
+            'upload_folder': web_app.config['UPLOAD_FOLDER'],
+            'assets_dir': ASSETS_DIR,
+            'videos_dir': VIDEOS_DIR,
+            'conversations_dir': CONVERSATIONS_DIR,
+            'database_path': DATABASE_PATH,
+            'api_keys': {
+                'openai': bool(os.environ.get('OPENAI_API_KEY')),
+                'fal': bool(os.environ.get('FAL_KEY')),
+                'tavily': bool(os.environ.get('TAVILY_API_KEY'))
+            }
+        }
+
+        return render_template('admin_settings.html', settings=settings_data, admin_key=admin_key)
+
+    except Exception as e:
+        return f"Error loading settings: {str(e)}", 500
+
 @web_app.route('/admin/files')
 def file_browser():
     """Simple file browser for viewing generated assets"""
