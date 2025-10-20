@@ -420,6 +420,21 @@
             border-color: var(--primary-blue);
         }
 
+        .file-card[onclick] {
+            cursor: pointer;
+            transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .file-card[onclick]:hover {
+            border-color: var(--primary-purple);
+            background: linear-gradient(135deg, rgba(91, 140, 255, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
+        }
+
+        .file-card[onclick]:hover .file-preview {
+            transform: scale(1.05);
+            transition: transform 180ms ease;
+        }
+
         .file-checkbox {
             position: absolute;
             top: 12px;
@@ -531,6 +546,16 @@
         .file-row:hover {
             box-shadow: var(--shadow-md);
             border-color: var(--primary-blue);
+        }
+
+        .file-row[onclick] {
+            cursor: pointer;
+            transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .file-row[onclick]:hover {
+            border-color: var(--primary-purple);
+            background: linear-gradient(135deg, rgba(91, 140, 255, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
         }
 
         .file-row-checkbox {
@@ -1131,8 +1156,12 @@
                 metaInfo = `<span>${file.message_count || 0} messages</span><span>${formatDate(file.last_updated || file.modified)}</span>`;
             }
 
+            // For conversations, make entire card clickable
+            const cardClick = isConversation && file.url ? `onclick="openConversation('${file.url.replace(/'/g, "\\'")}'); return false;"` : '';
+            const cardStyle = isConversation && file.url ? 'style="cursor: pointer;"' : '';
+
             return `
-                <div class="file-card" data-filename="${file.name}" ${isConversation && file.url ? `onclick="window.open('${file.url}', '_blank')" style="cursor: pointer;"` : ''}>
+                <div class="file-card" data-filename="${file.name}" ${cardClick} ${cardStyle}>
                     ${checkboxHtml}
                     <div class="file-preview">
                         ${preview}
@@ -1144,12 +1173,17 @@
                         </div>
                     </div>
                     <div class="file-actions">
-                        ${file.url ? `<button class="file-action-btn" onclick="event.stopPropagation(); window.open('${file.url}', '_blank')">View</button>` : ''}
+                        ${file.url ? `<button class="file-action-btn" onclick="event.stopPropagation(); openConversation('${file.url.replace(/'/g, "\\'")}')">View</button>` : ''}
                         ${file.url && !isConversation ? `<button class="file-action-btn" onclick="event.stopPropagation(); downloadFile('${file.url}', '${file.name}')">Download</button>` : ''}
                         <button class="file-action-btn delete" onclick="event.stopPropagation(); deleteFile('${file.directory}', '${file.name}')">Delete</button>
                     </div>
                 </div>
             `;
+        }
+
+        // Open conversation in new tab
+        function openConversation(url) {
+            window.open(url, '_blank');
         }
 
         // Create file row (list view)
@@ -1172,8 +1206,12 @@
                 ? `${file.message_count} messages • ${formatDate(file.last_updated || file.modified)} • ${file.directory}`
                 : `${formatSize(file.size)} • ${formatDate(file.modified)} • ${file.directory}`;
 
+            // For conversations, make entire row clickable
+            const rowClick = isConversation && file.url ? `onclick="openConversation('${file.url.replace(/'/g, "\\'")}'); return false;"` : '';
+            const rowStyle = isConversation && file.url ? 'style="cursor: pointer;"' : '';
+
             return `
-                <div class="file-row" data-filename="${file.name}" ${isConversation && file.url ? `onclick="window.open('${file.url}', '_blank')" style="cursor: pointer;"` : ''}>
+                <div class="file-row" data-filename="${file.name}" ${rowClick} ${rowStyle}>
                     ${checkboxHtml}
                     <div class="file-row-preview">${preview}</div>
                     <div class="file-row-info">
@@ -1181,7 +1219,7 @@
                         <div class="file-row-meta">${metaDetails}</div>
                     </div>
                     <div class="file-row-actions">
-                        ${file.url ? `<button class="file-action-btn" onclick="event.stopPropagation(); window.open('${file.url}', '_blank')">View</button>` : ''}
+                        ${file.url ? `<button class="file-action-btn" onclick="event.stopPropagation(); openConversation('${file.url.replace(/'/g, "\\'")}')">View</button>` : ''}
                         ${file.url && !isConversation ? `<button class="file-action-btn" onclick="event.stopPropagation(); downloadFile('${file.url}', '${file.name}')">Download</button>` : ''}
                         <button class="file-action-btn delete" onclick="event.stopPropagation(); deleteFile('${file.directory}', '${file.name}')">Delete</button>
                     </div>
