@@ -1133,6 +1133,206 @@ def convert_pdf_to_powerpoint(file_path: str, output_name: str = None, *, config
     except Exception as e:
         return f"❌ Error converting PDF to PowerPoint: {str(e)}"
 
+# === EXTENDED FORMAT CONVERSION TOOLS ========================================
+
+# --- Tool: Excel to CSV Conversion -------------------------------------------
+@tool
+def convert_excel_to_csv(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert Excel spreadsheet (XLSX/XLS) to CSV format using LibreOffice.
+    Exports the first sheet as comma-separated values.
+
+    Args:
+        file_path: Path to the Excel file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for converted CSV file
+    """
+    try:
+        print(f"INFO: Converting Excel to CSV: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Excel file not found at {file_path}"
+
+        csv_path = pdf_converter.excel_to_csv(file_path, output_name)
+        filename = os.path.basename(csv_path)
+
+        return f'✅ Successfully converted Excel to CSV: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting Excel to CSV: {str(e)}"
+
+# --- Tool: CSV to Excel Conversion -------------------------------------------
+@tool
+def convert_csv_to_excel(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert CSV file to Excel spreadsheet (XLSX) format using LibreOffice.
+    Creates a properly formatted Excel workbook from CSV data.
+
+    Args:
+        file_path: Path to the CSV file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for converted Excel file
+    """
+    try:
+        print(f"INFO: Converting CSV to Excel: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: CSV file not found at {file_path}"
+
+        xlsx_path = pdf_converter.csv_to_excel(file_path, output_name)
+        filename = os.path.basename(xlsx_path)
+
+        return f'✅ Successfully converted CSV to Excel: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting CSV to Excel: {str(e)}"
+
+# --- Tool: Word to TXT Conversion --------------------------------------------
+@tool
+def convert_word_to_txt(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert Word document (DOCX/DOC) to plain text (TXT) format using LibreOffice.
+    Extracts all text content without formatting.
+
+    Args:
+        file_path: Path to the Word file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for converted TXT file
+    """
+    try:
+        print(f"INFO: Converting Word to TXT: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Word file not found at {file_path}"
+
+        txt_path = pdf_converter.word_to_txt(file_path, output_name)
+        filename = os.path.basename(txt_path)
+
+        return f'✅ Successfully converted Word to plain text: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting Word to TXT: {str(e)}"
+
+# --- Tool: Excel to TXT Conversion -------------------------------------------
+@tool
+def convert_excel_to_txt(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert Excel spreadsheet (XLSX/XLS) to plain text (TXT) format using LibreOffice.
+    Exports spreadsheet data as tab-separated plain text.
+
+    Args:
+        file_path: Path to the Excel file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for converted TXT file
+    """
+    try:
+        print(f"INFO: Converting Excel to TXT: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Excel file not found at {file_path}"
+
+        txt_path = pdf_converter.excel_to_txt(file_path, output_name)
+        filename = os.path.basename(txt_path)
+
+        return f'✅ Successfully converted Excel to plain text: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting Excel to TXT: {str(e)}"
+
+# --- Tool: Word to HTML Conversion -------------------------------------------
+@tool
+def convert_word_to_html(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert Word document (DOCX/DOC) to HTML format using LibreOffice.
+    Preserves formatting, tables, and structure in web format.
+
+    Args:
+        file_path: Path to the Word file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for converted HTML file
+    """
+    try:
+        print(f"INFO: Converting Word to HTML: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Word file not found at {file_path}"
+
+        html_path = pdf_converter.word_to_html(file_path, output_name)
+        filename = os.path.basename(html_path)
+
+        return f'✅ Successfully converted Word to HTML: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting Word to HTML: {str(e)}"
+
+# --- Tool: Excel to HTML Conversion ------------------------------------------
+@tool
+def convert_excel_to_html(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert Excel spreadsheet (XLSX/XLS) to HTML format using LibreOffice.
+    Creates an HTML table from spreadsheet data with formatting preserved.
+
+    Args:
+        file_path: Path to the Excel file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for converted HTML file
+    """
+    try:
+        print(f"INFO: Converting Excel to HTML: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Excel file not found at {file_path}"
+
+        html_path = pdf_converter.excel_to_html(file_path, output_name)
+        filename = os.path.basename(html_path)
+
+        return f'✅ Successfully converted Excel to HTML: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting Excel to HTML: {str(e)}"
+
+# --- Tool: PowerPoint to HTML Conversion -------------------------------------
+@tool
+def convert_powerpoint_to_html(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert PowerPoint presentation (PPTX/PPT) to HTML format using LibreOffice.
+    Creates a web-viewable version of the presentation.
+
+    Args:
+        file_path: Path to the PowerPoint file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for converted HTML file
+    """
+    try:
+        print(f"INFO: Converting PowerPoint to HTML: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: PowerPoint file not found at {file_path}"
+
+        html_path = pdf_converter.powerpoint_to_html(file_path, output_name)
+        filename = os.path.basename(html_path)
+
+        return f'✅ Successfully converted PowerPoint to HTML: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting PowerPoint to HTML: {str(e)}"
+
+# === END EXTENDED FORMAT CONVERSIONS =========================================
+
 # --- Tool: Word to PDF Conversion --------------------------------------------
 @tool
 def convert_word_to_pdf(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
@@ -1480,6 +1680,14 @@ def build_coordinator():
         convert_powerpoint_to_pdf,
         convert_image_file_to_pdf,
         convert_images_to_pdf,
+        # Extended Format Conversions
+        convert_excel_to_csv,
+        convert_csv_to_excel,
+        convert_word_to_txt,
+        convert_excel_to_txt,
+        convert_word_to_html,
+        convert_excel_to_html,
+        convert_powerpoint_to_html,
         # PDF Utilities
         merge_pdfs,
         convert_and_merge_documents
@@ -1514,6 +1722,10 @@ def build_coordinator():
         "- generate_image_from_multiple: Combine multiple uploaded images using nano-banana/edit\n"
         "- convert_pdf_to_images/word/excel/powerpoint: Convert PDF to other formats\n"
         "- convert_word/excel/powerpoint_to_pdf: Convert Office documents to PDF\n"
+        "- convert_excel_to_csv: Convert Excel spreadsheets to CSV format\n"
+        "- convert_csv_to_excel: Convert CSV files to Excel spreadsheets\n"
+        "- convert_word/excel_to_txt: Convert Word or Excel to plain text\n"
+        "- convert_word/excel/powerpoint_to_html: Convert Office documents to HTML web format\n"
         "- convert_and_merge_documents: CRITICAL - Use this for combining/merging multiple documents into single PDF\n"
         "- merge_pdfs: Merge multiple PDF files only (use convert_and_merge_documents for mixed types)\n"
         "- evaluate_result_quality: Check if results match user expectations\n\n"
@@ -1545,6 +1757,15 @@ def build_coordinator():
         "- NEVER make up download links - ALWAYS call the actual tool and use its returned link\n"
         "- Document paths are provided in the message as: 'Uploaded X documents: [filepath1, filepath2, ...]'\n"
         "- Pass the file paths directly to convert_and_merge_documents tool\n\n"
+        "FORMAT CONVERSION DECISION LOGIC:\n"
+        "- 'convert to csv' or 'export to csv' + Excel file -> Use convert_excel_to_csv\n"
+        "- 'convert to excel' or 'make it xlsx' + CSV file -> Use convert_csv_to_excel\n"
+        "- 'convert to text' or 'export to txt' + Word/Excel -> Use convert_word_to_txt or convert_excel_to_txt\n"
+        "- 'convert to html' or 'make it web page' + Office docs -> Use convert_word/excel/powerpoint_to_html\n"
+        "- 'extract text' from Word -> Use convert_word_to_txt\n"
+        "- 'raw data' from Excel -> Use convert_excel_to_csv or convert_excel_to_txt\n"
+        "- User uploads document and requests specific format -> Use appropriate conversion tool\n"
+        "- ALWAYS use the correct source-to-target conversion tool based on uploaded file type and requested output\n\n"
         "DECISION LOGIC:\n"
         "- 'news', 'latest', 'current' -> Use search_web\n"
         "- 'create image', 'generate image' + NO uploads -> Use generate_image\n"

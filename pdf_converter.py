@@ -687,3 +687,383 @@ def merge_pdfs(pdf_paths: List[str], output_name: str = None) -> str:
 
 # Add time import that was missing
 import time
+
+
+# ==================== Excel to CSV ====================
+
+def excel_to_csv(xlsx_path: str, output_name: str = None, sheet_name: str = None) -> str:
+    """
+    Convert Excel spreadsheet to CSV format using LibreOffice
+
+    Args:
+        xlsx_path: Path to Excel file
+        output_name: Optional output filename (without extension)
+        sheet_name: Optional specific sheet to convert (default: first sheet)
+
+    Returns:
+        Path to generated CSV file
+    """
+    try:
+        import subprocess
+
+        # Validate file exists
+        if not os.path.exists(xlsx_path):
+            raise Exception(f"Excel file not found: {xlsx_path}")
+
+        # Generate output name
+        if not output_name:
+            xlsx_name = pathlib.Path(xlsx_path).stem
+            output_name = f"{xlsx_name}_converted.csv"
+
+        if not output_name.endswith('.csv'):
+            output_name += '.csv'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Use LibreOffice to convert to CSV
+        # --infilter for Excel input, --convert-to for CSV output
+        subprocess.run([
+            'libreoffice',
+            '--headless',
+            '--convert-to', 'csv',
+            '--outdir', DOCUMENTS_DIR,
+            xlsx_path
+        ], check=True, capture_output=True, timeout=60)
+
+        # LibreOffice creates the file with original name + .csv extension
+        temp_output = os.path.join(DOCUMENTS_DIR, pathlib.Path(xlsx_path).stem + '.csv')
+        if temp_output != output_path and os.path.exists(temp_output):
+            os.rename(temp_output, output_path)
+
+        return output_path
+
+    except subprocess.TimeoutExpired:
+        raise Exception("Conversion timed out (>60 seconds)")
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"LibreOffice conversion failed: {e.stderr.decode() if e.stderr else str(e)}")
+    except Exception as e:
+        raise Exception(f"Failed to convert Excel to CSV: {str(e)}")
+
+
+# ==================== CSV to Excel ====================
+
+def csv_to_excel(csv_path: str, output_name: str = None) -> str:
+    """
+    Convert CSV file to Excel spreadsheet using LibreOffice
+
+    Args:
+        csv_path: Path to CSV file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Path to generated Excel file
+    """
+    try:
+        import subprocess
+
+        # Validate file exists
+        if not os.path.exists(csv_path):
+            raise Exception(f"CSV file not found: {csv_path}")
+
+        # Generate output name
+        if not output_name:
+            csv_name = pathlib.Path(csv_path).stem
+            output_name = f"{csv_name}_converted.xlsx"
+
+        if not output_name.endswith('.xlsx'):
+            output_name += '.xlsx'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Use LibreOffice to convert CSV to Excel
+        subprocess.run([
+            'libreoffice',
+            '--headless',
+            '--convert-to', 'xlsx',
+            '--outdir', DOCUMENTS_DIR,
+            csv_path
+        ], check=True, capture_output=True, timeout=60)
+
+        # LibreOffice creates the file with original name + .xlsx extension
+        temp_output = os.path.join(DOCUMENTS_DIR, pathlib.Path(csv_path).stem + '.xlsx')
+        if temp_output != output_path and os.path.exists(temp_output):
+            os.rename(temp_output, output_path)
+
+        return output_path
+
+    except subprocess.TimeoutExpired:
+        raise Exception("Conversion timed out (>60 seconds)")
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"LibreOffice conversion failed: {e.stderr.decode() if e.stderr else str(e)}")
+    except Exception as e:
+        raise Exception(f"Failed to convert CSV to Excel: {str(e)}")
+
+
+# ==================== Word to TXT ====================
+
+def word_to_txt(docx_path: str, output_name: str = None) -> str:
+    """
+    Convert Word document to plain text format using LibreOffice
+
+    Args:
+        docx_path: Path to Word file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Path to generated TXT file
+    """
+    try:
+        import subprocess
+
+        # Validate file exists
+        if not os.path.exists(docx_path):
+            raise Exception(f"Word file not found: {docx_path}")
+
+        # Generate output name
+        if not output_name:
+            docx_name = pathlib.Path(docx_path).stem
+            output_name = f"{docx_name}_converted.txt"
+
+        if not output_name.endswith('.txt'):
+            output_name += '.txt'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Use LibreOffice to convert to TXT
+        subprocess.run([
+            'libreoffice',
+            '--headless',
+            '--convert-to', 'txt',
+            '--outdir', DOCUMENTS_DIR,
+            docx_path
+        ], check=True, capture_output=True, timeout=60)
+
+        # LibreOffice creates the file with original name + .txt extension
+        temp_output = os.path.join(DOCUMENTS_DIR, pathlib.Path(docx_path).stem + '.txt')
+        if temp_output != output_path and os.path.exists(temp_output):
+            os.rename(temp_output, output_path)
+
+        return output_path
+
+    except subprocess.TimeoutExpired:
+        raise Exception("Conversion timed out (>60 seconds)")
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"LibreOffice conversion failed: {e.stderr.decode() if e.stderr else str(e)}")
+    except Exception as e:
+        raise Exception(f"Failed to convert Word to TXT: {str(e)}")
+
+
+# ==================== Excel to TXT ====================
+
+def excel_to_txt(xlsx_path: str, output_name: str = None) -> str:
+    """
+    Convert Excel spreadsheet to plain text format using LibreOffice
+
+    Args:
+        xlsx_path: Path to Excel file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Path to generated TXT file
+    """
+    try:
+        import subprocess
+
+        # Validate file exists
+        if not os.path.exists(xlsx_path):
+            raise Exception(f"Excel file not found: {xlsx_path}")
+
+        # Generate output name
+        if not output_name:
+            xlsx_name = pathlib.Path(xlsx_path).stem
+            output_name = f"{xlsx_name}_converted.txt"
+
+        if not output_name.endswith('.txt'):
+            output_name += '.txt'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Use LibreOffice to convert to TXT
+        subprocess.run([
+            'libreoffice',
+            '--headless',
+            '--convert-to', 'txt',
+            '--outdir', DOCUMENTS_DIR,
+            xlsx_path
+        ], check=True, capture_output=True, timeout=60)
+
+        # LibreOffice creates the file with original name + .txt extension
+        temp_output = os.path.join(DOCUMENTS_DIR, pathlib.Path(xlsx_path).stem + '.txt')
+        if temp_output != output_path and os.path.exists(temp_output):
+            os.rename(temp_output, output_path)
+
+        return output_path
+
+    except subprocess.TimeoutExpired:
+        raise Exception("Conversion timed out (>60 seconds)")
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"LibreOffice conversion failed: {e.stderr.decode() if e.stderr else str(e)}")
+    except Exception as e:
+        raise Exception(f"Failed to convert Excel to TXT: {str(e)}")
+
+
+# ==================== Word to HTML ====================
+
+def word_to_html(docx_path: str, output_name: str = None) -> str:
+    """
+    Convert Word document to HTML format using LibreOffice
+
+    Args:
+        docx_path: Path to Word file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Path to generated HTML file
+    """
+    try:
+        import subprocess
+
+        # Validate file exists
+        if not os.path.exists(docx_path):
+            raise Exception(f"Word file not found: {docx_path}")
+
+        # Generate output name
+        if not output_name:
+            docx_name = pathlib.Path(docx_path).stem
+            output_name = f"{docx_name}_converted.html"
+
+        if not output_name.endswith('.html'):
+            output_name += '.html'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Use LibreOffice to convert to HTML
+        subprocess.run([
+            'libreoffice',
+            '--headless',
+            '--convert-to', 'html',
+            '--outdir', DOCUMENTS_DIR,
+            docx_path
+        ], check=True, capture_output=True, timeout=60)
+
+        # LibreOffice creates the file with original name + .html extension
+        temp_output = os.path.join(DOCUMENTS_DIR, pathlib.Path(docx_path).stem + '.html')
+        if temp_output != output_path and os.path.exists(temp_output):
+            os.rename(temp_output, output_path)
+
+        return output_path
+
+    except subprocess.TimeoutExpired:
+        raise Exception("Conversion timed out (>60 seconds)")
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"LibreOffice conversion failed: {e.stderr.decode() if e.stderr else str(e)}")
+    except Exception as e:
+        raise Exception(f"Failed to convert Word to HTML: {str(e)}")
+
+
+# ==================== Excel to HTML ====================
+
+def excel_to_html(xlsx_path: str, output_name: str = None) -> str:
+    """
+    Convert Excel spreadsheet to HTML format using LibreOffice
+
+    Args:
+        xlsx_path: Path to Excel file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Path to generated HTML file
+    """
+    try:
+        import subprocess
+
+        # Validate file exists
+        if not os.path.exists(xlsx_path):
+            raise Exception(f"Excel file not found: {xlsx_path}")
+
+        # Generate output name
+        if not output_name:
+            xlsx_name = pathlib.Path(xlsx_path).stem
+            output_name = f"{xlsx_name}_converted.html"
+
+        if not output_name.endswith('.html'):
+            output_name += '.html'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Use LibreOffice to convert to HTML
+        subprocess.run([
+            'libreoffice',
+            '--headless',
+            '--convert-to', 'html',
+            '--outdir', DOCUMENTS_DIR,
+            xlsx_path
+        ], check=True, capture_output=True, timeout=60)
+
+        # LibreOffice creates the file with original name + .html extension
+        temp_output = os.path.join(DOCUMENTS_DIR, pathlib.Path(xlsx_path).stem + '.html')
+        if temp_output != output_path and os.path.exists(temp_output):
+            os.rename(temp_output, output_path)
+
+        return output_path
+
+    except subprocess.TimeoutExpired:
+        raise Exception("Conversion timed out (>60 seconds)")
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"LibreOffice conversion failed: {e.stderr.decode() if e.stderr else str(e)}")
+    except Exception as e:
+        raise Exception(f"Failed to convert Excel to HTML: {str(e)}")
+
+
+# ==================== PowerPoint to HTML ====================
+
+def powerpoint_to_html(pptx_path: str, output_name: str = None) -> str:
+    """
+    Convert PowerPoint presentation to HTML format using LibreOffice
+
+    Args:
+        pptx_path: Path to PowerPoint file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Path to generated HTML file
+    """
+    try:
+        import subprocess
+
+        # Validate file exists
+        if not os.path.exists(pptx_path):
+            raise Exception(f"PowerPoint file not found: {pptx_path}")
+
+        # Generate output name
+        if not output_name:
+            pptx_name = pathlib.Path(pptx_path).stem
+            output_name = f"{pptx_name}_converted.html"
+
+        if not output_name.endswith('.html'):
+            output_name += '.html'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Use LibreOffice to convert to HTML
+        subprocess.run([
+            'libreoffice',
+            '--headless',
+            '--convert-to', 'html',
+            '--outdir', DOCUMENTS_DIR,
+            pptx_path
+        ], check=True, capture_output=True, timeout=60)
+
+        # LibreOffice creates the file with original name + .html extension
+        temp_output = os.path.join(DOCUMENTS_DIR, pathlib.Path(pptx_path).stem + '.html')
+        if temp_output != output_path and os.path.exists(temp_output):
+            os.rename(temp_output, output_path)
+
+        return output_path
+
+    except subprocess.TimeoutExpired:
+        raise Exception("Conversion timed out (>60 seconds)")
+    except subprocess.CalledProcessError as e:
+        raise Exception(f"LibreOffice conversion failed: {e.stderr.decode() if e.stderr else str(e)}")
+    except Exception as e:
+        raise Exception(f"Failed to convert PowerPoint to HTML: {str(e)}")
