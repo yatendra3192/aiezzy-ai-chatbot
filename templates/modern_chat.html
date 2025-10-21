@@ -2062,7 +2062,7 @@
             <div class="chat-messages" id="chat-messages">
                 <div class="welcome-message">
                     <h1 class="welcome-title">Welcome to AIezzy</h1>
-                    <p class="welcome-subtitle">Multi-agent AI with advanced reasoning, vision analysis, image editing, and web search</p>
+                    <p class="welcome-subtitle">Multi-agent AI with vision analysis, image generation & editing, video creation, document conversion, and web search</p>
                     
                     <div class="welcome-examples">
                         <div class="example-card" onclick="setInput('Create a modern logo for a tech startup')">
@@ -2070,35 +2070,53 @@
                             <div class="example-title">Create Images</div>
                             <div class="example-desc">Generate custom logos, artwork, and visual content</div>
                         </div>
-                        
+
                         <div class="example-card" onclick="setInput('What are the latest AI developments this week?')">
                             <div class="example-icon">🔍</div>
                             <div class="example-title">Search Web</div>
                             <div class="example-desc">Get current news, events, and real-time information</div>
                         </div>
-                        
+
                         <div class="example-card" onclick="document.getElementById('image-input').click()">
                             <div class="example-icon">👁️</div>
                             <div class="example-title">Analyze Images</div>
-                            <div class="example-desc">Upload images for detailed AI analysis</div>
+                            <div class="example-desc">Upload images for detailed AI analysis and questions</div>
                         </div>
-                        
-                        <div class="example-card" onclick="setInput('Edit the previous image to add my name')">
+
+                        <div class="example-card" onclick="document.getElementById('image-input').click(); setTimeout(() => setInput('Edit this image with different backgrounds'), 100)">
                             <div class="example-icon">✏️</div>
                             <div class="example-title">Edit Images</div>
-                            <div class="example-desc">Modify existing images with AI-powered editing</div>
+                            <div class="example-desc">Modify images with AI-powered editing and styles</div>
                         </div>
-                        
-                        <div class="example-card" onclick="setInput('Create a video of a cat walking through a garden')">
+
+                        <div class="example-card" onclick="setInput('Create a video of a sunset over mountains')">
                             <div class="example-icon">🎬</div>
                             <div class="example-title">Create Videos</div>
                             <div class="example-desc">Generate videos from text descriptions</div>
                         </div>
-                        
+
                         <div class="example-card" onclick="document.getElementById('image-input').click(); setTimeout(() => setInput('Animate this image with gentle movement'), 100)">
                             <div class="example-icon">🎦</div>
                             <div class="example-title">Animate Images</div>
                             <div class="example-desc">Turn static images into dynamic videos</div>
+                        </div>
+
+                        <div class="example-card" onclick="document.getElementById('document-input').click()">
+                            <div class="example-icon">📄</div>
+                            <div class="example-title">Convert Documents</div>
+                            <div class="example-desc">PDF, Word, Excel, PowerPoint, CSV, HTML, TXT conversions</div>
+                        </div>
+
+                        <div class="example-card" onclick="document.getElementById('image-input').click(); setTimeout(() => setInput('Combine these images into one artistic composition'), 100)">
+                            <div class="example-icon">🖼️</div>
+                            <div class="example-title">Combine Images</div>
+                            <div class="example-desc">Merge 2-100 images into artistic compositions</div>
+                        </div>
+
+                        <div class="example-card" onclick="document.getElementById('document-input').click(); setTimeout(() => setInput('Merge all these documents into one PDF'), 100)">
+                            <div class="example-icon">📑</div>
+                            <div class="example-title">Merge Documents</div>
+                            <div class="example-desc">Combine multiple documents into a single PDF</div>
                         </div>
                         
                         <div class="example-card" onclick="setInput('After uploading multiple images, I can combine them into one artistic composition')">
@@ -3897,7 +3915,7 @@
             document.getElementById('chat-messages').innerHTML = `
                 <div class="welcome-message">
                     <h1 class="welcome-title">Welcome to AIezzy</h1>
-                    <p class="welcome-subtitle">Multi-agent AI with advanced reasoning, vision analysis, image editing, and web search</p>
+                    <p class="welcome-subtitle">Multi-agent AI with vision analysis, image generation & editing, video creation, document conversion, and web search</p>
                     
                     <div class="welcome-examples">
                         <div class="example-card" onclick="setInput('Create a modern logo for a tech startup')">
@@ -3905,35 +3923,53 @@
                             <div class="example-title">Create Images</div>
                             <div class="example-desc">Generate custom logos, artwork, and visual content</div>
                         </div>
-                        
+
                         <div class="example-card" onclick="setInput('What are the latest AI developments this week?')">
                             <div class="example-icon">🔍</div>
                             <div class="example-title">Search Web</div>
                             <div class="example-desc">Get current news, events, and real-time information</div>
                         </div>
-                        
+
                         <div class="example-card" onclick="document.getElementById('image-input').click()">
                             <div class="example-icon">👁️</div>
                             <div class="example-title">Analyze Images</div>
-                            <div class="example-desc">Upload images for detailed AI analysis</div>
+                            <div class="example-desc">Upload images for detailed AI analysis and questions</div>
                         </div>
-                        
-                        <div class="example-card" onclick="setInput('Edit the previous image to add my name')">
+
+                        <div class="example-card" onclick="document.getElementById('image-input').click(); setTimeout(() => setInput('Edit this image with different backgrounds'), 100)">
                             <div class="example-icon">✏️</div>
                             <div class="example-title">Edit Images</div>
-                            <div class="example-desc">Modify existing images with AI-powered editing</div>
+                            <div class="example-desc">Modify images with AI-powered editing and styles</div>
                         </div>
-                        
-                        <div class="example-card" onclick="setInput('Create a video of a cat walking through a garden')">
+
+                        <div class="example-card" onclick="setInput('Create a video of a sunset over mountains')">
                             <div class="example-icon">🎬</div>
                             <div class="example-title">Create Videos</div>
                             <div class="example-desc">Generate videos from text descriptions</div>
                         </div>
-                        
+
                         <div class="example-card" onclick="document.getElementById('image-input').click(); setTimeout(() => setInput('Animate this image with gentle movement'), 100)">
                             <div class="example-icon">🎦</div>
                             <div class="example-title">Animate Images</div>
                             <div class="example-desc">Turn static images into dynamic videos</div>
+                        </div>
+
+                        <div class="example-card" onclick="document.getElementById('document-input').click()">
+                            <div class="example-icon">📄</div>
+                            <div class="example-title">Convert Documents</div>
+                            <div class="example-desc">PDF, Word, Excel, PowerPoint, CSV, HTML, TXT conversions</div>
+                        </div>
+
+                        <div class="example-card" onclick="document.getElementById('image-input').click(); setTimeout(() => setInput('Combine these images into one artistic composition'), 100)">
+                            <div class="example-icon">🖼️</div>
+                            <div class="example-title">Combine Images</div>
+                            <div class="example-desc">Merge 2-100 images into artistic compositions</div>
+                        </div>
+
+                        <div class="example-card" onclick="document.getElementById('document-input').click(); setTimeout(() => setInput('Merge all these documents into one PDF'), 100)">
+                            <div class="example-icon">📑</div>
+                            <div class="example-title">Merge Documents</div>
+                            <div class="example-desc">Combine multiple documents into a single PDF</div>
                         </div>
                         
                         <div class="example-card" onclick="setInput('After uploading multiple images, I can combine them into one artistic composition')">
