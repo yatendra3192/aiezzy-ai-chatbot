@@ -2049,6 +2049,86 @@ def pdf_to_ppt_page():
     except:
         return redirect('/')
 
+@web_app.route('/docx-to-pdf')
+def docx_to_pdf_page():
+    """SEO-optimized landing page for DOCX to PDF conversion - 45K searches/month"""
+    try:
+        return render_template('landing/docx-to-pdf.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/pdf-to-text')
+def pdf_to_text_page():
+    """SEO-optimized landing page for PDF to Text conversion - 40K searches/month"""
+    try:
+        return render_template('landing/pdf-to-text.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/compress-pdf')
+def compress_pdf_page():
+    """SEO-optimized landing page for PDF compression - 35K searches/month"""
+    try:
+        return render_template('landing/compress-pdf.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/merge-pdf')
+def merge_pdf_page():
+    """SEO-optimized landing page for PDF merging - 30K searches/month"""
+    try:
+        return render_template('landing/merge-pdf.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/split-pdf')
+def split_pdf_page():
+    """SEO-optimized landing page for PDF splitting - 25K searches/month"""
+    try:
+        return render_template('landing/split-pdf.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/rotate-pdf')
+def rotate_pdf_page():
+    """SEO-optimized landing page for PDF rotation - 18K searches/month"""
+    try:
+        return render_template('landing/rotate-pdf.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/pdf-to-csv')
+def pdf_to_csv_page():
+    """SEO-optimized landing page for PDF to CSV conversion - 15K searches/month"""
+    try:
+        return render_template('landing/pdf-to-csv.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/csv-to-pdf')
+def csv_to_pdf_page():
+    """SEO-optimized landing page for CSV to PDF conversion - 12K searches/month"""
+    try:
+        return render_template('landing/csv-to-pdf.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/html-to-pdf')
+def html_to_pdf_page():
+    """SEO-optimized landing page for HTML to PDF conversion - 10K searches/month"""
+    try:
+        return render_template('landing/html-to-pdf.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/pdf-to-html')
+def pdf_to_html_page():
+    """SEO-optimized landing page for PDF to HTML conversion - 8K searches/month"""
+    try:
+        return render_template('landing/pdf-to-html.html')
+    except:
+        return redirect('/')
+
 @web_app.route('/multi-image-fusion')
 def multi_image_fusion_page():
     """SEO-optimized landing page for multi-image fusion"""
