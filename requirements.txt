@@ -20,3 +20,8 @@ pdf2image
 python-docx
 openpyxl
 python-pptx
+# New PDF Features (Oct 2025)
+pikepdf          # PDF compression
+pdfplumber       # Table extraction, PDF to CSV/HTML
+reportlab        # CSV to PDF generation
+weasyprint       # HTML to PDF conversion

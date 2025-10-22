@@ -1067,3 +1067,523 @@ def powerpoint_to_html(pptx_path: str, output_name: str = None) -> str:
         raise Exception(f"LibreOffice conversion failed: {e.stderr.decode() if e.stderr else str(e)}")
     except Exception as e:
         raise Exception(f"Failed to convert PowerPoint to HTML: {str(e)}")
+
+
+# ==================== PDF to Text ====================
+
+def pdf_to_text(pdf_path: str, output_name: str = None) -> str:
+    """
+    Extract all text from PDF to plain text file
+
+    Args:
+        pdf_path: Path to PDF file
+        output_name: Optional output filename
+
+    Returns:
+        Path to generated TXT file
+    """
+    try:
+        if not os.path.exists(pdf_path):
+            raise Exception(f"PDF file not found: {pdf_path}")
+
+        # Generate output name if not provided
+        if not output_name:
+            pdf_name = pathlib.Path(pdf_path).stem
+            output_name = f"{pdf_name}_extracted.txt"
+
+        if not output_name.endswith('.txt'):
+            output_name += '.txt'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Extract text from PDF using PyMuPDF
+        doc = fitz.open(pdf_path)
+        text_content = []
+
+        for page_num in range(len(doc)):
+            page = doc[page_num]
+            text = page.get_text()
+            if text.strip():
+                text_content.append(f"--- Page {page_num + 1} ---\n{text}\n")
+
+        doc.close()
+
+        # Write to text file
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(text_content))
+
+        return output_path
+
+    except Exception as e:
+        raise Exception(f"Failed to extract text from PDF: {str(e)}")
+
+
+# ==================== Compress PDF ====================
+
+def compress_pdf(pdf_path: str, output_name: str = None, compression_level: str = 'medium') -> str:
+    """
+    Compress PDF by reducing image quality and removing metadata
+
+    Args:
+        pdf_path: Path to PDF file
+        output_name: Optional output filename
+        compression_level: 'low', 'medium', or 'high' compression
+
+    Returns:
+        Path to compressed PDF file
+    """
+    try:
+        import pikepdf
+
+        if not os.path.exists(pdf_path):
+            raise Exception(f"PDF file not found: {pdf_path}")
+
+        # Generate output name if not provided
+        if not output_name:
+            pdf_name = pathlib.Path(pdf_path).stem
+            output_name = f"{pdf_name}_compressed.pdf"
+
+        if not output_name.endswith('.pdf'):
+            output_name += '.pdf'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Compression settings based on level
+        compression_settings = {
+            'low': {'image_quality': 85, 'dpi': 150},
+            'medium': {'image_quality': 70, 'dpi': 120},
+            'high': {'image_quality': 50, 'dpi': 100}
+        }
+
+        settings = compression_settings.get(compression_level, compression_settings['medium'])
+
+        # Open and compress PDF using pikepdf
+        with pikepdf.open(pdf_path) as pdf:
+            # Remove metadata to reduce size
+            pdf.remove_unreferenced_resources()
+
+            # Compress images
+            for page in pdf.pages:
+                for image_key in page.images.keys():
+                    try:
+                        raw_image = page.images[image_key]
+                        pil_image = raw_image.as_pil_image()
+
+                        # Reduce DPI and quality
+                        if pil_image.mode == 'RGBA':
+                            pil_image = pil_image.convert('RGB')
+
+                        # Save compressed version
+                        img_stream = io.BytesIO()
+                        pil_image.save(img_stream, format='JPEG', quality=settings['image_quality'], optimize=True)
+                        img_stream.seek(0)
+
+                    except Exception as img_error:
+                        print(f"Could not compress image {image_key}: {img_error}")
+                        continue
+
+            # Save compressed PDF
+            pdf.save(output_path, compress_streams=True, object_stream_mode=pikepdf.ObjectStreamMode.generate)
+
+        # Get file size reduction
+        original_size = os.path.getsize(pdf_path)
+        compressed_size = os.path.getsize(output_path)
+        reduction = ((original_size - compressed_size) / original_size) * 100
+
+        print(f"Compressed PDF from {original_size/1024:.1f}KB to {compressed_size/1024:.1f}KB ({reduction:.1f}% reduction)")
+        return output_path
+
+    except ImportError:
+        raise Exception("pikepdf library not installed. Run: pip install pikepdf")
+    except Exception as e:
+        raise Exception(f"Failed to compress PDF: {str(e)}")
+
+
+# ==================== Split PDF ====================
+
+def split_pdf(pdf_path: str, pages: str = 'all', output_name: str = None) -> List[str]:
+    """
+    Split PDF into separate files (one page per file or specified ranges)
+
+    Args:
+        pdf_path: Path to PDF file
+        pages: 'all' or page ranges like '1-3,5,7-9'
+        output_name: Optional base name for output files
+
+    Returns:
+        List of paths to generated PDF files
+    """
+    try:
+        if not os.path.exists(pdf_path):
+            raise Exception(f"PDF file not found: {pdf_path}")
+
+        # Open PDF
+        reader = pypdf.PdfReader(pdf_path)
+        total_pages = len(reader.pages)
+
+        # Generate base output name if not provided
+        if not output_name:
+            pdf_name = pathlib.Path(pdf_path).stem
+            output_name = f"{pdf_name}_page"
+
+        output_paths = []
+
+        # Split all pages
+        if pages == 'all':
+            for page_num in range(total_pages):
+                writer = pypdf.PdfWriter()
+                writer.add_page(reader.pages[page_num])
+
+                output_filename = f"{output_name}_{page_num + 1}.pdf"
+                output_path = os.path.join(DOCUMENTS_DIR, output_filename)
+
+                with open(output_path, 'wb') as output_file:
+                    writer.write(output_file)
+
+                output_paths.append(output_path)
+        else:
+            # Parse page ranges (future enhancement)
+            # For now, split all pages
+            for page_num in range(total_pages):
+                writer = pypdf.PdfWriter()
+                writer.add_page(reader.pages[page_num])
+
+                output_filename = f"{output_name}_{page_num + 1}.pdf"
+                output_path = os.path.join(DOCUMENTS_DIR, output_filename)
+
+                with open(output_path, 'wb') as output_file:
+                    writer.write(output_file)
+
+                output_paths.append(output_path)
+
+        print(f"Split PDF into {len(output_paths)} files")
+        return output_paths
+
+    except Exception as e:
+        raise Exception(f"Failed to split PDF: {str(e)}")
+
+
+# ==================== Rotate PDF ====================
+
+def rotate_pdf(pdf_path: str, rotation: int = 90, pages: str = 'all', output_name: str = None) -> str:
+    """
+    Rotate PDF pages by specified degrees
+
+    Args:
+        pdf_path: Path to PDF file
+        rotation: Rotation angle (90, 180, 270, or -90)
+        pages: 'all' or page numbers like '1,3,5'
+        output_name: Optional output filename
+
+    Returns:
+        Path to rotated PDF file
+    """
+    try:
+        if not os.path.exists(pdf_path):
+            raise Exception(f"PDF file not found: {pdf_path}")
+
+        # Validate rotation angle
+        if rotation not in [90, 180, 270, -90]:
+            raise Exception(f"Invalid rotation angle: {rotation}. Must be 90, 180, 270, or -90")
+
+        # Generate output name if not provided
+        if not output_name:
+            pdf_name = pathlib.Path(pdf_path).stem
+            output_name = f"{pdf_name}_rotated.pdf"
+
+        if not output_name.endswith('.pdf'):
+            output_name += '.pdf'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Open PDF
+        reader = pypdf.PdfReader(pdf_path)
+        writer = pypdf.PdfWriter()
+
+        # Rotate pages
+        for page_num in range(len(reader.pages)):
+            page = reader.pages[page_num]
+
+            if pages == 'all':
+                page.rotate(rotation)
+            else:
+                # Parse specific pages (future enhancement)
+                page.rotate(rotation)
+
+            writer.add_page(page)
+
+        # Save rotated PDF
+        with open(output_path, 'wb') as output_file:
+            writer.write(output_file)
+
+        print(f"Rotated PDF by {rotation} degrees")
+        return output_path
+
+    except Exception as e:
+        raise Exception(f"Failed to rotate PDF: {str(e)}")
+
+
+# ==================== PDF to CSV ====================
+
+def pdf_to_csv(pdf_path: str, output_name: str = None) -> str:
+    """
+    Extract tables from PDF to CSV format
+
+    Args:
+        pdf_path: Path to PDF file
+        output_name: Optional output filename
+
+    Returns:
+        Path to generated CSV file
+    """
+    try:
+        import pdfplumber
+        import csv
+
+        if not os.path.exists(pdf_path):
+            raise Exception(f"PDF file not found: {pdf_path}")
+
+        # Generate output name if not provided
+        if not output_name:
+            pdf_name = pathlib.Path(pdf_path).stem
+            output_name = f"{pdf_name}_tables.csv"
+
+        if not output_name.endswith('.csv'):
+            output_name += '.csv'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Extract tables from PDF using pdfplumber
+        all_tables = []
+
+        with pdfplumber.open(pdf_path) as pdf:
+            for page_num, page in enumerate(pdf.pages):
+                tables = page.extract_tables()
+
+                if tables:
+                    for table_idx, table in enumerate(tables):
+                        # Add page and table headers
+                        all_tables.append([f"Page {page_num + 1} - Table {table_idx + 1}"])
+                        all_tables.extend(table)
+                        all_tables.append([])  # Empty row separator
+
+        # Write to CSV
+        if all_tables:
+            with open(output_path, 'w', newline='', encoding='utf-8') as csvfile:
+                writer = csv.writer(csvfile)
+                writer.writerows(all_tables)
+
+            print(f"Extracted tables to CSV: {output_path}")
+            return output_path
+        else:
+            raise Exception("No tables found in PDF")
+
+    except ImportError:
+        raise Exception("pdfplumber library not installed. Run: pip install pdfplumber")
+    except Exception as e:
+        raise Exception(f"Failed to extract PDF tables to CSV: {str(e)}")
+
+
+# ==================== CSV to PDF ====================
+
+def csv_to_pdf(csv_path: str, output_name: str = None) -> str:
+    """
+    Convert CSV data to formatted PDF table
+
+    Args:
+        csv_path: Path to CSV file
+        output_name: Optional output filename
+
+    Returns:
+        Path to generated PDF file
+    """
+    try:
+        import csv
+        from reportlab.lib.pagesizes import letter, landscape
+        from reportlab.lib import colors
+        from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
+        from reportlab.lib.units import inch
+
+        if not os.path.exists(csv_path):
+            raise Exception(f"CSV file not found: {csv_path}")
+
+        # Generate output name if not provided
+        if not output_name:
+            csv_name = pathlib.Path(csv_path).stem
+            output_name = f"{csv_name}_converted.pdf"
+
+        if not output_name.endswith('.pdf'):
+            output_name += '.pdf'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Read CSV data
+        data = []
+        with open(csv_path, 'r', encoding='utf-8') as csvfile:
+            reader = csv.reader(csvfile)
+            data = list(reader)
+
+        if not data:
+            raise Exception("CSV file is empty")
+
+        # Determine if landscape is needed based on column count
+        col_count = max(len(row) for row in data) if data else 0
+        pagesize = landscape(letter) if col_count > 6 else letter
+
+        # Create PDF
+        doc = SimpleDocTemplate(output_path, pagesize=pagesize)
+        elements = []
+
+        # Create table
+        table = Table(data)
+
+        # Style table
+        style = TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ])
+        table.setStyle(style)
+
+        elements.append(table)
+        doc.build(elements)
+
+        print(f"Converted CSV to PDF: {output_path}")
+        return output_path
+
+    except ImportError:
+        raise Exception("reportlab library not installed. Run: pip install reportlab")
+    except Exception as e:
+        raise Exception(f"Failed to convert CSV to PDF: {str(e)}")
+
+
+# ==================== HTML to PDF ====================
+
+def html_to_pdf(html_input: str, output_name: str = None) -> str:
+    """
+    Convert HTML to PDF using weasyprint
+
+    Args:
+        html_input: Path to HTML file or HTML string
+        output_name: Optional output filename
+
+    Returns:
+        Path to generated PDF file
+    """
+    try:
+        from weasyprint import HTML
+
+        # Generate output name if not provided
+        if not output_name:
+            output_name = f"converted_{int(time.time())}.pdf"
+
+        if not output_name.endswith('.pdf'):
+            output_name += '.pdf'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Check if input is a file path or HTML string
+        if os.path.exists(html_input):
+            # It's a file path
+            HTML(filename=html_input).write_pdf(output_path)
+        else:
+            # It's an HTML string
+            HTML(string=html_input).write_pdf(output_path)
+
+        print(f"Converted HTML to PDF: {output_path}")
+        return output_path
+
+    except ImportError:
+        raise Exception("weasyprint library not installed. Run: pip install weasyprint")
+    except Exception as e:
+        raise Exception(f"Failed to convert HTML to PDF: {str(e)}")
+
+
+# ==================== PDF to HTML ====================
+
+def pdf_to_html(pdf_path: str, output_name: str = None) -> str:
+    """
+    Convert PDF to HTML format
+
+    Args:
+        pdf_path: Path to PDF file
+        output_name: Optional output filename
+
+    Returns:
+        Path to generated HTML file
+    """
+    try:
+        import pdfplumber
+
+        if not os.path.exists(pdf_path):
+            raise Exception(f"PDF file not found: {pdf_path}")
+
+        # Generate output name if not provided
+        if not output_name:
+            pdf_name = pathlib.Path(pdf_path).stem
+            output_name = f"{pdf_name}_converted.html"
+
+        if not output_name.endswith('.html'):
+            output_name += '.html'
+
+        output_path = os.path.join(DOCUMENTS_DIR, output_name)
+
+        # Extract content from PDF
+        html_content = ['<!DOCTYPE html>', '<html>', '<head>',
+                       '<meta charset="UTF-8">',
+                       f'<title>{pathlib.Path(pdf_path).stem}</title>',
+                       '<style>',
+                       'body { font-family: Arial, sans-serif; margin: 40px; }',
+                       '.page { margin-bottom: 40px; page-break-after: always; }',
+                       'h2 { color: #333; border-bottom: 2px solid #333; }',
+                       'table { border-collapse: collapse; width: 100%; margin: 20px 0; }',
+                       'table td, table th { border: 1px solid #ddd; padding: 8px; }',
+                       'table th { background-color: #f2f2f2; }',
+                       '</style>',
+                       '</head>', '<body>']
+
+        with pdfplumber.open(pdf_path) as pdf:
+            for page_num, page in enumerate(pdf.pages):
+                html_content.append(f'<div class="page">')
+                html_content.append(f'<h2>Page {page_num + 1}</h2>')
+
+                # Extract tables
+                tables = page.extract_tables()
+                if tables:
+                    for table in tables:
+                        html_content.append('<table>')
+                        for row_idx, row in enumerate(table):
+                            html_content.append('<tr>')
+                            tag = 'th' if row_idx == 0 else 'td'
+                            for cell in row:
+                                html_content.append(f'<{tag}>{cell or ""}</{tag}>')
+                            html_content.append('</tr>')
+                        html_content.append('</table>')
+
+                # Extract text
+                text = page.extract_text()
+                if text:
+                    html_content.append('<p>')
+                    html_content.append(text.replace('\n', '<br>'))
+                    html_content.append('</p>')
+
+                html_content.append('</div>')
+
+        html_content.extend(['</body>', '</html>'])
+
+        # Write HTML file
+        with open(output_path, 'w', encoding='utf-8') as f:
+            f.write('\n'.join(html_content))
+
+        print(f"Converted PDF to HTML: {output_path}")
+        return output_path
+
+    except ImportError:
+        raise Exception("pdfplumber library not installed. Run: pip install pdfplumber")
+    except Exception as e:
+        raise Exception(f"Failed to convert PDF to HTML: {str(e)}")

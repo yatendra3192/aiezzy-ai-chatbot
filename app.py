@@ -1541,6 +1541,268 @@ def merge_pdfs(file_paths: List[str], output_name: str = None, *, config: Runnab
     except Exception as e:
         return f"❌ Error merging PDFs: {str(e)}"
 
+# --- Tool: Extract Text from PDF --------------------------------------------
+@tool
+def extract_text_from_pdf(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Extract all text from a PDF document to a plain text file.
+    Useful for converting PDF text to editable format.
+
+    Args:
+        file_path: Path to the PDF file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for the generated text file
+    """
+    try:
+        print(f"INFO: Extracting text from PDF: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: PDF file not found at {file_path}"
+
+        # Get PDF info
+        pdf_info = pdf_converter.get_pdf_info(file_path)
+        page_count = pdf_info.get('pages', 0)
+
+        # Extract text to TXT file
+        txt_path = pdf_converter.pdf_to_text(file_path, output_name=output_name)
+        filename = os.path.basename(txt_path)
+
+        return f'✅ Successfully extracted text from PDF ({page_count} pages): <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error extracting text from PDF: {str(e)}"
+
+# --- Tool: Compress PDF ------------------------------------------------------
+@tool
+def compress_pdf_file(file_path: str, output_name: str = None, compression_level: str = 'medium', *, config: RunnableConfig) -> str:
+    """
+    Compress a PDF file by reducing image quality and removing metadata.
+    Helps reduce file size for easier sharing and storage.
+
+    Args:
+        file_path: Path to the PDF file
+        output_name: Optional output filename (without extension)
+        compression_level: 'low', 'medium', or 'high' (default: 'medium')
+
+    Returns:
+        Download link for the compressed PDF
+    """
+    try:
+        print(f"INFO: Compressing PDF with {compression_level} compression: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: PDF file not found at {file_path}"
+
+        # Get original file size
+        original_size = os.path.getsize(file_path) / 1024  # KB
+
+        # Compress PDF
+        compressed_path = pdf_converter.compress_pdf(file_path, output_name=output_name, compression_level=compression_level)
+        filename = os.path.basename(compressed_path)
+
+        # Get compressed file size
+        compressed_size = os.path.getsize(compressed_path) / 1024  # KB
+        reduction = ((original_size - compressed_size) / original_size) * 100
+
+        return f'✅ Successfully compressed PDF from {original_size:.1f}KB to {compressed_size:.1f}KB ({reduction:.1f}% reduction): <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error compressing PDF: {str(e)}"
+
+# --- Tool: Split PDF ---------------------------------------------------------
+@tool
+def split_pdf_file(file_path: str, pages: str = 'all', output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Split a PDF into separate files, one page per file.
+    Useful for extracting specific pages or breaking up large documents.
+
+    Args:
+        file_path: Path to the PDF file
+        pages: 'all' to split every page, or page ranges like '1-3,5,7-9'
+        output_name: Optional base name for output files (without extension)
+
+    Returns:
+        List of download links for the split PDF files
+    """
+    try:
+        print(f"INFO: Splitting PDF: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: PDF file not found at {file_path}"
+
+        # Get PDF info
+        pdf_info = pdf_converter.get_pdf_info(file_path)
+        page_count = pdf_info.get('pages', 0)
+
+        # Split PDF
+        split_paths = pdf_converter.split_pdf(file_path, pages=pages, output_name=output_name)
+
+        # Generate HTML response with download links
+        html_parts = [f"✅ Successfully split PDF ({page_count} pages) into {len(split_paths)} files:\n\n"]
+
+        for i, pdf_path in enumerate(split_paths, 1):
+            filename = os.path.basename(pdf_path)
+            html_parts.append(f'<a href="/documents/{filename}" download>📄 {filename}</a><br>')
+
+        return "".join(html_parts)
+
+    except Exception as e:
+        return f"❌ Error splitting PDF: {str(e)}"
+
+# --- Tool: Rotate PDF --------------------------------------------------------
+@tool
+def rotate_pdf_pages(file_path: str, rotation: int = 90, pages: str = 'all', output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Rotate PDF pages by specified degrees (90, 180, 270, or -90).
+    Useful for fixing incorrectly oriented pages.
+
+    Args:
+        file_path: Path to the PDF file
+        rotation: Rotation angle (90, 180, 270, or -90 degrees)
+        pages: 'all' to rotate all pages, or specific page numbers
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for the rotated PDF
+    """
+    try:
+        print(f"INFO: Rotating PDF by {rotation} degrees: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: PDF file not found at {file_path}"
+
+        # Get PDF info
+        pdf_info = pdf_converter.get_pdf_info(file_path)
+        page_count = pdf_info.get('pages', 0)
+
+        # Rotate PDF
+        rotated_path = pdf_converter.rotate_pdf(file_path, rotation=rotation, pages=pages, output_name=output_name)
+        filename = os.path.basename(rotated_path)
+
+        return f'✅ Successfully rotated PDF ({page_count} pages) by {rotation}°: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error rotating PDF: {str(e)}"
+
+# --- Tool: PDF to CSV --------------------------------------------------------
+@tool
+def convert_pdf_to_csv(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Extract tables from PDF and convert to CSV format.
+    Useful for extracting data tables from PDF reports and documents.
+
+    Args:
+        file_path: Path to the PDF file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for the generated CSV file
+    """
+    try:
+        print(f"INFO: Converting PDF tables to CSV: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: PDF file not found at {file_path}"
+
+        # Convert PDF to CSV
+        csv_path = pdf_converter.pdf_to_csv(file_path, output_name=output_name)
+        filename = os.path.basename(csv_path)
+
+        return f'✅ Successfully extracted PDF tables to CSV: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting PDF to CSV: {str(e)}"
+
+# --- Tool: CSV to PDF --------------------------------------------------------
+@tool
+def convert_csv_to_pdf(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert CSV data to a formatted PDF table.
+    Creates a professional-looking PDF from spreadsheet data.
+
+    Args:
+        file_path: Path to the CSV file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for the generated PDF
+    """
+    try:
+        print(f"INFO: Converting CSV to PDF: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: CSV file not found at {file_path}"
+
+        # Convert CSV to PDF
+        pdf_path = pdf_converter.csv_to_pdf(file_path, output_name=output_name)
+        filename = os.path.basename(pdf_path)
+
+        return f'✅ Successfully converted CSV to formatted PDF table: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting CSV to PDF: {str(e)}"
+
+# --- Tool: HTML to PDF -------------------------------------------------------
+@tool
+def convert_html_to_pdf(html_input: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert HTML content to PDF format.
+    Can accept either an HTML file path or raw HTML string.
+
+    Args:
+        html_input: Path to HTML file or raw HTML string
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for the generated PDF
+    """
+    try:
+        print(f"INFO: Converting HTML to PDF")
+
+        # Convert HTML to PDF
+        pdf_path = pdf_converter.html_to_pdf(html_input, output_name=output_name)
+        filename = os.path.basename(pdf_path)
+
+        return f'✅ Successfully converted HTML to PDF: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting HTML to PDF: {str(e)}"
+
+# --- Tool: PDF to HTML -------------------------------------------------------
+@tool
+def convert_pdf_to_html(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert PDF document to HTML format.
+    Extracts text and tables and generates an HTML page.
+
+    Args:
+        file_path: Path to the PDF file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for the generated HTML file
+    """
+    try:
+        print(f"INFO: Converting PDF to HTML: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: PDF file not found at {file_path}")
+
+        # Get PDF info
+        pdf_info = pdf_converter.get_pdf_info(file_path)
+        page_count = pdf_info.get('pages', 0)
+
+        # Convert PDF to HTML
+        html_path = pdf_converter.pdf_to_html(file_path, output_name=output_name)
+        filename = os.path.basename(html_path)
+
+        return f'✅ Successfully converted PDF ({page_count} pages) to HTML: <a href="/documents/{filename}" download>{filename}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting PDF to HTML: {str(e)}"
+
 # --- Tool: Convert All Documents to PDF and Merge ---------------------------
 @tool
 def convert_and_merge_documents(file_paths: List[str], output_name: str = "combined_document", *, config: RunnableConfig) -> str:
@@ -1690,7 +1952,16 @@ def build_coordinator():
         convert_powerpoint_to_html,
         # PDF Utilities
         merge_pdfs,
-        convert_and_merge_documents
+        convert_and_merge_documents,
+        # New PDF Features (Oct 2025)
+        extract_text_from_pdf,
+        compress_pdf_file,
+        split_pdf_file,
+        rotate_pdf_pages,
+        convert_pdf_to_csv,
+        convert_csv_to_pdf,
+        convert_html_to_pdf,
+        convert_pdf_to_html
     ]
     
     prompt = (
@@ -1728,6 +1999,14 @@ def build_coordinator():
         "- convert_word/excel/powerpoint_to_html: Convert Office documents to HTML web format\n"
         "- convert_and_merge_documents: CRITICAL - Use this for combining/merging multiple documents into single PDF\n"
         "- merge_pdfs: Merge multiple PDF files only (use convert_and_merge_documents for mixed types)\n"
+        "- extract_text_from_pdf: Extract all text from PDF to plain text file\n"
+        "- compress_pdf_file: Reduce PDF file size by compressing images and removing metadata\n"
+        "- split_pdf_file: Split PDF into separate files (one page per file)\n"
+        "- rotate_pdf_pages: Rotate PDF pages by 90/180/270 degrees\n"
+        "- convert_pdf_to_csv: Extract tables from PDF to CSV format\n"
+        "- convert_csv_to_pdf: Convert CSV data to formatted PDF table\n"
+        "- convert_html_to_pdf: Convert HTML content or file to PDF\n"
+        "- convert_pdf_to_html: Convert PDF to HTML web page\n"
         "- evaluate_result_quality: Check if results match user expectations\n\n"
         "CRITICAL - FORMATTING TOOL RESPONSES:\n"
         "- NEVER reformat HTML links from tools - pass them through EXACTLY as received\n"
