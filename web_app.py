@@ -1971,18 +1971,83 @@ def pdf_converter_page():
 
 @web_app.route('/word-to-pdf')
 def word_to_pdf_page():
-    """SEO-optimized landing page for Word to PDF conversion"""
-    return redirect('/')
-
-@web_app.route('/excel-to-pdf')
-def excel_to_pdf_page():
-    """SEO-optimized landing page for Excel to PDF conversion"""
-    return redirect('/')
+    """SEO-optimized landing page for Word to PDF conversion - 201K searches/month"""
+    try:
+        return render_template('landing/word-to-pdf.html')
+    except:
+        return redirect('/')
 
 @web_app.route('/pdf-to-word')
 def pdf_to_word_page():
-    """SEO-optimized landing page for PDF to Word conversion"""
-    return redirect('/')
+    """SEO-optimized landing page for PDF to Word conversion - 135K searches/month"""
+    try:
+        return render_template('landing/pdf-to-word.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/excel-to-pdf')
+def excel_to_pdf_page():
+    """SEO-optimized landing page for Excel to PDF conversion - 90.5K searches/month"""
+    try:
+        return render_template('landing/excel-to-pdf.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/pdf-to-excel')
+def pdf_to_excel_page():
+    """SEO-optimized landing page for PDF to Excel conversion - 74K searches/month"""
+    try:
+        return render_template('landing/pdf-to-excel.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/jpg-to-pdf')
+def jpg_to_pdf_page():
+    """SEO-optimized landing page for JPG to PDF conversion - 60.5K searches/month"""
+    try:
+        return render_template('landing/jpg-to-pdf.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/pdf-to-jpg')
+def pdf_to_jpg_page():
+    """SEO-optimized landing page for PDF to JPG conversion - 49.5K searches/month"""
+    try:
+        return render_template('landing/pdf-to-jpg.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/png-to-pdf')
+def png_to_pdf_page():
+    """SEO-optimized landing page for PNG to PDF conversion - 40.5K searches/month"""
+    try:
+        return render_template('landing/png-to-pdf.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/pdf-to-png')
+def pdf_to_png_page():
+    """SEO-optimized landing page for PDF to PNG conversion - 33.1K searches/month"""
+    try:
+        return render_template('landing/pdf-to-png.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/ppt-to-pdf')
+def ppt_to_pdf_page():
+    """SEO-optimized landing page for PowerPoint to PDF conversion - 27.1K searches/month"""
+    try:
+        return render_template('landing/ppt-to-pdf.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/pdf-to-ppt')
+def pdf_to_ppt_page():
+    """SEO-optimized landing page for PDF to PowerPoint conversion - 22.2K searches/month"""
+    try:
+        return render_template('landing/pdf-to-ppt.html')
+    except:
+        return redirect('/')
 
 @web_app.route('/multi-image-fusion')
 def multi_image_fusion_page():
