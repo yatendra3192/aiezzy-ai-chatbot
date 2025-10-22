@@ -1788,7 +1788,7 @@ def convert_pdf_to_html(file_path: str, output_name: str = None, *, config: Runn
         print(f"INFO: Converting PDF to HTML: {file_path}")
 
         if not os.path.exists(file_path):
-            return f"❌ Error: PDF file not found at {file_path}")
+            return f"❌ Error: PDF file not found at {file_path}"
 
         # Get PDF info
         pdf_info = pdf_converter.get_pdf_info(file_path)
