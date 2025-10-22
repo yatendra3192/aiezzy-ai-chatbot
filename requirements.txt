@@ -25,3 +25,5 @@ pikepdf          # PDF compression
 pdfplumber       # Table extraction, PDF to CSV/HTML
 reportlab        # CSV to PDF generation
 weasyprint       # HTML to PDF conversion
+# Image Format Conversions (Oct 2025)
+pillow-heif      # HEIC/HEIF to JPEG conversion (iPhone photos)

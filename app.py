@@ -25,6 +25,9 @@ fal_client.api_key = os.getenv("FAL_KEY")
 # PDF Converter for document processing
 import pdf_converter
 
+# Image Converter for image format conversions
+import image_converter
+
 # Configure persistent storage paths for Railway
 if os.environ.get('RAILWAY_ENVIRONMENT'):
     # Production: Use Railway persistent volume
@@ -1803,6 +1806,309 @@ def convert_pdf_to_html(file_path: str, output_name: str = None, *, config: Runn
     except Exception as e:
         return f"❌ Error converting PDF to HTML: {str(e)}"
 
+# === IMAGE CONVERSION TOOLS ==================================================
+
+# --- Tool: JPEG to PNG -------------------------------------------------------
+@tool
+def convert_jpeg_to_png(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert JPEG image to PNG format.
+    PNG supports transparency and lossless compression.
+
+    Args:
+        file_path: Path to the JPEG file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for the generated PNG image
+    """
+    try:
+        print(f"INFO: Converting JPEG to PNG: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: JPEG file not found at {file_path}"
+
+        png_path = image_converter.jpeg_to_png(file_path, output_name=output_name)
+        filename = os.path.basename(png_path)
+
+        return f'✅ Successfully converted JPEG to PNG: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error converting JPEG to PNG: {str(e)}"
+
+# --- Tool: PNG to JPEG -------------------------------------------------------
+@tool
+def convert_png_to_jpeg(file_path: str, output_name: str = None, quality: int = 95, *, config: RunnableConfig) -> str:
+    """
+    Convert PNG image to JPEG format.
+    JPEG has smaller file sizes but doesn't support transparency.
+
+    Args:
+        file_path: Path to the PNG file
+        output_name: Optional output filename (without extension)
+        quality: JPEG quality 1-100 (default 95)
+
+    Returns:
+        Download link for the generated JPEG image
+    """
+    try:
+        print(f"INFO: Converting PNG to JPEG: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: PNG file not found at {file_path}"
+
+        jpeg_path = image_converter.png_to_jpeg(file_path, output_name=output_name, quality=quality)
+        filename = os.path.basename(jpeg_path)
+
+        return f'✅ Successfully converted PNG to JPEG: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error converting PNG to JPEG: {str(e)}"
+
+# --- Tool: WEBP to PNG -------------------------------------------------------
+@tool
+def convert_webp_to_png(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert WEBP image to PNG format.
+    Useful for converting modern web images to widely supported PNG.
+
+    Args:
+        file_path: Path to the WEBP file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for the generated PNG image
+    """
+    try:
+        print(f"INFO: Converting WEBP to PNG: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: WEBP file not found at {file_path}"
+
+        png_path = image_converter.webp_to_png(file_path, output_name=output_name)
+        filename = os.path.basename(png_path)
+
+        return f'✅ Successfully converted WEBP to PNG: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error converting WEBP to PNG: {str(e)}"
+
+# --- Tool: WEBP to JPEG ------------------------------------------------------
+@tool
+def convert_webp_to_jpeg(file_path: str, output_name: str = None, quality: int = 95, *, config: RunnableConfig) -> str:
+    """
+    Convert WEBP image to JPEG format.
+    Good for compatibility with older systems.
+
+    Args:
+        file_path: Path to the WEBP file
+        output_name: Optional output filename (without extension)
+        quality: JPEG quality 1-100 (default 95)
+
+    Returns:
+        Download link for the generated JPEG image
+    """
+    try:
+        print(f"INFO: Converting WEBP to JPEG: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: WEBP file not found at {file_path}"
+
+        jpeg_path = image_converter.webp_to_jpeg(file_path, output_name=output_name, quality=quality)
+        filename = os.path.basename(jpeg_path)
+
+        return f'✅ Successfully converted WEBP to JPEG: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error converting WEBP to JPEG: {str(e)}"
+
+# --- Tool: HEIC to JPEG ------------------------------------------------------
+@tool
+def convert_heic_to_jpeg(file_path: str, output_name: str = None, quality: int = 95, *, config: RunnableConfig) -> str:
+    """
+    Convert HEIC/HEIF image to JPEG format.
+    Perfect for converting iPhone photos to universal format.
+
+    Args:
+        file_path: Path to the HEIC file
+        output_name: Optional output filename (without extension)
+        quality: JPEG quality 1-100 (default 95)
+
+    Returns:
+        Download link for the generated JPEG image
+    """
+    try:
+        print(f"INFO: Converting HEIC to JPEG: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: HEIC file not found at {file_path}"
+
+        jpeg_path = image_converter.heic_to_jpeg(file_path, output_name=output_name, quality=quality)
+        filename = os.path.basename(jpeg_path)
+
+        return f'✅ Successfully converted HEIC to JPEG: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error converting HEIC to JPEG: {str(e)}"
+
+# --- Tool: GIF to PNG --------------------------------------------------------
+@tool
+def convert_gif_to_png(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert GIF to PNG format (extracts first frame).
+    Converts animated GIFs to static PNG images.
+
+    Args:
+        file_path: Path to the GIF file
+        output_name: Optional output filename (without extension)
+
+    Returns:
+        Download link for the generated PNG image
+    """
+    try:
+        print(f"INFO: Converting GIF to PNG: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: GIF file not found at {file_path}"
+
+        png_path = image_converter.gif_to_png(file_path, output_name=output_name)
+        filename = os.path.basename(png_path)
+
+        return f'✅ Successfully converted GIF to PNG: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error converting GIF to PNG: {str(e)}"
+
+# --- Tool: Resize Image ------------------------------------------------------
+@tool
+def resize_uploaded_image(file_path: str, width: int = None, height: int = None,
+                         output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Resize image to specified dimensions while maintaining aspect ratio.
+    Great for reducing image file sizes or creating thumbnails.
+
+    Args:
+        file_path: Path to the image file
+        width: Target width in pixels (optional)
+        height: Target height in pixels (optional)
+        output_name: Optional output filename
+
+    Returns:
+        Download link for the resized image
+    """
+    try:
+        print(f"INFO: Resizing image: {file_path} to {width}x{height}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Image file not found at {file_path}"
+
+        if not width and not height:
+            return "❌ Error: Please specify at least width or height for resizing"
+
+        resized_path = image_converter.resize_image(file_path, width=width, height=height,
+                                                   output_name=output_name, maintain_aspect=True)
+        filename = os.path.basename(resized_path)
+
+        return f'✅ Successfully resized image to {width or "auto"}x{height or "auto"}: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error resizing image: {str(e)}"
+
+# --- Tool: Compress Image ----------------------------------------------------
+@tool
+def compress_uploaded_image(file_path: str, output_name: str = None,
+                           quality: int = 85, *, config: RunnableConfig) -> str:
+    """
+    Compress image to reduce file size while maintaining quality.
+    Perfect for optimizing images for web or email.
+
+    Args:
+        file_path: Path to the image file
+        output_name: Optional output filename
+        quality: Compression quality 1-100 (default 85)
+
+    Returns:
+        Download link for the compressed image with size reduction info
+    """
+    try:
+        print(f"INFO: Compressing image: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Image file not found at {file_path}"
+
+        # Get original file size
+        original_size = os.path.getsize(file_path) / 1024  # KB
+
+        compressed_path = image_converter.compress_image(file_path, output_name=output_name,
+                                                        quality=quality, optimization='medium')
+        filename = os.path.basename(compressed_path)
+
+        # Get compressed file size
+        compressed_size = os.path.getsize(compressed_path) / 1024  # KB
+        reduction = ((original_size - compressed_size) / original_size) * 100
+
+        return f'✅ Successfully compressed image from {original_size:.1f}KB to {compressed_size:.1f}KB ({reduction:.1f}% reduction): <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error compressing image: {str(e)}"
+
+# --- Tool: Convert to Grayscale ----------------------------------------------
+@tool
+def convert_image_to_grayscale(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert color image to grayscale (black and white).
+    Artistic effect or for reducing file size.
+
+    Args:
+        file_path: Path to the image file
+        output_name: Optional output filename
+
+    Returns:
+        Download link for the grayscale image
+    """
+    try:
+        print(f"INFO: Converting image to grayscale: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Image file not found at {file_path}"
+
+        grayscale_path = image_converter.convert_to_grayscale(file_path, output_name=output_name)
+        filename = os.path.basename(grayscale_path)
+
+        return f'✅ Successfully converted image to grayscale: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error converting to grayscale: {str(e)}"
+
+# --- Tool: Rotate Image ------------------------------------------------------
+@tool
+def rotate_uploaded_image(file_path: str, angle: int = 90, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Rotate image by specified angle.
+    Useful for fixing image orientation.
+
+    Args:
+        file_path: Path to the image file
+        angle: Rotation angle in degrees (90, 180, 270, etc.)
+        output_name: Optional output filename
+
+    Returns:
+        Download link for the rotated image
+    """
+    try:
+        print(f"INFO: Rotating image by {angle} degrees: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Image file not found at {file_path}"
+
+        rotated_path = image_converter.rotate_image(file_path, angle=angle, output_name=output_name)
+        filename = os.path.basename(rotated_path)
+
+        return f'✅ Successfully rotated image by {angle}°: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error rotating image: {str(e)}"
+
 # --- Tool: Convert All Documents to PDF and Merge ---------------------------
 @tool
 def convert_and_merge_documents(file_paths: List[str], output_name: str = "combined_document", *, config: RunnableConfig) -> str:
@@ -1961,7 +2267,19 @@ def build_coordinator():
         convert_pdf_to_csv,
         convert_csv_to_pdf,
         convert_html_to_pdf,
-        convert_pdf_to_html
+        convert_pdf_to_html,
+        # Image Format Conversions (Oct 2025)
+        convert_jpeg_to_png,
+        convert_png_to_jpeg,
+        convert_webp_to_png,
+        convert_webp_to_jpeg,
+        convert_heic_to_jpeg,
+        convert_gif_to_png,
+        # Image Manipulation Tools
+        resize_uploaded_image,
+        compress_uploaded_image,
+        convert_image_to_grayscale,
+        rotate_uploaded_image
     ]
     
     prompt = (
@@ -2007,6 +2325,16 @@ def build_coordinator():
         "- convert_csv_to_pdf: Convert CSV data to formatted PDF table\n"
         "- convert_html_to_pdf: Convert HTML content or file to PDF\n"
         "- convert_pdf_to_html: Convert PDF to HTML web page\n"
+        "- convert_jpeg_to_png: Convert JPEG images to PNG format\n"
+        "- convert_png_to_jpeg: Convert PNG images to JPEG format\n"
+        "- convert_webp_to_png: Convert WEBP images to PNG format\n"
+        "- convert_webp_to_jpeg: Convert WEBP images to JPEG format\n"
+        "- convert_heic_to_jpeg: Convert HEIC/HEIF (iPhone photos) to JPEG\n"
+        "- convert_gif_to_png: Convert GIF animations to PNG (first frame)\n"
+        "- resize_uploaded_image: Resize images to specified dimensions\n"
+        "- compress_uploaded_image: Reduce image file size while maintaining quality\n"
+        "- convert_image_to_grayscale: Convert color images to black and white\n"
+        "- rotate_uploaded_image: Rotate images by specified angle\n"
         "- evaluate_result_quality: Check if results match user expectations\n\n"
         "CRITICAL - FORMATTING TOOL RESPONSES:\n"
         "- NEVER reformat HTML links from tools - pass them through EXACTLY as received\n"
