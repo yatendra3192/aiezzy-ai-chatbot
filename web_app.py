@@ -1943,77 +1943,83 @@ def sitemap_dynamic():
 @web_app.route('/ai-image-generator')
 def ai_image_generator_page():
     """SEO-optimized landing page for AI image generation"""
-    return render_template('landing/ai_image_generator.html')
+    try:
+        return render_template('landing/ai_image_generator.html')
+    except:
+        return redirect('/')
 
 @web_app.route('/text-to-video')
 def text_to_video_page():
     """SEO-optimized landing page for text-to-video"""
-    return render_template('landing/text_to_video.html')
+    return redirect('/')
 
 @web_app.route('/image-to-video')
 def image_to_video_page():
     """SEO-optimized landing page for image-to-video"""
-    return render_template('landing/image_to_video.html')
+    return redirect('/')
 
 @web_app.route('/pdf-converter')
 def pdf_converter_page():
     """SEO-optimized landing page for PDF conversion"""
-    return render_template('landing/pdf_converter.html')
+    try:
+        return render_template('landing/pdf_converter.html')
+    except:
+        return redirect('/')
 
 @web_app.route('/word-to-pdf')
 def word_to_pdf_page():
     """SEO-optimized landing page for Word to PDF conversion"""
-    return render_template('landing/word_to_pdf.html')
+    return redirect('/')
 
 @web_app.route('/excel-to-pdf')
 def excel_to_pdf_page():
     """SEO-optimized landing page for Excel to PDF conversion"""
-    return render_template('landing/excel_to_pdf.html')
+    return redirect('/')
 
 @web_app.route('/pdf-to-word')
 def pdf_to_word_page():
     """SEO-optimized landing page for PDF to Word conversion"""
-    return render_template('landing/pdf_to_word.html')
+    return redirect('/')
 
 @web_app.route('/multi-image-fusion')
 def multi_image_fusion_page():
     """SEO-optimized landing page for multi-image fusion"""
-    return render_template('landing/multi_image_fusion.html')
+    return redirect('/')
 
 @web_app.route('/ai-image-editor')
 def ai_image_editor_page():
     """SEO-optimized landing page for AI image editing"""
-    return render_template('landing/ai_image_editor.html')
+    return redirect('/')
 
 @web_app.route('/chatgpt-alternative')
 def chatgpt_alternative_page():
     """SEO-optimized landing page for ChatGPT alternative"""
-    return render_template('landing/chatgpt_alternative.html')
+    return redirect('/')
 
 @web_app.route('/tools')
 def tools_page():
     """SEO-optimized tools directory page"""
-    return render_template('landing/tools.html')
+    return redirect('/')
 
 @web_app.route('/about')
 def about_page():
     """About AIezzy page"""
-    return render_template('landing/about.html')
+    return redirect('/')
 
 @web_app.route('/blog')
 def blog_page():
     """Blog listing page"""
-    return render_template('landing/blog.html')
+    return redirect('/')
 
 @web_app.route('/pricing')
 def pricing_page():
     """Pricing page (free forever)"""
-    return render_template('landing/pricing.html')
+    return redirect('/')
 
 @web_app.route('/faq')
 def faq_page():
     """FAQ page with structured data"""
-    return render_template('landing/faq.html')
+    return redirect('/')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
