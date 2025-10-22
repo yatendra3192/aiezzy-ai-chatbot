@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XQEC68F0S9"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XQEC68F0S9');
+    </script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary Meta Tags -->
+    <title>Free AI Image Generator - Create Stunning Images from Text | AIezzy</title>
+    <meta name="title" content="Free AI Image Generator - Create Stunning Images from Text | AIezzy">
+    <meta name="description" content="Generate high-quality AI images instantly with AIezzy's free text-to-image generator. Powered by nano-banana and Google Gemini. No signup, unlimited use. Create art, photos, and designs in seconds.">
+    <meta name="keywords" content="free ai image generator, text to image, ai art generator, ai image creator, nano banana, gemini image generator, free image ai, ai photo generator, create images with ai, text to image free">
+    <meta name="author" content="AIezzy">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large">
+    <link rel="canonical" href="https://aiezzy.com/ai-image-generator">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://aiezzy.com/ai-image-generator">
+    <meta property="og:title" content="Free AI Image Generator - Create Stunning Images from Text">
+    <meta property="og:description" content="Generate high-quality AI images instantly. Powered by nano-banana and Gemini. 100% free, no signup required.">
+    <meta property="og:image" content="https://aiezzy.com/logo.png">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://aiezzy.com/ai-image-generator">
+    <meta name="twitter:title" content="Free AI Image Generator - AIezzy">
+    <meta name="twitter:description" content="Create stunning AI images from text. Powered by Gemini. Free forever.">
+    <meta name="twitter:image" content="https://aiezzy.com/logo.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png">
+
+    <!-- Schema.org Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "AIezzy AI Image Generator",
+      "applicationCategory": "DesignApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Free AI-powered image generator using nano-banana and Google Gemini. Create unlimited images from text descriptions.",
+      "operatingSystem": "Web Browser",
+      "featureList": [
+        "Text to image generation",
+        "High-quality AI art creation",
+        "Unlimited free generations",
+        "No signup required",
+        "Powered by Google Gemini",
+        "Instant results"
+      ]
+    }
+    </script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, sans-serif;
+            line-height: 1.6;
+            color: #111827;
+            background: #ffffff;
+        }
+
+        /* Header */
+        header {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: #111827;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .logo img {
+            height: 40px;
+            width: auto;
+        }
+
+        .cta-button {
+            background: #0ea5e9;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .cta-button:hover {
+            background: #0284c7;
+            transform: translateY(-2px);
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 80px 24px;
+            text-align: center;
+        }
+
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 24px;
+            line-height: 1.2;
+        }
+
+        .hero p {
+            font-size: 20px;
+            margin-bottom: 32px;
+            opacity: 0.95;
+        }
+
+        .hero-cta {
+            display: inline-block;
+            background: white;
+            color: #667eea;
+            padding: 16px 48px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 18px;
+            transition: all 0.3s;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .hero-cta:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 50px rgba(0,0,0,0.3);
+        }
+
+        /* Features Section */
+        .features {
+            padding: 80px 24px;
+            background: #f9fafb;
+        }
+
+        .features-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: #111827;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            font-size: 18px;
+            color: #6b7280;
+            margin-bottom: 64px;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 32px;
+            margin-top: 48px;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 32px;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.12);
+        }
+
+        .feature-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .feature-card h3 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 12px;
+            color: #111827;
+        }
+
+        .feature-card p {
+            color: #6b7280;
+            line-height: 1.7;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            padding: 80px 24px;
+            background: white;
+        }
+
+        .steps {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .step {
+            display: flex;
+            align-items: start;
+            gap: 24px;
+            margin-bottom: 48px;
+        }
+
+        .step-number {
+            flex-shrink: 0;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .step-content h3 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .step-content p {
+            color: #6b7280;
+            font-size: 16px;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 80px 24px;
+            text-align: center;
+        }
+
+        .cta-section h2 {
+            font-size: 40px;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .cta-section p {
+            font-size: 18px;
+            margin-bottom: 32px;
+            opacity: 0.95;
+        }
+
+        /* Footer */
+        footer {
+            background: #111827;
+            color: #9ca3af;
+            padding: 48px 24px;
+            text-align: center;
+        }
+
+        footer a {
+            color: #0ea5e9;
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 32px;
+            }
+
+            .hero p {
+                font-size: 16px;
+            }
+
+            .section-title {
+                font-size: 28px;
+            }
+
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="header-container">
+            <a href="/" class="logo">
+                <img src="/logo.png" alt="AIezzy Logo">
+                <span>AIezzy</span>
+            </a>
+            <a href="/" class="cta-button">Try It Free →</a>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Free AI Image Generator - Create Stunning Images from Text</h1>
+            <p>Generate high-quality AI images instantly with AIezzy. Powered by nano-banana and Google Gemini. No signup required. Unlimited free generations.</p>
+            <a href="/" class="hero-cta">Start Creating Images Free →</a>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features">
+        <div class="features-container">
+            <h2 class="section-title">Why Choose AIezzy's AI Image Generator?</h2>
+            <p class="section-subtitle">The most powerful and easy-to-use free AI image generator on the web</p>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>High-Quality AI Art</h3>
+                    <p>Generate stunning, photorealistic images using advanced nano-banana AI powered by Google's Gemini model. Professional quality results every time.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Instant Generation</h3>
+                    <p>Get your AI-generated images in seconds, not minutes. Our optimized pipeline ensures lightning-fast results without compromising quality.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🆓</div>
+                    <h3>100% Free Forever</h3>
+                    <p>No credit card required. No hidden fees. No limits. Generate unlimited AI images completely free. No signup needed to start creating.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🔒</div>
+                    <h3>Private & Secure</h3>
+                    <p>Your creations are private. We don't store or use your generated images for training. Complete privacy guaranteed.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Perfect Understanding</h3>
+                    <p>Powered by GPT-4o and Gemini, our AI understands complex prompts and creates exactly what you imagine. Natural language processing at its best.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">📱</div>
+                    <h3>Works Everywhere</h3>
+                    <p>Use on any device - desktop, tablet, or mobile. No app download required. Access your AI image generator from anywhere.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works">
+        <div class="features-container">
+            <h2 class="section-title">How to Generate AI Images</h2>
+            <p class="section-subtitle">Create stunning images in 3 simple steps</p>
+
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Describe Your Image</h3>
+                        <p>Type what you want to create in plain English. Be as detailed or simple as you like. Examples: "a sunset over mountains", "a futuristic cityscape at night", "a cute cat wearing a wizard hat".</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>AI Creates Your Image</h3>
+                        <p>Our advanced nano-banana AI powered by Google Gemini processes your description and generates a high-quality image in seconds. The AI understands context, style, and composition.</p>
+                    </div>
+                </div>
+
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Download & Share</h3>
+                        <p>View your AI-generated image instantly. Download it, edit it further, create videos from it, or combine it with other images. All tools included free.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta-section">
+        <h2>Ready to Create Amazing AI Images?</h2>
+        <p>Join thousands of creators using AIezzy to bring their ideas to life</p>
+        <a href="/" class="hero-cta">Start Generating Images Free →</a>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <p>&copy; 2025 AIezzy. All rights reserved.</p>
+        <p>
+            <a href="/about">About</a> •
+            <a href="/faq">FAQ</a> •
+            <a href="/tools">All Tools</a> •
+            <a href="/blog">Blog</a> •
+            <a href="/pricing">Pricing</a>
+        </p>
+    </footer>
+</body>
+</html>

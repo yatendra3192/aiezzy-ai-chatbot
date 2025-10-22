@@ -1872,28 +1872,148 @@ def delete_file():
     # Simple authentication check
     if not require_admin_auth():
         return jsonify({'error': 'Admin access required'}), 401
-    
+
     try:
         data = request.get_json()
         file_path = data.get('file_path', '')
-        
+
         # Security check: only allow deleting files in allowed directories
         allowed_dirs = ['assets', 'videos', 'uploads']
         if not any(file_path.startswith(d + '/') for d in allowed_dirs):
             return jsonify({'error': 'Access denied'}), 403
-        
+
         # Additional security: no path traversal
         if '..' in file_path or file_path.startswith('/'):
             return jsonify({'error': 'Invalid file path'}), 400
-        
+
         if os.path.exists(file_path):
             os.remove(file_path)
             return jsonify({'success': True, 'message': f'File {file_path} deleted successfully'})
         else:
             return jsonify({'error': 'File not found'}), 404
-            
+
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+# =============================================================================
+# SEO OPTIMIZATION ROUTES
+# =============================================================================
+
+@web_app.route('/robots.txt')
+def robots_txt():
+    """Serve robots.txt for search engine crawlers"""
+    return send_from_directory('.', 'robots.txt', mimetype='text/plain')
+
+@web_app.route('/sitemap.xml')
+def sitemap_xml():
+    """Serve sitemap.xml for search engine indexing"""
+    return send_from_directory('.', 'sitemap.xml', mimetype='application/xml')
+
+@web_app.route('/sitemap-dynamic.xml')
+def sitemap_dynamic():
+    """Generate dynamic sitemap with recent conversations and blog posts"""
+    from datetime import datetime
+
+    sitemap_entries = []
+
+    # Add main pages
+    base_pages = [
+        ('https://aiezzy.com/', '2025-10-22', 'daily', '1.0'),
+        ('https://aiezzy.com/ai-image-generator', '2025-10-22', 'weekly', '0.9'),
+        ('https://aiezzy.com/text-to-video', '2025-10-22', 'weekly', '0.9'),
+        ('https://aiezzy.com/pdf-converter', '2025-10-22', 'weekly', '0.9'),
+    ]
+
+    xml = ['<?xml version="1.0" encoding="UTF-8"?>']
+    xml.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+
+    for url, lastmod, changefreq, priority in base_pages:
+        xml.append('  <url>')
+        xml.append(f'    <loc>{url}</loc>')
+        xml.append(f'    <lastmod>{lastmod}</lastmod>')
+        xml.append(f'    <changefreq>{changefreq}</changefreq>')
+        xml.append(f'    <priority>{priority}</priority>')
+        xml.append('  </url>')
+
+    xml.append('</urlset>')
+
+    return '\n'.join(xml), 200, {'Content-Type': 'application/xml'}
+
+# SEO Landing Pages
+@web_app.route('/ai-image-generator')
+def ai_image_generator_page():
+    """SEO-optimized landing page for AI image generation"""
+    return render_template('landing/ai_image_generator.html')
+
+@web_app.route('/text-to-video')
+def text_to_video_page():
+    """SEO-optimized landing page for text-to-video"""
+    return render_template('landing/text_to_video.html')
+
+@web_app.route('/image-to-video')
+def image_to_video_page():
+    """SEO-optimized landing page for image-to-video"""
+    return render_template('landing/image_to_video.html')
+
+@web_app.route('/pdf-converter')
+def pdf_converter_page():
+    """SEO-optimized landing page for PDF conversion"""
+    return render_template('landing/pdf_converter.html')
+
+@web_app.route('/word-to-pdf')
+def word_to_pdf_page():
+    """SEO-optimized landing page for Word to PDF conversion"""
+    return render_template('landing/word_to_pdf.html')
+
+@web_app.route('/excel-to-pdf')
+def excel_to_pdf_page():
+    """SEO-optimized landing page for Excel to PDF conversion"""
+    return render_template('landing/excel_to_pdf.html')
+
+@web_app.route('/pdf-to-word')
+def pdf_to_word_page():
+    """SEO-optimized landing page for PDF to Word conversion"""
+    return render_template('landing/pdf_to_word.html')
+
+@web_app.route('/multi-image-fusion')
+def multi_image_fusion_page():
+    """SEO-optimized landing page for multi-image fusion"""
+    return render_template('landing/multi_image_fusion.html')
+
+@web_app.route('/ai-image-editor')
+def ai_image_editor_page():
+    """SEO-optimized landing page for AI image editing"""
+    return render_template('landing/ai_image_editor.html')
+
+@web_app.route('/chatgpt-alternative')
+def chatgpt_alternative_page():
+    """SEO-optimized landing page for ChatGPT alternative"""
+    return render_template('landing/chatgpt_alternative.html')
+
+@web_app.route('/tools')
+def tools_page():
+    """SEO-optimized tools directory page"""
+    return render_template('landing/tools.html')
+
+@web_app.route('/about')
+def about_page():
+    """About AIezzy page"""
+    return render_template('landing/about.html')
+
+@web_app.route('/blog')
+def blog_page():
+    """Blog listing page"""
+    return render_template('landing/blog.html')
+
+@web_app.route('/pricing')
+def pricing_page():
+    """Pricing page (free forever)"""
+    return render_template('landing/pricing.html')
+
+@web_app.route('/faq')
+def faq_page():
+    """FAQ page with structured data"""
+    return render_template('landing/faq.html')
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))

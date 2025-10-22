@@ -1,0 +1,63 @@
+# AIezzy - Robots.txt
+# Allow all search engines to index our content
+
+User-agent: *
+Allow: /
+Allow: /ai-image-generator
+Allow: /text-to-video
+Allow: /image-to-video
+Allow: /pdf-converter
+Allow: /word-to-pdf
+Allow: /excel-to-pdf
+Allow: /pdf-to-word
+Allow: /multi-image-fusion
+Allow: /ai-image-editor
+Allow: /chatgpt-alternative
+Allow: /tools
+Allow: /blog
+Allow: /about
+Allow: /faq
+Allow: /pricing
+Allow: /feature-requests
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /profile
+Disallow: /conversations/
+
+# Allow assets for rich previews
+Allow: /assets/
+Allow: /logo.png
+Allow: /favicon.png
+
+# Crawl-delay for politeness (optional)
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://aiezzy.com/sitemap.xml
+Sitemap: https://aiezzy.com/sitemap-dynamic.xml
+
+# Specific bot configurations
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /assets/
+Allow: /uploads/
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+# Block bad bots
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Disallow: /
