@@ -28,6 +28,12 @@ import pdf_converter
 # Image Converter for image format conversions
 import image_converter
 
+# Phase 1 & 2 Tools (Oct 2025)
+import text_tools
+import qr_barcode_tools
+import audio_tools
+import video_tools
+
 # Configure persistent storage paths for Railway
 if os.environ.get('RAILWAY_ENVIRONMENT'):
     # Production: Use Railway persistent volume
@@ -2109,6 +2115,497 @@ def rotate_uploaded_image(file_path: str, angle: int = 90, output_name: str = No
     except Exception as e:
         return f"❌ Error rotating image: {str(e)}"
 
+
+# =============================================================================
+# PHASE 1 & 2 TOOLS (Oct 2025 - 1.65M monthly searches!)
+# =============================================================================
+
+# --- TEXT TOOLS (500K monthly searches) -------------------------------------
+
+@tool
+def count_words(text: str, *, config: RunnableConfig) -> str:
+    """
+    Count words, characters, sentences, paragraphs in text.
+    Also estimates reading time.
+
+    Args:
+        text: The text to analyze
+
+    Returns:
+        Statistics about the text formatted as HTML table
+    """
+    try:
+        stats = text_tools.word_counter(text)
+
+        result = f"""✅ Text Statistics:
+<div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin: 8px 0;">
+<table style="width: 100%; border-collapse: collapse;">
+<tr><td style="padding: 4px;"><strong>Words:</strong></td><td>{stats['words']:,}</td></tr>
+<tr><td style="padding: 4px;"><strong>Characters (with spaces):</strong></td><td>{stats['characters']:,}</td></tr>
+<tr><td style="padding: 4px;"><strong>Characters (no spaces):</strong></td><td>{stats['characters_no_spaces']:,}</td></tr>
+<tr><td style="padding: 4px;"><strong>Sentences:</strong></td><td>{stats['sentences']:,}</td></tr>
+<tr><td style="padding: 4px;"><strong>Paragraphs:</strong></td><td>{stats['paragraphs']:,}</td></tr>
+<tr><td style="padding: 4px;"><strong>Reading Time:</strong></td><td>{stats['reading_time_minutes']} min</td></tr>
+</table>
+</div>"""
+        return result
+
+    except Exception as e:
+        return f"❌ Error counting words: {str(e)}"
+
+
+@tool
+def convert_text_case(text: str, case_type: str, *, config: RunnableConfig) -> str:
+    """
+    Convert text to different cases.
+
+    Args:
+        text: The text to convert
+        case_type: Type of conversion - 'upper', 'lower', 'title', 'sentence', 'alternating', 'inverse'
+
+    Returns:
+        Converted text
+    """
+    try:
+        result = text_tools.case_converter(text, case_type)
+        return f"✅ Converted to {case_type} case:\n\n{result}"
+
+    except Exception as e:
+        return f"❌ Error converting case: {str(e)}"
+
+
+@tool
+def format_text(text: str, remove_extra_spaces: bool = True, remove_extra_line_breaks: bool = True, trim_lines: bool = True, *, config: RunnableConfig) -> str:
+    """
+    Clean and format text by removing extra spaces and line breaks.
+
+    Args:
+        text: The text to format
+        remove_extra_spaces: Remove multiple consecutive spaces
+        remove_extra_line_breaks: Remove multiple consecutive line breaks
+        trim_lines: Trim whitespace from start/end of each line
+
+    Returns:
+        Formatted text
+    """
+    try:
+        result = text_tools.text_formatter(text, remove_extra_spaces, remove_extra_line_breaks, trim_lines)
+        return f"✅ Text formatted successfully:\n\n{result}"
+
+    except Exception as e:
+        return f"❌ Error formatting text: {str(e)}"
+
+
+@tool
+def generate_lorem_ipsum(count: int = 5, unit: str = 'paragraphs', *, config: RunnableConfig) -> str:
+    """
+    Generate Lorem Ipsum placeholder text.
+
+    Args:
+        count: Number of units to generate
+        unit: Type of unit - 'paragraphs', 'sentences', 'words'
+
+    Returns:
+        Generated Lorem Ipsum text
+    """
+    try:
+        result = text_tools.lorem_ipsum_generator(count, unit)
+        return f"✅ Generated {count} {unit} of Lorem Ipsum:\n\n{result}"
+
+    except Exception as e:
+        return f"❌ Error generating Lorem Ipsum: {str(e)}"
+
+
+@tool
+def find_replace_text(text: str, find: str, replace: str, case_sensitive: bool = True, whole_word: bool = False, *, config: RunnableConfig) -> str:
+    """
+    Find and replace text in bulk.
+
+    Args:
+        text: The text to search in
+        find: Text to find
+        replace: Text to replace with
+        case_sensitive: Whether search is case sensitive
+        whole_word: Whether to match whole words only
+
+    Returns:
+        Modified text with replacement count
+    """
+    try:
+        result, count = text_tools.find_and_replace(text, find, replace, case_sensitive, whole_word)
+        return f"✅ Replaced {count} occurrence(s) of '{find}' with '{replace}':\n\n{result}"
+
+    except Exception as e:
+        return f"❌ Error finding and replacing: {str(e)}"
+
+
+@tool
+def generate_password(length: int = 16, include_uppercase: bool = True, include_lowercase: bool = True, include_numbers: bool = True, include_symbols: bool = True, *, config: RunnableConfig) -> str:
+    """
+    Generate a secure random password.
+
+    Args:
+        length: Password length (minimum 4)
+        include_uppercase: Include uppercase letters
+        include_lowercase: Include lowercase letters
+        include_numbers: Include numbers
+        include_symbols: Include symbols
+
+    Returns:
+        Generated password
+    """
+    try:
+        password = text_tools.password_generator(length, include_uppercase, include_lowercase, include_numbers, include_symbols)
+        return f"✅ Generated secure password ({length} characters):\n\n<code style='font-size: 18px; background: #f0f0f0; padding: 8px; border-radius: 4px;'>{password}</code>"
+
+    except Exception as e:
+        return f"❌ Error generating password: {str(e)}"
+
+
+# --- QR CODE & BARCODE TOOLS (400K monthly searches) -------------------------
+
+@tool
+def create_qr_code(data: str, size: int = 10, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Generate a QR code for text, URL, or other data.
+
+    Args:
+        data: Data to encode (text, URL, etc.)
+        size: QR code size (1-40, default 10)
+        output_name: Optional output filename
+
+    Returns:
+        QR code image with download link
+    """
+    try:
+        print(f"INFO: Generating QR code for: {data[:50]}...")
+
+        qr_path = qr_barcode_tools.generate_qr_code(data, output_path=output_name if output_name else None, size=size)
+        filename = os.path.basename(qr_path)
+
+        return f'✅ QR code generated successfully: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error generating QR code: {str(e)}"
+
+
+@tool
+def create_wifi_qr(ssid: str, password: str = None, security: str = 'WPA', *, config: RunnableConfig) -> str:
+    """
+    Generate a WiFi QR code for easy network connection.
+
+    Args:
+        ssid: WiFi network name
+        password: WiFi password (optional for open networks)
+        security: Security type - 'WPA', 'WEP', or 'nopass'
+
+    Returns:
+        WiFi QR code image with download link
+    """
+    try:
+        print(f"INFO: Generating WiFi QR code for network: {ssid}")
+
+        qr_path = qr_barcode_tools.generate_wifi_qr(ssid, password, security)
+        filename = os.path.basename(qr_path)
+
+        return f'✅ WiFi QR code generated successfully: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error generating WiFi QR code: {str(e)}"
+
+
+@tool
+def create_barcode(data: str, barcode_type: str = 'code128', output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Generate a barcode image.
+
+    Args:
+        data: Data to encode
+        barcode_type: Type of barcode - 'code128', 'code39', 'ean13', 'ean8', 'upca', 'isbn13', etc.
+        output_name: Optional output filename
+
+    Returns:
+        Barcode image with download link
+    """
+    try:
+        print(f"INFO: Generating {barcode_type} barcode for: {data}")
+
+        barcode_path = qr_barcode_tools.generate_barcode(data, barcode_type, output_path=output_name if output_name else None)
+        filename = os.path.basename(barcode_path)
+
+        return f'✅ Barcode generated successfully: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error generating barcode: {str(e)}"
+
+
+# --- AUDIO TOOLS (400K monthly searches) -------------------------------------
+
+@tool
+def extract_audio_from_video(file_path: str, bitrate: str = '192k', output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Extract audio from MP4 video and save as MP3.
+
+    Args:
+        file_path: Path to the video file
+        bitrate: MP3 bitrate - '128k', '192k', '256k', '320k'
+        output_name: Optional output filename
+
+    Returns:
+        Download link for the extracted MP3 audio
+    """
+    try:
+        print(f"INFO: Extracting audio from video: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Video file not found at {file_path}"
+
+        mp3_path = audio_tools.mp4_to_mp3(file_path, output_name, bitrate)
+        filename = os.path.basename(mp3_path)
+
+        return f'✅ Audio extracted successfully: <a href="/assets/{filename}" download class="download-link">Download MP3</a>'
+
+    except Exception as e:
+        return f"❌ Error extracting audio: {str(e)}"
+
+
+@tool
+def convert_audio_format(file_path: str, output_format: str, bitrate: str = None, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert audio files between formats.
+
+    Args:
+        file_path: Path to the audio file
+        output_format: Desired format - 'mp3', 'wav', 'm4a', 'ogg', 'flac'
+        bitrate: Audio bitrate (e.g., '128k', '192k', '256k')
+        output_name: Optional output filename
+
+    Returns:
+        Download link for the converted audio
+    """
+    try:
+        print(f"INFO: Converting audio to {output_format}: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Audio file not found at {file_path}"
+
+        converted_path = audio_tools.audio_converter(file_path, output_format, output_name, bitrate)
+        filename = os.path.basename(converted_path)
+
+        return f'✅ Audio converted to {output_format.upper()}: <a href="/assets/{filename}" download class="download-link">Download {output_format.upper()}</a>'
+
+    except Exception as e:
+        return f"❌ Error converting audio: {str(e)}"
+
+
+@tool
+def compress_audio_file(file_path: str, compression_level: str = 'medium', output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Compress audio file to reduce file size.
+
+    Args:
+        file_path: Path to the audio file
+        compression_level: Compression level - 'low', 'medium', 'high'
+        output_name: Optional output filename
+
+    Returns:
+        Download link for the compressed audio
+    """
+    try:
+        print(f"INFO: Compressing audio file: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Audio file not found at {file_path}"
+
+        compressed_path = audio_tools.compress_audio(file_path, output_name, compression_level)
+        filename = os.path.basename(compressed_path)
+
+        return f'✅ Audio compressed successfully: <a href="/assets/{filename}" download class="download-link">Download Compressed Audio</a>'
+
+    except Exception as e:
+        return f"❌ Error compressing audio: {str(e)}"
+
+
+@tool
+def trim_audio_file(file_path: str, start_time: float, end_time: float = None, duration: float = None, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Trim/cut audio file by time range.
+
+    Args:
+        file_path: Path to the audio file
+        start_time: Start time in seconds
+        end_time: End time in seconds (optional if duration specified)
+        duration: Duration in seconds from start (optional if end_time specified)
+        output_name: Optional output filename
+
+    Returns:
+        Download link for the trimmed audio
+    """
+    try:
+        print(f"INFO: Trimming audio file: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Audio file not found at {file_path}"
+
+        trimmed_path = audio_tools.trim_audio(file_path, start_time, end_time, duration, output_name)
+        filename = os.path.basename(trimmed_path)
+
+        return f'✅ Audio trimmed successfully: <a href="/assets/{filename}" download class="download-link">Download Trimmed Audio</a>'
+
+    except Exception as e:
+        return f"❌ Error trimming audio: {str(e)}"
+
+
+@tool
+def merge_audio_files(file_paths: List[str], crossfade_duration: float = 0, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Merge/combine multiple audio files into one.
+
+    Args:
+        file_paths: List of audio file paths to merge (in order)
+        crossfade_duration: Crossfade duration in seconds between tracks (default 0)
+        output_name: Optional output filename
+
+    Returns:
+        Download link for the merged audio
+    """
+    try:
+        print(f"INFO: Merging {len(file_paths)} audio files")
+
+        # Validate all files exist
+        for path in file_paths:
+            if not os.path.exists(path):
+                return f"❌ Error: Audio file not found at {path}"
+
+        merged_path = audio_tools.merge_audio(file_paths, output_name, crossfade_duration)
+        filename = os.path.basename(merged_path)
+
+        return f'✅ {len(file_paths)} audio files merged successfully: <a href="/assets/{filename}" download class="download-link">Download Merged Audio</a>'
+
+    except Exception as e:
+        return f"❌ Error merging audio: {str(e)}"
+
+
+# --- VIDEO TOOLS (350K monthly searches) -------------------------------------
+
+@tool
+def convert_video_to_gif(file_path: str, start_time: float = 0, duration: float = None, fps: int = 10, width: int = None, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Convert video to animated GIF.
+
+    Args:
+        file_path: Path to the video file
+        start_time: Start time in seconds (default 0)
+        duration: Duration in seconds from start (None = full video)
+        fps: Frames per second for GIF (default 10)
+        width: Output width in pixels (maintains aspect ratio)
+        output_name: Optional output filename
+
+    Returns:
+        GIF image with preview
+    """
+    try:
+        print(f"INFO: Converting video to GIF: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Video file not found at {file_path}"
+
+        gif_path = video_tools.video_to_gif(file_path, output_name, start_time, duration, fps, width)
+        filename = os.path.basename(gif_path)
+
+        return f'✅ Video converted to GIF: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
+
+    except Exception as e:
+        return f"❌ Error converting video to GIF: {str(e)}"
+
+
+@tool
+def compress_video_file(file_path: str, quality: str = 'medium', target_resolution: str = None, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Compress video to reduce file size.
+
+    Args:
+        file_path: Path to the video file
+        quality: Compression quality - 'low', 'medium', 'high'
+        target_resolution: Target resolution - '1080p', '720p', '480p', '360p'
+        output_name: Optional output filename
+
+    Returns:
+        Download link for the compressed video
+    """
+    try:
+        print(f"INFO: Compressing video: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Video file not found at {file_path}"
+
+        compressed_path = video_tools.compress_video(file_path, output_name, quality, target_resolution)
+        filename = os.path.basename(compressed_path)
+
+        return f'✅ Video compressed successfully: <video src="/videos/{filename}" controls style="max-width: 100%; border-radius: 8px; margin: 8px 0;"></video>'
+
+    except Exception as e:
+        return f"❌ Error compressing video: {str(e)}"
+
+
+@tool
+def trim_video_file(file_path: str, start_time: float, end_time: float = None, duration: float = None, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Trim/cut video by time range.
+
+    Args:
+        file_path: Path to the video file
+        start_time: Start time in seconds
+        end_time: End time in seconds (optional if duration specified)
+        duration: Duration in seconds from start (optional if end_time specified)
+        output_name: Optional output filename
+
+    Returns:
+        Trimmed video with player
+    """
+    try:
+        print(f"INFO: Trimming video: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Video file not found at {file_path}"
+
+        trimmed_path = video_tools.trim_video(file_path, start_time, end_time, duration, output_name)
+        filename = os.path.basename(trimmed_path)
+
+        return f'✅ Video trimmed successfully: <video src="/videos/{filename}" controls style="max-width: 100%; border-radius: 8px; margin: 8px 0;"></video>'
+
+    except Exception as e:
+        return f"❌ Error trimming video: {str(e)}"
+
+
+@tool
+def change_video_speed(file_path: str, speed_factor: float, output_name: str = None, *, config: RunnableConfig) -> str:
+    """
+    Change video playback speed (speed up or slow down).
+
+    Args:
+        file_path: Path to the video file
+        speed_factor: Speed multiplier (0.5=half speed, 2.0=double speed, etc.)
+        output_name: Optional output filename
+
+    Returns:
+        Speed-adjusted video with player
+    """
+    try:
+        print(f"INFO: Changing video speed to {speed_factor}x: {file_path}")
+
+        if not os.path.exists(file_path):
+            return f"❌ Error: Video file not found at {file_path}"
+
+        adjusted_path = video_tools.change_video_speed(file_path, speed_factor, output_name)
+        filename = os.path.basename(adjusted_path)
+
+        return f'✅ Video speed changed to {speed_factor}x: <video src="/videos/{filename}" controls style="max-width: 100%; border-radius: 8px; margin: 8px 0;"></video>'
+
+    except Exception as e:
+        return f"❌ Error changing video speed: {str(e)}"
+
+
 # --- Tool: Convert All Documents to PDF and Merge ---------------------------
 @tool
 def convert_and_merge_documents(file_paths: List[str], output_name: str = "combined_document", *, config: RunnableConfig) -> str:
@@ -2279,7 +2776,30 @@ def build_coordinator():
         resize_uploaded_image,
         compress_uploaded_image,
         convert_image_to_grayscale,
-        rotate_uploaded_image
+        rotate_uploaded_image,
+        # Phase 1 & 2 Tools (Oct 2025 - 1.65M monthly searches!)
+        # Text Tools (500K searches)
+        count_words,
+        convert_text_case,
+        format_text,
+        generate_lorem_ipsum,
+        find_replace_text,
+        generate_password,
+        # QR Codes & Barcodes (400K searches)
+        create_qr_code,
+        create_wifi_qr,
+        create_barcode,
+        # Audio Tools (400K searches)
+        extract_audio_from_video,
+        convert_audio_format,
+        compress_audio_file,
+        trim_audio_file,
+        merge_audio_files,
+        # Video Tools (350K searches)
+        convert_video_to_gif,
+        compress_video_file,
+        trim_video_file,
+        change_video_speed
     ]
     
     prompt = (
@@ -2335,6 +2855,24 @@ def build_coordinator():
         "- compress_uploaded_image: Reduce image file size while maintaining quality\n"
         "- convert_image_to_grayscale: Convert color images to black and white\n"
         "- rotate_uploaded_image: Rotate images by specified angle\n"
+        "- count_words: Count words, characters, sentences, paragraphs, and estimate reading time\n"
+        "- convert_text_case: Convert text to upper/lower/title/sentence/alternating/inverse case\n"
+        "- format_text: Clean and format text by removing extra spaces and line breaks\n"
+        "- generate_lorem_ipsum: Generate Lorem Ipsum placeholder text\n"
+        "- find_replace_text: Find and replace text in bulk with options\n"
+        "- generate_password: Generate secure random passwords with custom settings\n"
+        "- create_qr_code: Generate QR codes for text, URLs, or other data\n"
+        "- create_wifi_qr: Generate WiFi QR codes for easy network connection\n"
+        "- create_barcode: Generate barcodes (EAN, UPC, Code128, etc.)\n"
+        "- extract_audio_from_video: Extract audio from MP4 video and save as MP3\n"
+        "- convert_audio_format: Convert audio between MP3/WAV/M4A/OGG/FLAC formats\n"
+        "- compress_audio_file: Compress audio to reduce file size\n"
+        "- trim_audio_file: Trim/cut audio files by time range\n"
+        "- merge_audio_files: Merge/combine multiple audio files into one\n"
+        "- convert_video_to_gif: Convert video clips to animated GIF\n"
+        "- compress_video_file: Compress video to reduce file size\n"
+        "- trim_video_file: Trim/cut video by time range\n"
+        "- change_video_speed: Speed up or slow down video playback\n"
         "- evaluate_result_quality: Check if results match user expectations\n\n"
         "CRITICAL - FORMATTING TOOL RESPONSES:\n"
         "- NEVER reformat HTML links from tools - pass them through EXACTLY as received\n"
