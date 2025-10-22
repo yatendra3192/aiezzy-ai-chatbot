@@ -2194,6 +2194,127 @@ def gif_to_png_page():
     except:
         return redirect('/')
 
+# PHASE 1 & 2 LANDING PAGES (Oct 2025 - 1.65M monthly searches!)
+@web_app.route('/qr-code-generator')
+def qr_code_generator_page():
+    """SEO-optimized landing page for QR code generator - 300K searches/month"""
+    try:
+        return render_template('landing/qr-code-generator.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/word-counter')
+def word_counter_page():
+    """SEO-optimized landing page for word counter - 200K searches/month"""
+    try:
+        return render_template('landing/word-counter.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/video-to-gif')
+def video_to_gif_page():
+    """SEO-optimized landing page for video to GIF converter - 200K searches/month"""
+    try:
+        return render_template('landing/video-to-gif.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/mp4-to-mp3')
+def mp4_to_mp3_page():
+    """SEO-optimized landing page for MP4 to MP3 converter - 150K searches/month"""
+    try:
+        return render_template('landing/mp4-to-mp3.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/case-converter')
+def case_converter_page():
+    """SEO-optimized landing page for case converter - 100K searches/month"""
+    try:
+        return render_template('landing/case-converter.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/barcode-generator')
+def barcode_generator_page():
+    """SEO-optimized landing page for barcode generator - 100K searches/month"""
+    try:
+        return render_template('landing/barcode-generator.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/audio-converter')
+def audio_converter_page():
+    """SEO-optimized landing page for audio converter - 100K searches/month"""
+    try:
+        return render_template('landing/audio-converter.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/compress-video')
+def compress_video_page():
+    """SEO-optimized landing page for video compressor - 80K searches/month"""
+    try:
+        return render_template('landing/compress-video.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/compress-audio')
+def compress_audio_page():
+    """SEO-optimized landing page for audio compressor - 80K searches/month"""
+    try:
+        return render_template('landing/compress-audio.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/text-formatter')
+def text_formatter_page():
+    """SEO-optimized landing page for text formatter - 80K searches/month"""
+    try:
+        return render_template('landing/text-formatter.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/lorem-ipsum-generator')
+def lorem_ipsum_generator_page():
+    """SEO-optimized landing page for Lorem Ipsum generator - 50K searches/month"""
+    try:
+        return render_template('landing/lorem-ipsum-generator.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/password-generator')
+def password_generator_page():
+    """SEO-optimized landing page for password generator - 40K searches/month"""
+    try:
+        return render_template('landing/password-generator.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/trim-audio')
+def trim_audio_page():
+    """SEO-optimized landing page for audio trimmer - 40K searches/month"""
+    try:
+        return render_template('landing/trim-audio.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/trim-video')
+def trim_video_page():
+    """SEO-optimized landing page for video trimmer - 40K searches/month"""
+    try:
+        return render_template('landing/trim-video.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/change-video-speed')
+def change_video_speed_page():
+    """SEO-optimized landing page for video speed changer - 30K searches/month"""
+    try:
+        return render_template('landing/change-video-speed.html')
+    except:
+        return redirect('/')
+
 @web_app.route('/multi-image-fusion')
 def multi_image_fusion_page():
     """SEO-optimized landing page for multi-image fusion"""
