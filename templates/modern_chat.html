@@ -2336,10 +2336,10 @@
                 <input type="file" id="image-input" accept="image/*" multiple style="display: none;" onchange="handleImageUpload(event)">
                 <input type="file" id="document-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" multiple style="display: none;" onchange="handleDocumentUpload(event)">
                 
-                <textarea 
-                    id="composer-input" 
-                    class="composer-input" 
-                    placeholder="Ask anything..."
+                <textarea
+                    id="composer-input"
+                    class="composer-input"
+                    placeholder='Try: "create an image", "convert PDF to Word", or upload files...'
                     rows="1"
                     onkeydown="handleKeyDown(event)"
                     oninput="adjustTextareaHeight(); updateSendButton()"
@@ -3744,8 +3744,75 @@
             document.body.style.overflow = ''; // Restore scrolling
         }
 
+        // === CONTEXTUAL PLACEHOLDER ===
+        function setContextualPlaceholder() {
+            const input = document.getElementById('composer-input');
+            if (!input) return;
+
+            // Check URL parameters for source page
+            const urlParams = new URLSearchParams(window.location.search);
+            const source = urlParams.get('from');
+
+            // Check referrer if no URL parameter
+            const referrer = document.referrer.toLowerCase();
+
+            // Define contextual placeholders
+            const placeholders = {
+                'word-to-pdf': 'Try: "convert my Word document to PDF" or upload a .docx file...',
+                'pdf-to-word': 'Try: "convert this PDF to an editable Word document" or upload a PDF...',
+                'excel-to-pdf': 'Try: "convert my Excel spreadsheet to PDF" or upload an .xlsx file...',
+                'pdf-to-excel': 'Try: "extract tables from this PDF to Excel" or upload a PDF...',
+                'jpg-to-pdf': 'Try: "convert these images to PDF" or upload JPG/PNG files...',
+                'pdf-to-jpg': 'Try: "extract pages from this PDF as images" or upload a PDF...',
+                'compress-pdf': 'Try: "compress this PDF" or "reduce PDF file size" and upload your PDF...',
+                'merge-pdf': 'Try: "merge these PDFs into one file" and upload multiple PDFs...',
+                'split-pdf': 'Try: "split this PDF into separate pages" or upload a PDF...',
+                'rotate-pdf': 'Try: "rotate pages in this PDF" or upload a PDF...',
+                'pdf-to-text': 'Try: "extract all text from this PDF" or upload a PDF...',
+                'docx-to-pdf': 'Try: "convert my DOCX file to PDF" or upload a document...',
+                'ppt-to-pdf': 'Try: "convert my PowerPoint to PDF" or upload a .pptx file...',
+                'pdf-to-ppt': 'Try: "convert this PDF to PowerPoint slides" or upload a PDF...',
+                'png-to-pdf': 'Try: "convert PNG images to PDF" or upload image files...',
+                'pdf-to-png': 'Try: "convert PDF pages to PNG images" or upload a PDF...',
+                'pdf-to-csv': 'Try: "extract tables from PDF to CSV" or upload a PDF...',
+                'csv-to-pdf': 'Try: "convert CSV data to PDF" or upload a .csv file...',
+                'html-to-pdf': 'Try: "convert this webpage to PDF" or upload an HTML file...',
+                'pdf-to-html': 'Try: "convert PDF to HTML" or upload a PDF...',
+                'pdf-converter': 'Try: "convert Word to PDF", "compress PDF", or upload any document...',
+                'ai-image-generator': 'Try: "create an image of a sunset over mountains" or describe what you want...',
+                'text-to-video': 'Try: "create a video showing [your scene]" or describe your video idea...',
+                'image-to-video': 'Try: "animate this image into a video" and upload an image...'
+            };
+
+            // Check URL parameter or referrer for source page
+            let placeholder = null;
+
+            if (source && placeholders[source]) {
+                placeholder = placeholders[source];
+            } else {
+                // Check referrer path
+                for (const [key, value] of Object.entries(placeholders)) {
+                    if (referrer.includes('/' + key)) {
+                        placeholder = value;
+                        break;
+                    }
+                }
+            }
+
+            // Set placeholder or use default actionable one
+            if (placeholder) {
+                input.placeholder = placeholder;
+            } else {
+                // More actionable default placeholder
+                input.placeholder = 'Try: "create an image", "convert PDF to Word", or upload files...';
+            }
+        }
+
         // Close mobile menu when clicking on navigation items
         document.addEventListener('DOMContentLoaded', function() {
+            // Set contextual placeholder on page load
+            setContextualPlaceholder();
+
             const navItems = document.querySelectorAll('.nav-item, .chat-item');
             navItems.forEach(item => {
                 item.addEventListener('click', () => {
