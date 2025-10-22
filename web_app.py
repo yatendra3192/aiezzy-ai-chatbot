@@ -2129,6 +2129,71 @@ def pdf_to_html_page():
     except:
         return redirect('/')
 
+# IMAGE CONVERSION LANDING PAGES (Oct 2025 - 1.3M monthly searches!)
+@web_app.route('/resize-image')
+def resize_image_page():
+    """SEO-optimized landing page for image resizing - 500K searches/month"""
+    try:
+        return render_template('landing/resize-image.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/compress-image')
+def compress_image_page():
+    """SEO-optimized landing page for image compression - 300K searches/month"""
+    try:
+        return render_template('landing/compress-image.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/jpeg-to-png')
+def jpeg_to_png_page():
+    """SEO-optimized landing page for JPEG to PNG conversion - 200K searches/month"""
+    try:
+        return render_template('landing/jpeg-to-png.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/png-to-jpeg')
+def png_to_jpeg_page():
+    """SEO-optimized landing page for PNG to JPEG conversion - 150K searches/month"""
+    try:
+        return render_template('landing/png-to-jpeg.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/webp-to-png')
+def webp_to_png_page():
+    """SEO-optimized landing page for WEBP to PNG conversion - 60K searches/month"""
+    try:
+        return render_template('landing/webp-to-png.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/webp-to-jpeg')
+def webp_to_jpeg_page():
+    """SEO-optimized landing page for WEBP to JPEG conversion - 50K searches/month"""
+    try:
+        return render_template('landing/webp-to-jpeg.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/heic-to-jpeg')
+def heic_to_jpeg_page():
+    """SEO-optimized landing page for HEIC to JPEG conversion - 40K searches/month"""
+    try:
+        return render_template('landing/heic-to-jpeg.html')
+    except:
+        return redirect('/')
+
+@web_app.route('/gif-to-png')
+def gif_to_png_page():
+    """SEO-optimized landing page for GIF to PNG conversion - 25K searches/month"""
+    try:
+        return render_template('landing/gif-to-png.html')
+    except:
+        return redirect('/')
+
 @web_app.route('/multi-image-fusion')
 def multi_image_fusion_page():
     """SEO-optimized landing page for multi-image fusion"""
