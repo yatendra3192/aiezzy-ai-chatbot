@@ -24,7 +24,8 @@
             --border: #E5E7EB;
             --accent: #0EA5E9;
             --shadow: rgba(0,0,0,0.08);
-            --sidebar-width: 280px;
+            --sidebar-min-width: 320px;
+            --sidebar-max-width: 420px;
             --header-height: 64px;
             --composer-height: 64px;
         }
@@ -50,7 +51,9 @@
 
         /* === SIDEBAR === */
         .sidebar {
-            width: var(--sidebar-width);
+            min-width: var(--sidebar-min-width);
+            max-width: var(--sidebar-max-width);
+            width: fit-content;
             background: var(--bg);
             border-right: 1px solid var(--border);
             display: flex;
@@ -491,11 +494,11 @@
         /* === MAIN CONTENT === */
         .main-content {
             flex: 1;
-            margin-left: var(--sidebar-width);
+            margin-left: var(--sidebar-min-width);
             display: flex;
             flex-direction: column;
             max-width: 1000px;
-            margin: 0 auto 0 var(--sidebar-width);
+            margin: 0 auto 0 var(--sidebar-min-width);
             padding: 0 32px;
         }
 
@@ -855,7 +858,7 @@
         .composer-container {
             position: fixed;
             bottom: 0;
-            left: var(--sidebar-width);
+            left: var(--sidebar-min-width);
             right: 0;
             padding: 16px 32px 24px 32px;
             background: var(--bg);
@@ -1292,7 +1295,7 @@
             }
             
             .main-content {
-                max-width: calc(100vw - var(--sidebar-width));
+                max-width: calc(100vw - var(--sidebar-min-width));
             }
             
             .chat-messages {
@@ -1311,11 +1314,14 @@
         /* Small desktop/large tablet (768px - 991px) */
         @media (max-width: 991px) and (min-width: 769px) {
             :root {
-                --sidebar-width: 240px;
+                --sidebar-min-width: 260px;
+                --sidebar-max-width: 320px;
             }
-            
+
             .sidebar {
-                width: var(--sidebar-width);
+                min-width: var(--sidebar-min-width);
+                max-width: var(--sidebar-max-width);
+                width: fit-content;
             }
             
             .welcome-examples {
