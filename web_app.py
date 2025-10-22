@@ -1951,7 +1951,10 @@ def ai_image_generator_page():
 @web_app.route('/text-to-video')
 def text_to_video_page():
     """SEO-optimized landing page for text-to-video"""
-    return redirect('/')
+    try:
+        return render_template('landing/text_to_video.html')
+    except:
+        return redirect('/')
 
 @web_app.route('/image-to-video')
 def image_to_video_page():
