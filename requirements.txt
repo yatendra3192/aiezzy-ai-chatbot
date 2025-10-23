@@ -34,11 +34,12 @@ pillow-heif      # HEIC/HEIF to JPEG conversion (iPhone photos)
 qrcode[pil]      # QR code generation with PIL image support
 python-barcode   # Barcode generation (EAN, UPC, Code128, etc.)
 
-# Audio Tools (400K monthly searches)
-pydub            # Audio processing and conversion
-# Note: Requires ffmpeg to be installed on system
-
-# Video Tools (350K monthly searches)
-moviepy          # Video editing and conversion
-imageio          # Image/video I/O (used by moviepy)
-imageio-ffmpeg   # FFmpeg binary for imageio (auto-installs ffmpeg)
+# TEMPORARILY DISABLED - Audio/Video tools causing deployment issues
+# # Audio Tools (400K monthly searches)
+# pydub            # Audio processing and conversion
+# # Note: Requires ffmpeg to be installed on system
+#
+# # Video Tools (350K monthly searches)
+# moviepy          # Video editing and conversion
+# imageio          # Image/video I/O (used by moviepy)
+# imageio-ffmpeg   # FFmpeg binary for imageio (auto-installs ffmpeg)

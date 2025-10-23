@@ -31,8 +31,9 @@ import image_converter
 # Phase 1 & 2 Tools (Oct 2025)
 import text_tools
 import qr_barcode_tools
-import audio_tools
-import video_tools
+# TEMPORARILY DISABLED - causing deployment issues
+# import audio_tools
+# import video_tools
 
 # Configure persistent storage paths for Railway
 if os.environ.get('RAILWAY_ENVIRONMENT'):
@@ -2788,18 +2789,19 @@ def build_coordinator():
         # QR Codes & Barcodes (400K searches)
         create_qr_code,
         create_wifi_qr,
-        create_barcode,
-        # Audio Tools (400K searches)
-        extract_audio_from_video,
-        convert_audio_format,
-        compress_audio_file,
-        trim_audio_file,
-        merge_audio_files,
-        # Video Tools (350K searches)
-        convert_video_to_gif,
-        compress_video_file,
-        trim_video_file,
-        change_video_speed
+        create_barcode
+        # TEMPORARILY DISABLED - Audio/Video tools causing deployment issues
+        # # Audio Tools (400K searches)
+        # extract_audio_from_video,
+        # convert_audio_format,
+        # compress_audio_file,
+        # trim_audio_file,
+        # merge_audio_files,
+        # # Video Tools (350K searches)
+        # convert_video_to_gif,
+        # compress_video_file,
+        # trim_video_file,
+        # change_video_speed
     ]
     
     prompt = (
@@ -2864,15 +2866,16 @@ def build_coordinator():
         "- create_qr_code: Generate QR codes for text, URLs, or other data\n"
         "- create_wifi_qr: Generate WiFi QR codes for easy network connection\n"
         "- create_barcode: Generate barcodes (EAN, UPC, Code128, etc.)\n"
-        "- extract_audio_from_video: Extract audio from MP4 video and save as MP3\n"
-        "- convert_audio_format: Convert audio between MP3/WAV/M4A/OGG/FLAC formats\n"
-        "- compress_audio_file: Compress audio to reduce file size\n"
-        "- trim_audio_file: Trim/cut audio files by time range\n"
-        "- merge_audio_files: Merge/combine multiple audio files into one\n"
-        "- convert_video_to_gif: Convert video clips to animated GIF\n"
-        "- compress_video_file: Compress video to reduce file size\n"
-        "- trim_video_file: Trim/cut video by time range\n"
-        "- change_video_speed: Speed up or slow down video playback\n"
+        # TEMPORARILY DISABLED - Audio/Video tools
+        # "- extract_audio_from_video: Extract audio from MP4 video and save as MP3\n"
+        # "- convert_audio_format: Convert audio between MP3/WAV/M4A/OGG/FLAC formats\n"
+        # "- compress_audio_file: Compress audio to reduce file size\n"
+        # "- trim_audio_file: Trim/cut audio files by time range\n"
+        # "- merge_audio_files: Merge/combine multiple audio files into one\n"
+        # "- convert_video_to_gif: Convert video clips to animated GIF\n"
+        # "- compress_video_file: Compress video to reduce file size\n"
+        # "- trim_video_file: Trim/cut video by time range\n"
+        # "- change_video_speed: Speed up or slow down video playback\n"
         "- evaluate_result_quality: Check if results match user expectations\n\n"
         "CRITICAL - FORMATTING TOOL RESPONSES:\n"
         "- NEVER reformat HTML links from tools - pass them through EXACTLY as received\n"
