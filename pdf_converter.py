@@ -1202,6 +1202,22 @@ def pdf_to_text(pdf_path: str, output_name: str = None) -> str:
 
         doc.close()
 
+        # Check if any text was extracted
+        if not text_content or all(not t.strip() for t in text_content):
+            # No text found - PDF likely contains images or scanned content
+            error_msg = (
+                "⚠️ WARNING: No extractable text found in PDF.\n\n"
+                "This PDF appears to contain images or scanned content without a text layer.\n"
+                "The text is embedded as images and cannot be extracted directly.\n\n"
+                "SOLUTION: Upload the PDF and ask me to analyze it directly!\n"
+                "I can read the PDF using GPT-4o vision and answer your questions.\n\n"
+                "Example: 'What information is in this PDF?' or 'Give me the email and phone number'\n"
+            )
+            # Write the error message to file so user understands the issue
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(error_msg)
+            return output_path
+
         # Write to text file
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(text_content))
