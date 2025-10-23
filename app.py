@@ -2220,7 +2220,7 @@ def resize_uploaded_image(file_path: str, width: int = None, height: int = None,
 # --- Tool: Compress Image ----------------------------------------------------
 @tool
 def compress_uploaded_image(file_path: str, output_name: str = None,
-                           quality: int = 85, *, config: RunnableConfig) -> str:
+                           quality: int = 70, *, config: RunnableConfig) -> str:
     """
     Compress image to reduce file size while maintaining quality.
     Perfect for optimizing images for web or email.
@@ -2228,13 +2228,14 @@ def compress_uploaded_image(file_path: str, output_name: str = None,
     Args:
         file_path: Path to the image file
         output_name: Optional output filename
-        quality: Compression quality 1-100 (default 85)
+        quality: Compression quality 1-100 (default 70 for balanced compression)
+                 Use 85+ for minimal compression, 70 for balanced, 50-60 for aggressive
 
     Returns:
         Download link for the compressed image with size reduction info
     """
     try:
-        print(f"INFO: Compressing image: {file_path}")
+        print(f"INFO: Compressing image: {file_path} with quality={quality}")
 
         if not os.path.exists(file_path):
             return f"❌ Error: Image file not found at {file_path}"
@@ -2243,7 +2244,7 @@ def compress_uploaded_image(file_path: str, output_name: str = None,
         original_size = os.path.getsize(file_path) / 1024  # KB
 
         compressed_path = image_converter.compress_image(file_path, output_name=output_name,
-                                                        quality=quality, optimization='medium')
+                                                        quality=quality, optimization='high')
         filename = os.path.basename(compressed_path)
 
         # Get compressed file size
@@ -3054,7 +3055,7 @@ def build_coordinator():
         "- convert_heic_to_jpeg: Convert HEIC/HEIF (iPhone photos) to JPEG\n"
         "- convert_gif_to_png: Convert GIF animations to PNG (first frame)\n"
         "- resize_uploaded_image: Resize images to specified dimensions\n"
-        "- compress_uploaded_image: Reduce image file size while maintaining quality\n"
+        "- compress_uploaded_image: Reduce image file size (default quality=70 for ~30-50% reduction). For more compression, use quality=50-60. For minimal compression, use quality=85+\n"
         "- convert_image_to_grayscale: Convert color images to black and white\n"
         "- rotate_uploaded_image: Rotate images by specified angle\n"
         "- count_words: Count words, characters, sentences, paragraphs, and estimate reading time\n"
