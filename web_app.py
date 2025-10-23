@@ -414,12 +414,15 @@ def chat():
                 doc_file_path = selected_doc['path']
                 doc_filename = selected_doc['filename']
 
+                # Extract file extension to help AI select correct conversion tool
+                file_ext = doc_filename.rsplit('.', 1)[-1].upper() if '.' in doc_filename else 'UNKNOWN'
+
                 # Check if context is recent (within last 10 minutes to avoid stale context)
                 context_age = time.time() - selected_doc.get('timestamp', 0)
                 if context_age < 600:  # 10 minutes
-                    enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User is referring to the {context_type} document: {doc_filename}]\n[FILE PATH: {doc_file_path}]\n\nPlease use this file for the requested operation."
+                    enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User is referring to the {context_type} {file_ext} file: {doc_filename}]\n[FILE PATH: {doc_file_path}]\n[FILE TYPE: {file_ext}]\n\nPlease use this file for the requested operation and select the correct conversion tool based on the FILE TYPE."
                     messages.append({"role": "user", "content": enhanced_message})
-                    print(f"DOCUMENT CONTEXT: Providing {context_type} for {('conversion' if is_conversion else 'manipulation')}: {doc_filename}", file=sys.stderr)
+                    print(f"DOCUMENT CONTEXT: Providing {context_type} {file_ext} for {('conversion' if is_conversion else 'manipulation')}: {doc_filename}", file=sys.stderr)
                 else:
                     # Context too old, ask user to re-upload
                     messages.append({"role": "user", "content": message})
