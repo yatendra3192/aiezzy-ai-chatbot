@@ -259,63 +259,23 @@ def chat():
         is_multi_step = detect_multi_step_request(message, history)
         current_step = determine_current_step(message, history)
         
-        # Check if this is an image operation request (edit or conversion) and we have context
-        # CRITICAL: Include "convert" and format keywords to support image format conversions
-        image_operation_keywords = [
-            'edit', 'change', 'modify', 'add', 'remove', 'alter', 'fix', 'replace',
-            'put', 'place', 'behind', 'explosion', 'fire', 'background', 'foreground', 'text', 'overlay',
-            'convert', 'to jpeg', 'to jpg', 'to png', 'to webp', 'to gif', 'jpeg', 'jpg', 'png', 'webp'
-        ]
-        is_edit_request = any(word in message.lower() for word in image_operation_keywords)
-        has_image_context = thread_id in thread_image_context
-
-        # For image operation requests (edit or convert), add context to prevent cached responses
-        if is_edit_request and has_image_context:
-            pass  # We'll handle this through message formatting instead
-        
-        # Also check if the history contains an image path we can use
-        image_path_from_history = None
-        for msg in reversed(history):  # Check recent messages for image paths
-            if msg.get('hasImage') and msg.get('imagePath'):
-                image_path_from_history = msg.get('imagePath')
-                break
-        
-        # If it's an image operation (edit or convert), try to set the image path from various sources
-        if is_edit_request:
-            context_set = False
-            print(f"IMAGE OPERATION DEBUG: is_edit_request=True, has_image_context={has_image_context}", file=sys.stderr)
-            print(f"IMAGE OPERATION DEBUG: thread_image_context keys: {list(thread_image_context.keys())}", file=sys.stderr)
-            print(f"IMAGE OPERATION DEBUG: current thread_id: {thread_id}", file=sys.stderr)
-            if has_image_context:
-                set_recent_image_path(thread_image_context[thread_id], thread_id)
-                print(f"IMAGE CONTEXT: Using web_app context: {thread_image_context[thread_id]}", file=sys.stderr)
-                context_set = True
-            elif image_path_from_history:
-                set_recent_image_path(image_path_from_history, thread_id)
-                # Also update the thread context for future use
-                if thread_id:
-                    thread_image_context[thread_id] = image_path_from_history
-                print(f"IMAGE CONTEXT: Using history context: {image_path_from_history}", file=sys.stderr)
-                context_set = True
-
-            # ADDITIONAL FIX: Look for recent image patterns in history content
-            if not context_set:
-                for msg in reversed(history):
-                    content = msg.get('content', '')
-                    if 'assets/' in content and '.png' in content:
-                        import re
-                        asset_match = re.search(r'/assets/([\w_]+\.png)', content)
-                        if asset_match:
-                            asset_path = f"assets/{asset_match.group(1)}"
-                            if os.path.exists(asset_path):
-                                set_recent_image_path(asset_path, thread_id)
-                                thread_image_context[thread_id] = asset_path
-                                print(f"IMAGE CONTEXT: Found image in content: {asset_path}", file=sys.stderr)
-                                context_set = True
-                                break
-
-            if not context_set:
-                print(f"WARNING: No image context found for image operation request in thread {thread_id}", file=sys.stderr)
+        # ═══════════════════════════════════════════════════════════════════
+        # LANGGRAPH-NATIVE CONTEXT MANAGEMENT
+        # OLD KEYWORD-BASED INJECTION REMOVED - AI now calls check_available_assets tool
+        # ═══════════════════════════════════════════════════════════════════
+        #
+        # The old code here tried to inject context by detecting keywords like
+        # 'convert', 'edit', 'resize', etc. and calling set_recent_image_path().
+        #
+        # This was:
+        # - Brittle (needed hundreds of keywords for all synonyms)
+        # - Conflicted with the new LangGraph tool approach
+        # - Prevented AI from calling check_available_assets
+        #
+        # NOW: The AI intelligently calls check_available_assets() when needed
+        # and gets file paths from there. No hard-coded keywords required!
+        #
+        # ═══════════════════════════════════════════════════════════════════
         
         # Build messages list with history
         messages = []
