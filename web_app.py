@@ -346,13 +346,8 @@ def chat():
             # Single document processing request
             enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User has uploaded a {document_type.upper()} document: {document_filename}]\n[FILE PATH: {document_path}]\n\nPlease use the appropriate conversion tool with this exact file path."
             messages.append({"role": "user", "content": enhanced_message})
-        elif is_edit_request and has_image_context:
-            current_timestamp = int(time.time())
-            # CONTEXT RESET: Add system message to prevent referencing old context
-            if len(history) <= 4:  # Likely a fresh conversation
-                messages.append({"role": "system", "content": "You are starting fresh with this image operation request (editing, conversion, or manipulation). Focus only on the current image and operation request without referencing previous conversations or context."})
-            enhanced_message = f"{message} - Please be specific about this exact operation in your response. Request timestamp: {current_timestamp}"
-            messages.append({"role": "user", "content": enhanced_message})
+        # NOTE: Old keyword-based image context injection removed (lines 349-355)
+        # Now handled by AI calling check_available_assets tool in app.py
         else:
             # Check if user is requesting document operation without specifying file
             # Include both phrases ("convert to pdf") and single format names ("pdf", "html")
