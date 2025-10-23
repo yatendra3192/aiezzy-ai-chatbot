@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, send_from_directory, session, redirect, url_for
 import os
+import sys
 import base64
 import uuid
 import time
@@ -273,7 +274,6 @@ def chat():
         # If it's an edit request, try to set the image path from various sources
         if is_edit_request:
             context_set = False
-            import sys
             print(f"EDIT DEBUG: is_edit_request=True, has_image_context={has_image_context}", file=sys.stderr)
             print(f"EDIT DEBUG: thread_image_context keys: {list(thread_image_context.keys())}", file=sys.stderr)
             print(f"EDIT DEBUG: current thread_id: {thread_id}", file=sys.stderr)
@@ -503,7 +503,6 @@ def chat():
                 print(f"DOCUMENT CONTEXT: File not found: {document_path}", file=sys.stderr)
 
         # DEBUG: Log the actual response content to see what we're working with
-        import sys
         print(f"DEBUG RESPONSE: {response_content}", file=sys.stderr)
         print(f"DEBUG: Looking for 'Image saved to' pattern", file=sys.stderr)
         
@@ -515,7 +514,6 @@ def chat():
             # FIXED: Use full absolute path for Railway persistent storage
             generated_image_path = os.path.join(ASSETS_DIR, filename)
             thread_image_context[thread_id] = generated_image_path
-            import sys
             print(f"ROBUST FIX: Updated thread {thread_id} context with generated image: {generated_image_path}", file=sys.stderr)
             
             # CRITICAL FIX: Also sync with app.py's thread context for editing
@@ -540,7 +538,6 @@ def chat():
                     generated_image_path = raw_path
                     
                 thread_image_context[thread_id] = generated_image_path
-                import sys
                 print(f"LEGACY: Updated thread {thread_id} context with generated image: {generated_image_path}", file=sys.stderr)
                 
                 # CRITICAL FIX: Also sync with app.py's thread context for editing
