@@ -390,10 +390,16 @@ def chat():
             messages.append({"role": "user", "content": enhanced_message})
         else:
             # Check if user is requesting document operation without specifying file
+            # Include both phrases ("convert to pdf") and single format names ("pdf", "html")
             conversion_keywords = ['convert', 'to pdf', 'to xlsx', 'to docx', 'to csv', 'to txt', 'to html']
+            single_format_keywords = ['pdf', 'xlsx', 'xls', 'docx', 'doc', 'csv', 'txt', 'html', 'pptx', 'ppt']
             manipulation_keywords = ['rotate', 'split', 'compress', 'extract', 'merge', 'degree', 'pages']
 
-            is_conversion = any(keyword in message.lower() for keyword in conversion_keywords)
+            # Check if message is ONLY a format name (like "HTML") - single word requests
+            message_stripped = message.strip().lower()
+            is_single_format_request = message_stripped in single_format_keywords
+
+            is_conversion = any(keyword in message.lower() for keyword in conversion_keywords) or is_single_format_request
             is_manipulation = any(keyword in message.lower() for keyword in manipulation_keywords)
             has_document_context = thread_id in thread_document_context
 
@@ -420,7 +426,13 @@ def chat():
                 # Check if context is recent (within last 10 minutes to avoid stale context)
                 context_age = time.time() - selected_doc.get('timestamp', 0)
                 if context_age < 600:  # 10 minutes
-                    enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User is referring to the {context_type} {file_ext} file: {doc_filename}]\n[FILE PATH: {doc_file_path}]\n[FILE TYPE: {file_ext}]\n\nPlease use this file for the requested operation and select the correct conversion tool based on the FILE TYPE."
+                    # CRITICAL: Add system message to override conversation history
+                    # The AI might see previous conversions in history (e.g., "CSV was converted to Excel")
+                    # This system message ensures the AI uses the correct SOURCE file
+                    if is_conversion and context_type == "original uploaded":
+                        messages.append({"role": "system", "content": f"CRITICAL CONTEXT OVERRIDE: Ignore any file format references from conversation history. The user is requesting a conversion FROM the ORIGINAL {file_ext} file that was initially uploaded. Even if you see references to converted files (PDF, Excel, etc.) in the chat history, you MUST use the ORIGINAL {file_ext} file located at {doc_file_path} for this conversion request."})
+
+                    enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User is referring to the {context_type} {file_ext} file: {doc_filename}]\n[SOURCE FILE TYPE: {file_ext}]\n[FILE PATH: {doc_file_path}]\n\n🚨 CRITICAL: Select the conversion tool based on SOURCE FILE TYPE={file_ext}, NOT any converted files from chat history."
                     messages.append({"role": "user", "content": enhanced_message})
                     print(f"DOCUMENT CONTEXT: Providing {context_type} {file_ext} for {('conversion' if is_conversion else 'manipulation')}: {doc_filename}", file=sys.stderr)
                 else:
