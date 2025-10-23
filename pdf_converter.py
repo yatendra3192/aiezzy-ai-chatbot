@@ -1328,7 +1328,7 @@ def split_pdf(pdf_path: str, pages: str = 'all', output_name: str = None) -> Lis
 
         output_paths = []
 
-        # Split all pages
+        # Split all pages (one page per file)
         if pages == 'all':
             for page_num in range(total_pages):
                 writer = pypdf.PdfWriter()
@@ -1342,19 +1342,44 @@ def split_pdf(pdf_path: str, pages: str = 'all', output_name: str = None) -> Lis
 
                 output_paths.append(output_path)
         else:
-            # Parse page ranges (future enhancement)
-            # For now, split all pages
-            for page_num in range(total_pages):
-                writer = pypdf.PdfWriter()
-                writer.add_page(reader.pages[page_num])
+            # Parse page ranges: e.g., "1-3,5,7-9" or "1-3" or "4-end"
+            ranges = pages.split(',')
+            part_num = 1
 
-                output_filename = f"{output_name}_{page_num + 1}.pdf"
+            for range_str in ranges:
+                range_str = range_str.strip()
+                writer = pypdf.PdfWriter()
+
+                if '-' in range_str:
+                    # Handle range like "1-3" or "4-end"
+                    start_str, end_str = range_str.split('-')
+                    start = int(start_str) - 1  # Convert to 0-indexed
+
+                    if end_str.lower() in ['end', 'rest', 'last']:
+                        end = total_pages - 1
+                    else:
+                        end = int(end_str) - 1  # Convert to 0-indexed
+
+                    # Add all pages in range
+                    for page_num in range(start, end + 1):
+                        if 0 <= page_num < total_pages:
+                            writer.add_page(reader.pages[page_num])
+
+                    output_filename = f"{output_name}_part{part_num}_pages{start+1}-{end+1}.pdf"
+                else:
+                    # Single page like "5"
+                    page_num = int(range_str) - 1  # Convert to 0-indexed
+                    if 0 <= page_num < total_pages:
+                        writer.add_page(reader.pages[page_num])
+                    output_filename = f"{output_name}_part{part_num}_page{page_num+1}.pdf"
+
                 output_path = os.path.join(DOCUMENTS_DIR, output_filename)
 
                 with open(output_path, 'wb') as output_file:
                     writer.write(output_file)
 
                 output_paths.append(output_path)
+                part_num += 1
 
         print(f"Split PDF into {len(output_paths)} files")
         return output_paths

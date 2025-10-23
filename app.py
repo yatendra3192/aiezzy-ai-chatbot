@@ -1628,13 +1628,22 @@ def compress_pdf_file(file_path: str, output_name: str = None, compression_level
 @tool
 def split_pdf_file(file_path: str, pages: str = 'all', output_name: str = None, *, config: RunnableConfig) -> str:
     """
-    Split a PDF into separate files, one page per file.
+    Split a PDF into separate files by page ranges or individual pages.
     Useful for extracting specific pages or breaking up large documents.
 
     Args:
         file_path: Path to the PDF file
-        pages: 'all' to split every page, or page ranges like '1-3,5,7-9'
+        pages: How to split the PDF:
+               - 'all': Split every page into separate files (one page per file)
+               - '1-3,4-end': Pages 1-3 in one PDF, pages 4-end in another PDF
+               - '1-5,6-10': Pages 1-5 in one PDF, pages 6-10 in another PDF
+               - '1,3,5': Individual pages in separate files
         output_name: Optional base name for output files (without extension)
+
+    Examples:
+        - pages='all' → Creates N separate PDFs (one per page)
+        - pages='1-3,4-end' → Creates 2 PDFs (pages 1-3 and pages 4-end)
+        - pages='1-2,3-4,5-6' → Creates 3 PDFs with specified ranges
 
     Returns:
         List of download links for the split PDF files
@@ -2847,7 +2856,7 @@ def build_coordinator():
         "- merge_pdfs: Merge multiple PDF files only (use convert_and_merge_documents for mixed types)\n"
         "- extract_text_from_pdf: Extract all text from PDF to plain text file\n"
         "- compress_pdf_file: Reduce PDF file size by compressing images and removing metadata\n"
-        "- split_pdf_file: Split PDF into separate files (one page per file)\n"
+        "- split_pdf_file: Split PDF by page ranges - pages='all' for one-per-page, pages='1-3,4-end' for custom ranges\n"
         "- rotate_pdf_pages: Rotate PDF pages by 90/180/270 degrees\n"
         "- convert_pdf_to_csv: Extract tables from PDF to CSV format\n"
         "- convert_csv_to_pdf: Convert CSV data to formatted PDF table\n"
