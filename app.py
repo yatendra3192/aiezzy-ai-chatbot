@@ -2478,7 +2478,16 @@ def create_qr_code(data: str, size: int = 10, output_name: str = None, *, config
     try:
         print(f"INFO: Generating QR code for: {data[:50]}...")
 
-        qr_path = qr_barcode_tools.generate_qr_code(data, output_path=output_name if output_name else None, size=size)
+        # Generate proper output path using ASSETS_DIR for Railway compatibility
+        if not output_name:
+            timestamp = int(time.time())
+            filename = f"qr_{timestamp}.png"
+            output_path = str(ASSETS_DIR / filename)
+        else:
+            output_path = str(ASSETS_DIR / output_name)
+            filename = output_name
+
+        qr_path = qr_barcode_tools.generate_qr_code(data, output_path=output_path, size=size)
         filename = os.path.basename(qr_path)
 
         return f'✅ QR code generated successfully: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
@@ -2503,7 +2512,12 @@ def create_wifi_qr(ssid: str, password: str = None, security: str = 'WPA', *, co
     try:
         print(f"INFO: Generating WiFi QR code for network: {ssid}")
 
-        qr_path = qr_barcode_tools.generate_wifi_qr(ssid, password, security)
+        # Generate proper output path using ASSETS_DIR for Railway compatibility
+        timestamp = int(time.time())
+        filename = f"wifi_qr_{timestamp}.png"
+        output_path = str(ASSETS_DIR / filename)
+
+        qr_path = qr_barcode_tools.generate_wifi_qr(ssid, password, security, output_path=output_path)
         filename = os.path.basename(qr_path)
 
         return f'✅ WiFi QR code generated successfully: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
@@ -2528,7 +2542,18 @@ def create_barcode(data: str, barcode_type: str = 'code128', output_name: str = 
     try:
         print(f"INFO: Generating {barcode_type} barcode for: {data}")
 
-        barcode_path = qr_barcode_tools.generate_barcode(data, barcode_type, output_path=output_name if output_name else None)
+        # Generate proper output path using ASSETS_DIR for Railway compatibility
+        # Note: python-barcode library adds .png extension automatically
+        if not output_name:
+            timestamp = int(time.time())
+            filename_base = f"barcode_{timestamp}"
+            output_path = str(ASSETS_DIR / filename_base)
+        else:
+            # Remove .png extension if provided, as library adds it
+            filename_base = output_name.replace('.png', '')
+            output_path = str(ASSETS_DIR / filename_base)
+
+        barcode_path = qr_barcode_tools.generate_barcode(data, barcode_type, output_path=output_path)
         filename = os.path.basename(barcode_path)
 
         return f'✅ Barcode generated successfully: <img src="/assets/{filename}" class="message-image" onclick="openImageModal(\'/assets/{filename}\')">'
