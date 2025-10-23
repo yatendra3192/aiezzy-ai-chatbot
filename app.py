@@ -3364,6 +3364,14 @@ def build_app():
                             'grayscale', 'black and white']
         needs_context = any(kw in user_text.lower() for kw in operation_keywords)
 
+        # Also detect dimension patterns: "500x500", "1000 by 1000", "200 x 200", etc.
+        import re
+        dimension_pattern = r'\b\d+\s*(x|by)\s*\d+\b'
+        has_dimension_request = re.search(dimension_pattern, user_text.lower())
+        if has_dimension_request:
+            needs_context = True
+            print(f"INFO: Dimension pattern detected: {has_dimension_request.group()}")
+
         # HYDRATE ASSETS: If user is operating on previous upload, inject available assets
         if needs_context and not has_image_content:
             print(f"INFO: Hydrating assets for thread {thread_id} (operation detected without new upload)")

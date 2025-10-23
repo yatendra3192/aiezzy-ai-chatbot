@@ -3185,7 +3185,9 @@
             const input = document.getElementById('composer-input');
             const message = input.value.trim();
 
-            if (!message && !uploadedImage && uploadedImages.length === 0 && !uploadedDocument) return;
+            // REQUIRE user to type their intent - no auto-sending on upload
+            // This prevents auto-injection of "What's in this image?" overriding user intent
+            if (!message) return;
             
             // Create new conversation if this is the first message
             if (!currentConversationId) {
@@ -3216,36 +3218,18 @@
 
             if (hasUploadedDoc) {
                 // Document uploaded
-                if (!message) {
-                    // If previous message had action intent, reuse it
-                    if (hasActionIntent) {
-                        userContent = lastUserMessage.content;
-                    } else {
-                        userContent = `Analyze this ${documentForAPI.file_type.toUpperCase()} document`;
-                    }
-                }
+                // Note: We now REQUIRE message (line 3190), so no auto-injection needed
+                // User must type their intent explicitly (e.g., "convert to PDF", "analyze this")
             } else if (hasMultiImages) {
                 // Multiple images - show the first image as preview in message
                 messageImageData = uploadedImagesData.length > 0 ? uploadedImagesData[0] : null;
-                if (!message) {
-                    // If previous message had action intent, reuse it
-                    if (hasActionIntent) {
-                        userContent = lastUserMessage.content;
-                    } else {
-                        userContent = `Combine these ${uploadedImages.length} images into one artistic composition`;
-                    }
-                }
+                // Note: We now REQUIRE message (line 3190), so no auto-injection needed
+                // User must type their intent explicitly (e.g., "combine these", "create collage")
             } else if (hasUploadedImage) {
                 // Single image
                 messageImageData = uploadedImageData;
-                if (!message) {
-                    // If previous message had action intent, reuse it
-                    if (hasActionIntent) {
-                        userContent = lastUserMessage.content;
-                    } else {
-                        userContent = 'What\'s in this image?';
-                    }
-                }
+                // Note: We now REQUIRE message (line 3190), so no auto-injection needed
+                // User must type their intent explicitly
             }
 
             if (userContent || hasUploadedImage || hasMultiImages || hasUploadedDoc) {
