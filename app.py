@@ -3335,8 +3335,80 @@ def build_app():
 
     # Wrapper node to ensure config is properly passed through
     def coordinator_node(state: dict, *, config: RunnableConfig):
-        """Wrapper to ensure RunnableConfig propagates to the coordinator agent"""
-        print(f"INFO: coordinator_node invoked with thread_id = {config.get('configurable', {}).get('thread_id', 'MISSING')}")
+        """
+        Wrapper to ensure RunnableConfig propagates to the coordinator agent.
+        HYDRATES available assets before agent step to eliminate brittle tool calling.
+        """
+        thread_id = config.get('configurable', {}).get('thread_id', 'default')
+        print(f"INFO: coordinator_node invoked with thread_id = {thread_id}")
+
+        # Get the last user message
+        messages = state.get("messages", [])
+        last_msg = messages[-1] if messages else None
+
+        # Check if user is requesting an operation on a previous upload
+        # (no image content blocks in current message, but message contains operation keywords)
+        has_image_content = False
+        user_text = ""
+        if last_msg and hasattr(last_msg, 'content'):
+            content = last_msg.content
+            if isinstance(content, list):
+                has_image_content = any(isinstance(c, dict) and c.get('type') == 'image' for c in content)
+                user_text = " ".join(str(c.get('text', '')) for c in content if isinstance(c, dict))
+            else:
+                user_text = str(content)
+
+        # Operation keywords that require file context
+        operation_keywords = ['convert', 'save as', 'export', 'resize', 'crop', 'compress',
+                            'rotate', 'flip', 'mirror', 'split', 'merge', 'edit', 'modify',
+                            'grayscale', 'black and white']
+        needs_context = any(kw in user_text.lower() for kw in operation_keywords)
+
+        # HYDRATE ASSETS: If user is operating on previous upload, inject available assets
+        if needs_context and not has_image_content:
+            print(f"INFO: Hydrating assets for thread {thread_id} (operation detected without new upload)")
+
+            # Get available images
+            img_context = get_thread_context(thread_id)
+            uploaded_images = img_context.get('uploaded_images', [])
+
+            # Get available documents
+            doc_context = get_thread_document_context(thread_id)
+
+            # Build asset list
+            assets_text = "AVAILABLE ASSETS FOR THIS CONVERSATION:\n"
+            if uploaded_images:
+                assets_text += "\n📸 IMAGES:\n"
+                for img_path in uploaded_images:
+                    if os.path.exists(img_path):
+                        filename = os.path.basename(img_path)
+                        ext = filename.split('.')[-1].upper()
+                        assets_text += f"  - {img_path} (format: {ext})\n"
+
+            if doc_context.get('original') or doc_context.get('latest'):
+                assets_text += "\n📄 DOCUMENTS:\n"
+                if doc_context.get('original'):
+                    orig = doc_context['original']
+                    ext = orig['filename'].split('.')[-1].upper()
+                    assets_text += f"  - ORIGINAL: {orig['path']} (format: {ext})\n"
+                if doc_context.get('latest') and doc_context['latest'] != doc_context.get('original'):
+                    latest = doc_context['latest']
+                    ext = latest['filename'].split('.')[-1].upper()
+                    assets_text += f"  - LATEST: {latest['path']} (format: {ext})\n"
+
+            if uploaded_images or doc_context.get('original'):
+                # Inject as system message to make assets deterministically available
+                from langchain_core.messages import SystemMessage
+                asset_msg = SystemMessage(content=assets_text +
+                    "\n✅ Use these exact paths when calling conversion/manipulation tools.\n" +
+                    "❌ DO NOT ask user to re-upload - files are already available above!")
+
+                # Prepend asset context to messages
+                state = {"messages": [asset_msg] + messages}
+                print(f"INFO: Injected asset context with {len(uploaded_images)} images and {1 if doc_context.get('original') else 0} documents")
+            else:
+                print(f"WARNING: Operation detected but no assets found for thread {thread_id}")
+
         # Pass config explicitly to ensure tools receive it
         return coordinator.invoke(state, config=config)
 
