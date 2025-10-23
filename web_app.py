@@ -401,7 +401,66 @@ def chat():
         )
         
         response_content = result["messages"][-1].content
-        
+
+        # CRITICAL FIX: Repair broken download links caused by AI converting HTML to markdown
+        # Pattern: "📄 Part 1: Pages 1-3[]()" or "📄 filename.pdf[]()"
+        import re
+        import glob
+
+        broken_link_pattern = r'([📄📊])\s*([^[\]]+?)\[\]\(\)_?'
+        broken_links = list(re.finditer(broken_link_pattern, response_content))
+
+        if broken_links:
+            print(f"LINK FIX: Found {len(broken_links)} broken download links, attempting repair...", file=sys.stderr)
+
+            # Get list of files in documents directory to match against
+            docs_files = glob.glob(os.path.join(DOCUMENTS_DIR, '*'))
+            docs_filenames = {os.path.basename(f): f for f in docs_files}
+
+            for match in broken_links:
+                emoji = match.group(1)
+                label = match.group(2).strip()
+                matched_file = None
+
+                print(f"LINK FIX: Processing broken link with label: '{label}'", file=sys.stderr)
+
+                # Strategy 1: If label contains actual filename with extension, use it directly
+                if re.search(r'\.(pdf|docx?|xlsx?|pptx?|png|jpe?g|gif|txt|csv|html?)$', label, re.IGNORECASE):
+                    filename = label
+                    if filename in docs_filenames:
+                        matched_file = filename
+                        print(f"LINK FIX: Matched by exact filename: {matched_file}", file=sys.stderr)
+
+                # Strategy 2: For "Part X: Pages Y-Z" pattern, search for matching file
+                if not matched_file:
+                    part_match = re.search(r'Part (\d+).*Pages (\d+)-(\d+)', label)
+                    if part_match:
+                        part_num, start_page, end_page = part_match.groups()
+                        # Search for file matching pattern
+                        pattern = f"*part{part_num}_pages{start_page}-{end_page}.pdf"
+                        matching_files = [f for f in docs_filenames.keys() if re.search(f'part{part_num}_pages{start_page}-{end_page}\.pdf', f, re.IGNORECASE)]
+                        if matching_files:
+                            matched_file = matching_files[0]
+                            print(f"LINK FIX: Matched by part/pages pattern: {matched_file}", file=sys.stderr)
+
+                # Strategy 3: For "Page X" pattern (single page)
+                if not matched_file:
+                    page_match = re.search(r'Page (\d+)$', label)
+                    if page_match:
+                        page_num = page_match.group(1)
+                        matching_files = [f for f in docs_filenames.keys() if f'_page{page_num}.' in f or f'_page_{page_num}.' in f]
+                        if matching_files:
+                            matched_file = matching_files[0]
+                            print(f"LINK FIX: Matched by page pattern: {matched_file}", file=sys.stderr)
+
+                # If we found a match, replace the broken markdown with proper HTML
+                if matched_file:
+                    html_link = f'<a href="/documents/{matched_file}" download class="download-link">{emoji} {label}</a>'
+                    response_content = response_content.replace(match.group(0), html_link)
+                    print(f"LINK FIX: Replaced '{match.group(0)}' with '{html_link}'", file=sys.stderr)
+                else:
+                    print(f"LINK FIX: WARNING - Could not find matching file for: {label}", file=sys.stderr)
+
         # DEBUG: Log the actual response content to see what we're working with
         import sys
         print(f"DEBUG RESPONSE: {response_content}", file=sys.stderr)

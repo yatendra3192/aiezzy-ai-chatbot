@@ -3135,11 +3135,12 @@
             if (!text) return '';
 
             // If text already contains HTML tags (images or links), don't format it further
+            // Backend should have already fixed broken links
             if (text.includes('<img') || text.includes('<a ') || text.includes('<a href')) {
                 console.log('Text contains HTML tags (images/links), skipping formatText processing');
                 return text;
             }
-            
+
             // Convert line breaks to proper HTML
             text = text.replace(/\n/g, '<br>');
             
