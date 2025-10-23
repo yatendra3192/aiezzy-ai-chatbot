@@ -2697,7 +2697,7 @@
             for (const file of files) {
                 const fileExt = '.' + file.name.split('.').pop().toLowerCase();
                 if (!allowedTypes.includes(fileExt)) {
-                    alert(`Invalid file type: ${file.name}. Allowed: PDF, Word, Excel, PowerPoint, Images (PNG, JPG, GIF)`);
+                    alert(`Invalid file type: ${file.name}. Allowed: PDF, Word, Excel, PowerPoint, CSV, TXT, HTML, Images (PNG, JPG, GIF, WEBP, HEIC)`);
                     return;
                 }
                 if (file.size > maxSize) {
