@@ -259,12 +259,17 @@ def chat():
         is_multi_step = detect_multi_step_request(message, history)
         current_step = determine_current_step(message, history)
         
-        # Check if this is an image editing request and we have context
-        edit_keywords = ['edit', 'change', 'modify', 'add', 'remove', 'alter', 'fix', 'replace', 'put', 'place', 'behind', 'explosion', 'fire', 'background', 'foreground', 'text', 'overlay']
-        is_edit_request = any(word in message.lower() for word in edit_keywords)
+        # Check if this is an image operation request (edit or conversion) and we have context
+        # CRITICAL: Include "convert" and format keywords to support image format conversions
+        image_operation_keywords = [
+            'edit', 'change', 'modify', 'add', 'remove', 'alter', 'fix', 'replace',
+            'put', 'place', 'behind', 'explosion', 'fire', 'background', 'foreground', 'text', 'overlay',
+            'convert', 'to jpeg', 'to jpg', 'to png', 'to webp', 'to gif', 'jpeg', 'jpg', 'png', 'webp'
+        ]
+        is_edit_request = any(word in message.lower() for word in image_operation_keywords)
         has_image_context = thread_id in thread_image_context
-        
-        # For image editing requests, add context to prevent cached responses
+
+        # For image operation requests (edit or convert), add context to prevent cached responses
         if is_edit_request and has_image_context:
             pass  # We'll handle this through message formatting instead
         
@@ -275,24 +280,24 @@ def chat():
                 image_path_from_history = msg.get('imagePath')
                 break
         
-        # If it's an edit request, try to set the image path from various sources
+        # If it's an image operation (edit or convert), try to set the image path from various sources
         if is_edit_request:
             context_set = False
-            print(f"EDIT DEBUG: is_edit_request=True, has_image_context={has_image_context}", file=sys.stderr)
-            print(f"EDIT DEBUG: thread_image_context keys: {list(thread_image_context.keys())}", file=sys.stderr)
-            print(f"EDIT DEBUG: current thread_id: {thread_id}", file=sys.stderr)
+            print(f"IMAGE OPERATION DEBUG: is_edit_request=True, has_image_context={has_image_context}", file=sys.stderr)
+            print(f"IMAGE OPERATION DEBUG: thread_image_context keys: {list(thread_image_context.keys())}", file=sys.stderr)
+            print(f"IMAGE OPERATION DEBUG: current thread_id: {thread_id}", file=sys.stderr)
             if has_image_context:
                 set_recent_image_path(thread_image_context[thread_id], thread_id)
-                print(f"EDIT FIX: Using web_app context: {thread_image_context[thread_id]}")
+                print(f"IMAGE CONTEXT: Using web_app context: {thread_image_context[thread_id]}", file=sys.stderr)
                 context_set = True
             elif image_path_from_history:
                 set_recent_image_path(image_path_from_history, thread_id)
                 # Also update the thread context for future use
                 if thread_id:
                     thread_image_context[thread_id] = image_path_from_history
-                print(f"EDIT FIX: Using history context: {image_path_from_history}")
+                print(f"IMAGE CONTEXT: Using history context: {image_path_from_history}", file=sys.stderr)
                 context_set = True
-            
+
             # ADDITIONAL FIX: Look for recent image patterns in history content
             if not context_set:
                 for msg in reversed(history):
@@ -305,12 +310,12 @@ def chat():
                             if os.path.exists(asset_path):
                                 set_recent_image_path(asset_path, thread_id)
                                 thread_image_context[thread_id] = asset_path
-                                print(f"EDIT FIX: Found image in content: {asset_path}")
+                                print(f"IMAGE CONTEXT: Found image in content: {asset_path}", file=sys.stderr)
                                 context_set = True
                                 break
-            
+
             if not context_set:
-                print(f"WARNING: No image context found for edit request in thread {thread_id}")
+                print(f"WARNING: No image context found for image operation request in thread {thread_id}", file=sys.stderr)
         
         # Build messages list with history
         messages = []
@@ -385,8 +390,8 @@ def chat():
             current_timestamp = int(time.time())
             # CONTEXT RESET: Add system message to prevent referencing old context
             if len(history) <= 4:  # Likely a fresh conversation
-                messages.append({"role": "system", "content": "You are starting fresh with this image editing request. Focus only on the current image and edit request without referencing previous conversations or context."})
-            enhanced_message = f"{message} - Please be specific about this exact edit in your response. Request timestamp: {current_timestamp}"
+                messages.append({"role": "system", "content": "You are starting fresh with this image operation request (editing, conversion, or manipulation). Focus only on the current image and operation request without referencing previous conversations or context."})
+            enhanced_message = f"{message} - Please be specific about this exact operation in your response. Request timestamp: {current_timestamp}"
             messages.append({"role": "user", "content": enhanced_message})
         else:
             # Check if user is requesting document operation without specifying file
