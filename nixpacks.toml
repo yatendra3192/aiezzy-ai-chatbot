@@ -1,2 +1,11 @@
 [phases.setup]
-aptPkgs = ["poppler-utils", "libreoffice", "libreoffice-writer", "libreoffice-calc", "libreoffice-impress"]
+aptPkgs = [
+    "poppler-utils",
+    "libreoffice",
+    "libreoffice-writer",
+    "libreoffice-calc",
+    "libreoffice-impress",
+    "ffmpeg",           # Required for audio/video processing (pydub, moviepy)
+    "libsm6",           # OpenCV dependency
+    "libxext6"          # OpenCV dependency
+]
