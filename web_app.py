@@ -120,6 +120,8 @@ ALLOWED_DOCUMENT_EXTENSIONS = {'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt
 recent_images = {}
 # Store the most recent image per thread for editing context
 thread_image_context = {}
+# Store the most recent document per thread for operations context (rotate, split, etc.)
+thread_document_context = {}
 # Store shared conversations
 shared_conversations = {}
 # Store feature requests
@@ -383,7 +385,29 @@ def chat():
             enhanced_message = f"{message} - Please be specific about this exact edit in your response. Request timestamp: {current_timestamp}"
             messages.append({"role": "user", "content": enhanced_message})
         else:
-            messages.append({"role": "user", "content": message})
+            # Check if user is requesting document operation without specifying file
+            doc_operation_keywords = ['rotate', 'split', 'compress', 'extract', 'merge', 'degree', 'pages']
+            is_doc_operation = any(keyword in message.lower() for keyword in doc_operation_keywords)
+            has_document_context = thread_id in thread_document_context
+
+            if is_doc_operation and has_document_context and not documents and not document_path:
+                # User wants to perform operation on previously processed document
+                doc_context = thread_document_context[thread_id]
+                doc_file_path = doc_context['path']
+                doc_filename = doc_context['filename']
+
+                # Check if context is recent (within last 10 minutes to avoid stale context)
+                context_age = time.time() - doc_context.get('timestamp', 0)
+                if context_age < 600:  # 10 minutes
+                    enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User is referring to the previously processed document: {doc_filename}]\n[FILE PATH: {doc_file_path}]\n\nPlease use this file for the requested operation."
+                    messages.append({"role": "user", "content": enhanced_message})
+                    print(f"DOCUMENT CONTEXT: Providing context for operation: {doc_filename}", file=sys.stderr)
+                else:
+                    # Context too old, ask user to re-upload
+                    messages.append({"role": "user", "content": message})
+                    print(f"DOCUMENT CONTEXT: Context too old ({context_age:.0f}s), not using", file=sys.stderr)
+            else:
+                messages.append({"role": "user", "content": message})
         
         # Add context about multi-step progress to the message
         if is_multi_step and current_step > 1:
@@ -460,6 +484,23 @@ def chat():
                     print(f"LINK FIX: Replaced '{match.group(0)}' with '{html_link}'", file=sys.stderr)
                 else:
                     print(f"LINK FIX: WARNING - Could not find matching file for: {label}", file=sys.stderr)
+
+        # DOCUMENT CONTEXT TRACKING: Extract document paths from successful operations
+        # This allows follow-up operations like "rotate 180 degrees" without re-specifying the file
+        import re
+        doc_link_match = re.search(r'<a href="/documents/([^"]+)"', response_content)
+        if doc_link_match:
+            filename = doc_link_match.group(1)
+            document_path = os.path.join(DOCUMENTS_DIR, filename)
+            if os.path.exists(document_path):
+                thread_document_context[thread_id] = {
+                    'path': document_path,
+                    'filename': filename,
+                    'timestamp': time.time()
+                }
+                print(f"DOCUMENT CONTEXT: Updated thread {thread_id} with document: {filename}", file=sys.stderr)
+            else:
+                print(f"DOCUMENT CONTEXT: File not found: {document_path}", file=sys.stderr)
 
         # DEBUG: Log the actual response content to see what we're working with
         import sys
