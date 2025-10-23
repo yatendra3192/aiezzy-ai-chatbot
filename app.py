@@ -1748,6 +1748,16 @@ def extract_text_from_pdf(file_path: str, output_name: str = None, *, config: Ru
 
         # Extract text to TXT file
         txt_path = pdf_converter.pdf_to_text(file_path, output_name=output_name)
+
+        # Check if this is an image-based PDF (no extractable text)
+        if txt_path == "IMAGE_BASED_PDF_DETECTED":
+            return (
+                "⚠️ IMAGE-BASED PDF DETECTED\n\n"
+                "This PDF contains images/scanned content without extractable text.\n\n"
+                "NEXT STEP: Tell the user you'll convert the PDF to images and analyze them with vision.\n"
+                "Use the pdf_to_images tool to convert PDF pages, then analyze the images to answer their question."
+            )
+
         filename = os.path.basename(txt_path)
 
         # Return ONLY raw HTML - no prose text that AI can paraphrase
@@ -3228,23 +3238,32 @@ def build_coordinator():
         "✅ CORRECT WORKFLOW FOR PDF QUESTIONS:\n"
         "1. User uploads PDF and asks: 'give me email and phone'\n"
         "2. You call: extract_text_from_pdf(file_path)\n"
-        "3. Tool returns: Download link to .txt file\n"
-        "4. You say: 'I've extracted the text. Let me check it...'\n"
-        "5. For image-based PDFs: Tool returns explanation file, tell user you'll analyze directly\n\n"
+        "3a. If successful: Tool returns download link → provide link to user\n"
+        "3b. If IMAGE-BASED PDF detected:\n"
+        "    → Call convert_pdf_to_images(file_path) to get PNG images\n"
+        "    → Analyze the images with your vision capabilities\n"
+        "    → Answer the user's question directly based on what you see\n"
+        "4. NEVER provide download links for image-based PDFs - analyze and answer directly!\n\n"
         "❌ WRONG APPROACH (hallucination):\n"
         "User: 'give me email and phone'\n"
         "AI: 'I can see the PDF. Email: fake@example.com, Phone: +1234567890' (MADE UP DATA!)\n\n"
-        "✅ CORRECT APPROACH:\n"
+        "✅ CORRECT APPROACH (text-based PDF):\n"
         "User: 'give me email and phone'\n"
-        "AI: Calls extract_text_from_pdf → checks if text extracted → provides download link\n\n"
+        "AI: Calls extract_text_from_pdf → gets download link → provides link to user\n\n"
+        "✅ CORRECT APPROACH (image-based PDF like designer resumes):\n"
+        "User: 'give me email and phone'\n"
+        "AI: Calls extract_text_from_pdf → gets 'IMAGE-BASED PDF DETECTED'\n"
+        "AI: Calls convert_pdf_to_images(file_path) → gets images of PDF pages\n"
+        "AI: Analyzes images with vision → responds: 'Email: alkeshmakwana1353@gmail.com, Phone: +91 97249 02555'\n\n"
         "DECISION TREE FOR PDFs:\n"
         "1. User wants information from PDF?\n"
-        "   → Call extract_text_from_pdf(file_path)\n"
-        "   → Provide download link to user\n"
-        "   → User will download and tell you what they need\n\n"
-        "2. NEVER try to 'read' or 'analyze' PDF directly\n"
-        "   → You don't have that capability\n"
-        "   → Always extract text first\n\n"
+        "   → Call extract_text_from_pdf(file_path)\n\n"
+        "2. If tool returns download link:\n"
+        "   → Provide link to user\n\n"
+        "3. If tool returns 'IMAGE-BASED PDF DETECTED':\n"
+        "   → Call convert_pdf_to_images(file_path)\n"
+        "   → Analyze the resulting images\n"
+        "   → Answer question directly\n\n"
         "🚀 LANGGRAPH-NATIVE CONTEXT MANAGEMENT (NO KEYWORDS NEEDED!):\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "CRITICAL: When user requests ANY file operation, call check_available_assets FIRST!\n\n"
