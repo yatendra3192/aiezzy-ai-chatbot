@@ -3133,10 +3133,10 @@
 
         function formatText(text) {
             if (!text) return '';
-            
-            // If text already contains image tags, don't format it further
-            if (text.includes('<img')) {
-                console.log('Text contains images, skipping formatText processing');
+
+            // If text already contains HTML tags (images or links), don't format it further
+            if (text.includes('<img') || text.includes('<a ') || text.includes('<a href')) {
+                console.log('Text contains HTML tags (images/links), skipping formatText processing');
                 return text;
             }
             
