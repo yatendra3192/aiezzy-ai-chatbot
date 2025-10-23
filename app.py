@@ -223,6 +223,7 @@ def generate_image(prompt: str,
 
 # Thread-specific image storage to prevent cross-conversation contamination
 _thread_image_context = {}  # {thread_id: {'recent_path': path, 'uploaded_images': [paths], 'image_labels': {}}}
+_thread_document_context = {}  # {thread_id: {'original': {path, filename, timestamp}, 'latest': {path, filename, timestamp}}}
 
 def get_thread_context(thread_id):
     """Get or create thread-specific image context"""
@@ -233,6 +234,40 @@ def get_thread_context(thread_id):
             'image_labels': {}  # Map of path -> label (e.g., "cat", "dog", "cow")
         }
     return _thread_image_context[thread_id]
+
+def get_thread_document_context(thread_id):
+    """Get or create thread-specific document context"""
+    if thread_id not in _thread_document_context:
+        _thread_document_context[thread_id] = {
+            'original': None,
+            'latest': None
+        }
+    return _thread_document_context[thread_id]
+
+def set_document_context(thread_id, file_path, filename, is_original=True):
+    """Set document context for thread"""
+    import time
+    context = get_thread_document_context(thread_id)
+    doc_info = {
+        'path': file_path,
+        'filename': filename,
+        'timestamp': time.time()
+    }
+    if is_original or context['original'] is None:
+        context['original'] = doc_info
+    context['latest'] = doc_info
+    print(f"INFO: Set document context for thread {thread_id}: {filename}", file=sys.stderr)
+
+def update_document_latest(thread_id, file_path, filename):
+    """Update only the latest document (after conversion/manipulation)"""
+    import time
+    context = get_thread_document_context(thread_id)
+    context['latest'] = {
+        'path': file_path,
+        'filename': filename,
+        'timestamp': time.time()
+    }
+    print(f"INFO: Updated latest document for thread {thread_id}: {filename}", file=sys.stderr)
 
 def set_recent_image_path(path, thread_id="default"):
     """Set recent image path for specific thread"""
@@ -1006,6 +1041,111 @@ def check_image_context(state: Annotated[dict, InjectedState], *, config: Runnab
             context_info.append("- Use generate_image_from_multiple to combine images")
 
     return "\n".join(context_info)
+
+# --- Tool: Check Available Assets (LangGraph-Native Context) ----------------
+@tool
+def check_available_assets(state: Annotated[dict, InjectedState], *, config: RunnableConfig) -> str:
+    """
+    Check what images and documents are available in this conversation.
+    Use this FIRST when user requests any file operation (convert, edit, resize, rotate, split, merge, etc.)
+
+    This is the LangGraph-native way to handle context - NO hard-coded keyword matching needed!
+    The AI decides when to call this based on understanding the user's intent.
+
+    Returns:
+        Detailed JSON with all available assets and intelligent recommendations
+    """
+    import json
+
+    # Get thread ID
+    thread_id = config.get("configurable", {}).get("thread_id") if config else None
+    if not thread_id or thread_id == "default":
+        global _current_thread_id
+        if _current_thread_id and _current_thread_id != "default":
+            thread_id = _current_thread_id
+        else:
+            return json.dumps({"error": "No active conversation context"}, indent=2)
+
+    result = {
+        "thread_id": thread_id,
+        "images": [],
+        "documents": [],
+        "recommendations": []
+    }
+
+    # Check images
+    img_context = get_thread_context(thread_id)
+    recent_image = img_context.get('recent_path')
+    uploaded_images = img_context.get('uploaded_images', [])
+
+    for img_path in uploaded_images:
+        if os.path.exists(img_path):
+            filename = os.path.basename(img_path)
+            file_ext = filename.split('.')[-1].upper()
+            result["images"].append({
+                "path": img_path,
+                "filename": filename,
+                "format": file_ext,
+                "is_recent": img_path == recent_image,
+                "type": "uploaded"
+            })
+
+    # Check documents
+    doc_context = get_thread_document_context(thread_id)
+    original_doc = doc_context.get('original')
+    latest_doc = doc_context.get('latest')
+
+    if original_doc:
+        result["documents"].append({
+            "path": original_doc['path'],
+            "filename": original_doc['filename'],
+            "format": original_doc['filename'].split('.')[-1].upper(),
+            "type": "original upload",
+            "timestamp": original_doc.get('timestamp', 0)
+        })
+
+    if latest_doc and latest_doc != original_doc:
+        result["documents"].append({
+            "path": latest_doc['path'],
+            "filename": latest_doc['filename'],
+            "format": latest_doc['filename'].split('.')[-1].upper(),
+            "type": "converted/processed version",
+            "timestamp": latest_doc.get('timestamp', 0)
+        })
+
+    # Add intelligent recommendations
+    if not result["images"] and not result["documents"]:
+        result["recommendations"].append("⚠️ No files available. User needs to upload a file first.")
+        return json.dumps(result, indent=2)
+
+    if result["images"]:
+        result["recommendations"].append(f"✅ {len(result['images'])} image(s) available")
+        result["recommendations"].append("📸 Available operations: convert format (JPEG/PNG/WebP/GIF), resize, compress, rotate, grayscale, edit content, animate to video")
+
+    if result["documents"]:
+        doc_formats = [d["format"] for d in result["documents"]]
+        result["recommendations"].append(f"✅ {len(result['documents'])} document(s) available: {', '.join(doc_formats)}")
+
+        # Smart recommendations based on document type
+        if any(fmt == "CSV" for fmt in doc_formats):
+            result["recommendations"].append("📊 CSV detected: Can convert to Excel (XLSX), PDF, TXT, HTML")
+        if any(fmt in ["XLSX", "XLS"] for fmt in doc_formats):
+            result["recommendations"].append("📊 Excel detected: Can convert to CSV, PDF, TXT, HTML")
+        if any(fmt == "PDF" for fmt in doc_formats):
+            result["recommendations"].append("📄 PDF detected: Can convert to Word (DOCX), Excel (XLSX), PowerPoint (PPTX), CSV, TXT, HTML, images, or manipulate (rotate, split, compress, merge, extract)")
+        if any(fmt in ["DOCX", "DOC"] for fmt in doc_formats):
+            result["recommendations"].append("📝 Word detected: Can convert to PDF, TXT, HTML")
+        if any(fmt in ["PPTX", "PPT"] for fmt in doc_formats):
+            result["recommendations"].append("📊 PowerPoint detected: Can convert to PDF, HTML")
+
+        # Recommendation for using original vs latest
+        if len(result["documents"]) > 1:
+            original_fmt = result["documents"][0]["format"]
+            latest_fmt = result["documents"][-1]["format"]
+            result["recommendations"].append(f"🎯 SMART CHOICE: For format conversions, use ORIGINAL ({original_fmt}). For manipulations (rotate/split/etc), use LATEST ({latest_fmt})")
+            result["recommendations"].append(f"Example: 'convert to XLSX' should convert {original_fmt}→XLSX (not {latest_fmt}→XLSX)")
+
+    return json.dumps(result, indent=2)
 
 # === PDF CONVERSION TOOLS ===================================================
 
@@ -2791,6 +2931,7 @@ def build_coordinator():
         analyze_user_intent,
         evaluate_result_quality,
         check_image_context,
+        check_available_assets,  # LangGraph-native context management
         # PDF Conversion tools - FROM PDF
         convert_pdf_to_images,
         convert_pdf_to_word,
@@ -3038,6 +3179,41 @@ def build_coordinator():
         "- If no images uploaded but image requested: use generate_image\n"
         "- Only use check_image_context when you need to verify what's available\n"
         "- IMPORTANT: When generating multiple images then creating a video, the video tool will automatically select the matching image based on your prompt\n\n"
+        "🚀 LANGGRAPH-NATIVE CONTEXT MANAGEMENT (NO KEYWORDS NEEDED!):\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "CRITICAL: When user requests ANY file operation, call check_available_assets FIRST!\n\n"
+        "✅ ALWAYS call check_available_assets when user says:\n"
+        "- 'convert to X' (any format: PDF, JPEG, PNG, XLSX, DOCX, etc.)\n"
+        "- 'save as X' / 'export to X' / 'download as X'\n"
+        "- 'resize' / 'crop' / 'compress' / 'optimize'\n"
+        "- 'rotate' / 'flip' / 'mirror'\n"
+        "- 'split' / 'merge' / 'combine'\n"
+        "- 'edit' / 'change' / 'modify'\n"
+        "- 'make it grayscale' / 'black and white'\n"
+        "- ANY operation on a file!\n\n"
+        "📊 check_available_assets returns JSON with:\n"
+        "- All images: paths, formats, which is most recent\n"
+        "- All documents: ORIGINAL upload + LATEST converted version\n"
+        "- Smart recommendations: which file to use for the operation\n\n"
+        "🎯 INTELLIGENT FILE SELECTION (from check_available_assets recommendations):\n"
+        "- Format conversions → Use ORIGINAL file\n"
+        "  Example: CSV→PDF→XLSX request should convert CSV to XLSX (not PDF to XLSX!)\n"
+        "- Manipulations (rotate, split, crop) → Use LATEST file\n"
+        "  Example: Rotate 90° then 180° should rotate the 90° version\n\n"
+        "💡 EXAMPLE WORKFLOW:\n"
+        "User: 'convert to jpeg'\n"
+        "1. ✅ Call check_available_assets()\n"
+        "2. ✅ See response: {images: [{path: 'photo.png', format: 'PNG'}]}\n"
+        "3. ✅ Call convert_png_to_jpeg(file_path='photo.png')\n"
+        "4. ✅ Success!\n\n"
+        "User: 'convert to xlsx' (after CSV was converted to PDF)\n"
+        "1. ✅ Call check_available_assets()\n"
+        "2. ✅ See: {documents: [{type: 'original', format: 'CSV'}, {type: 'converted', format: 'PDF'}]}\n"
+        "3. ✅ Recommendation says: Use ORIGINAL (CSV) for conversions\n"
+        "4. ✅ Call convert_csv_to_excel(file_path='original_csv_path')\n"
+        "5. ✅ Correct file used!\n\n"
+        "❌ NEVER guess or assume file paths - ALWAYS call check_available_assets first!\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
         "SMART DOCUMENT HANDLING:\n"
         "- When user uploads documents and asks to 'combine', 'merge', or 'combine into PDF': use convert_and_merge_documents tool\n"
         "- The convert_and_merge_documents tool handles ALL document types: PDF, Word, Excel, PowerPoint, and images\n"

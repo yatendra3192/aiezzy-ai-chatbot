@@ -7,7 +7,7 @@ import time
 import json
 import secrets
 from werkzeug.utils import secure_filename
-from app import app as langgraph_app, encode_image_to_content_block, set_recent_image_path, clear_thread_cache, clear_thread_context, reset_all_context, set_current_thread_id
+from app import app as langgraph_app, encode_image_to_content_block, set_recent_image_path, clear_thread_cache, clear_thread_context, reset_all_context, set_current_thread_id, set_document_context, update_document_latest
 
 # Import authentication modules
 from models import UserManager
@@ -540,6 +540,9 @@ def chat():
                         'timestamp': time.time()
                     }
                     print(f"DOCUMENT CONTEXT: Updated 'latest' for thread {thread_id}: {filename}", file=sys.stderr)
+
+                    # ALSO update context in app.py for LangGraph check_available_assets tool
+                    update_document_latest(thread_id, document_path, filename)
                 else:
                     # First operation (shouldn't happen if upload initialized context)
                     thread_document_context[thread_id] = {
@@ -840,6 +843,9 @@ def upload_document():
             }
         }
         print(f"DOCUMENT CONTEXT: Initialized thread {thread_id} with original: {unique_filename}", file=sys.stderr)
+
+        # ALSO set context in app.py for LangGraph check_available_assets tool
+        set_document_context(thread_id, file_path, unique_filename, is_original=True)
 
         # Prepare response with file information
         response_data = {
