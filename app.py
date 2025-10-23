@@ -1036,8 +1036,8 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
         # Convert PDF to images
         image_paths = pdf_converter.pdf_to_images(file_path, output_format=output_format)
 
-        # Generate HTML response with image thumbnails
-        html_parts = [f"✅ Successfully converted PDF to {len(image_paths)} {output_format.upper()} images:\n\n"]
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        html_parts = []
 
         for i, img_path in enumerate(image_paths, 1):
             filename = os.path.basename(img_path)
@@ -1079,7 +1079,8 @@ def convert_pdf_to_word(file_path: str, output_name: str = None, *, config: Runn
         docx_path = pdf_converter.pdf_to_word(file_path, output_name=output_name)
         filename = os.path.basename(docx_path)
 
-        return f'✅ Successfully converted PDF ({page_count} pages) to Word: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting PDF to Word: {str(e)}"
@@ -1108,7 +1109,8 @@ def convert_pdf_to_excel(file_path: str, output_name: str = None, *, config: Run
         xlsx_path = pdf_converter.pdf_to_excel(file_path, output_name=output_name)
         filename = os.path.basename(xlsx_path)
 
-        return f'✅ Successfully converted PDF to Excel: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📊 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting PDF to Excel: {str(e)}"
@@ -1141,7 +1143,8 @@ def convert_pdf_to_powerpoint(file_path: str, output_name: str = None, *, config
         pptx_path = pdf_converter.pdf_to_powerpoint(file_path, output_name=output_name)
         filename = os.path.basename(pptx_path)
 
-        return f'✅ Successfully converted PDF ({page_count} pages) to PowerPoint ({page_count} slides): <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📊 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting PDF to PowerPoint: {str(e)}"
@@ -1171,7 +1174,8 @@ def convert_excel_to_csv(file_path: str, output_name: str = None, *, config: Run
         csv_path = pdf_converter.excel_to_csv(file_path, output_name)
         filename = os.path.basename(csv_path)
 
-        return f'✅ Successfully converted Excel to CSV: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📊 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting Excel to CSV: {str(e)}"
@@ -1199,7 +1203,8 @@ def convert_csv_to_excel(file_path: str, output_name: str = None, *, config: Run
         xlsx_path = pdf_converter.csv_to_excel(file_path, output_name)
         filename = os.path.basename(xlsx_path)
 
-        return f'✅ Successfully converted CSV to Excel: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📊 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting CSV to Excel: {str(e)}"
@@ -1227,7 +1232,8 @@ def convert_word_to_txt(file_path: str, output_name: str = None, *, config: Runn
         txt_path = pdf_converter.word_to_txt(file_path, output_name)
         filename = os.path.basename(txt_path)
 
-        return f'✅ Successfully converted Word to plain text: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting Word to TXT: {str(e)}"
@@ -1255,7 +1261,8 @@ def convert_excel_to_txt(file_path: str, output_name: str = None, *, config: Run
         txt_path = pdf_converter.excel_to_txt(file_path, output_name)
         filename = os.path.basename(txt_path)
 
-        return f'✅ Successfully converted Excel to plain text: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📊 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting Excel to TXT: {str(e)}"
@@ -1283,7 +1290,8 @@ def convert_word_to_html(file_path: str, output_name: str = None, *, config: Run
         html_path = pdf_converter.word_to_html(file_path, output_name)
         filename = os.path.basename(html_path)
 
-        return f'✅ Successfully converted Word to HTML: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting Word to HTML: {str(e)}"
@@ -1311,7 +1319,8 @@ def convert_excel_to_html(file_path: str, output_name: str = None, *, config: Ru
         html_path = pdf_converter.excel_to_html(file_path, output_name)
         filename = os.path.basename(html_path)
 
-        return f'✅ Successfully converted Excel to HTML: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📊 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting Excel to HTML: {str(e)}"
@@ -1339,7 +1348,8 @@ def convert_powerpoint_to_html(file_path: str, output_name: str = None, *, confi
         html_path = pdf_converter.powerpoint_to_html(file_path, output_name)
         filename = os.path.basename(html_path)
 
-        return f'✅ Successfully converted PowerPoint to HTML: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📊 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting PowerPoint to HTML: {str(e)}"
@@ -1368,7 +1378,8 @@ def convert_word_to_pdf(file_path: str, output_name: str = None, *, config: Runn
         pdf_path = pdf_converter.word_to_pdf(file_path, output_name)
         filename = os.path.basename(pdf_path)
 
-        return f'✅ Successfully converted Word document to PDF: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting Word to PDF: {str(e)}"
@@ -1395,7 +1406,8 @@ def convert_excel_to_pdf(file_path: str, output_name: str = None, *, config: Run
         pdf_path = pdf_converter.excel_to_pdf(file_path, output_name)
         filename = os.path.basename(pdf_path)
 
-        return f'✅ Successfully converted Excel spreadsheet to PDF: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📊 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting Excel to PDF: {str(e)}"
@@ -1422,7 +1434,8 @@ def convert_powerpoint_to_pdf(file_path: str, output_name: str = None, *, config
         pdf_path = pdf_converter.powerpoint_to_pdf(file_path, output_name)
         filename = os.path.basename(pdf_path)
 
-        return f'✅ Successfully converted PowerPoint presentation to PDF: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📊 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting PowerPoint to PDF: {str(e)}"
@@ -1469,7 +1482,8 @@ def convert_images_to_pdf(output_name: str = None, *, config: RunnableConfig) ->
         pdf_path = pdf_converter.images_to_pdf(valid_paths, output_name)
         filename = os.path.basename(pdf_path)
 
-        return f'✅ Successfully combined {len(valid_paths)} image(s) into PDF: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting images to PDF: {str(e)}"
@@ -1503,7 +1517,8 @@ def convert_image_file_to_pdf(file_path: str, output_name: str = None, *, config
         pdf_path = pdf_converter.images_to_pdf([file_path], output_name)
         filename = os.path.basename(pdf_path)
 
-        return f'✅ Successfully converted image to PDF: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting image to PDF: {str(e)}"
@@ -1549,7 +1564,8 @@ def merge_pdfs(file_paths: List[str], output_name: str = None, *, config: Runnab
         merged_path = pdf_converter.merge_pdfs(valid_paths, output_name)
         filename = os.path.basename(merged_path)
 
-        return f'✅ Successfully merged {len(valid_paths)} PDF file(s) into: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error merging PDFs: {str(e)}"
@@ -1582,7 +1598,8 @@ def extract_text_from_pdf(file_path: str, output_name: str = None, *, config: Ru
         txt_path = pdf_converter.pdf_to_text(file_path, output_name=output_name)
         filename = os.path.basename(txt_path)
 
-        return f'✅ Successfully extracted text from PDF ({page_count} pages): <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error extracting text from PDF: {str(e)}"
@@ -1619,7 +1636,8 @@ def compress_pdf_file(file_path: str, output_name: str = None, compression_level
         compressed_size = os.path.getsize(compressed_path) / 1024  # KB
         reduction = ((original_size - compressed_size) / original_size) * 100
 
-        return f'✅ Successfully compressed PDF from {original_size:.1f}KB to {compressed_size:.1f}KB ({reduction:.1f}% reduction): <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error compressing PDF: {str(e)}"
@@ -1662,12 +1680,33 @@ def split_pdf_file(file_path: str, pages: str = 'all', output_name: str = None, 
         split_paths = pdf_converter.split_pdf(file_path, pages=pages, output_name=output_name)
 
         # Generate HTML response with download links
-        html_parts = [f"✅ Successfully split PDF ({page_count} pages) into {len(split_paths)} files:\n\n"]
+        # CRITICAL: Return ONLY raw HTML - no prose text that AI can paraphrase
+        html_parts = []
 
         for i, pdf_path in enumerate(split_paths, 1):
             filename = os.path.basename(pdf_path)
-            html_parts.append(f'<a href="/documents/{filename}" download>📄 {filename}</a><br>')
+            # Extract page info from filename for better labels
+            if 'pages' in filename:
+                # Extract page range from filename like "part1_pages1-3.pdf"
+                import re
+                match = re.search(r'pages(\d+)-(\d+)', filename)
+                if match:
+                    label = f"📄 Part {i}: Pages {match.group(1)}-{match.group(2)}"
+                else:
+                    label = f"📄 {filename}"
+            elif '_page_' in filename:
+                # Single page files like "file_page_1.pdf"
+                match = re.search(r'_page_(\d+)', filename)
+                if match:
+                    label = f"📄 Page {match.group(1)}"
+                else:
+                    label = f"📄 {filename}"
+            else:
+                label = f"📄 {filename}"
 
+            html_parts.append(f'<a href="/documents/{filename}" download>{label}</a><br>\n')
+
+        # Return ONLY the HTML - no "Successfully split" text that AI will paraphrase
         return "".join(html_parts)
 
     except Exception as e:
@@ -1703,7 +1742,8 @@ def rotate_pdf_pages(file_path: str, rotation: int = 90, pages: str = 'all', out
         rotated_path = pdf_converter.rotate_pdf(file_path, rotation=rotation, pages=pages, output_name=output_name)
         filename = os.path.basename(rotated_path)
 
-        return f'✅ Successfully rotated PDF ({page_count} pages) by {rotation}°: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error rotating PDF: {str(e)}"
@@ -1732,7 +1772,8 @@ def convert_pdf_to_csv(file_path: str, output_name: str = None, *, config: Runna
         csv_path = pdf_converter.pdf_to_csv(file_path, output_name=output_name)
         filename = os.path.basename(csv_path)
 
-        return f'✅ Successfully extracted PDF tables to CSV: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📊 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting PDF to CSV: {str(e)}"
@@ -1761,7 +1802,8 @@ def convert_csv_to_pdf(file_path: str, output_name: str = None, *, config: Runna
         pdf_path = pdf_converter.csv_to_pdf(file_path, output_name=output_name)
         filename = os.path.basename(pdf_path)
 
-        return f'✅ Successfully converted CSV to formatted PDF table: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📊 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting CSV to PDF: {str(e)}"
@@ -1787,7 +1829,8 @@ def convert_html_to_pdf(html_input: str, output_name: str = None, *, config: Run
         pdf_path = pdf_converter.html_to_pdf(html_input, output_name=output_name)
         filename = os.path.basename(pdf_path)
 
-        return f'✅ Successfully converted HTML to PDF: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting HTML to PDF: {str(e)}"
@@ -1820,7 +1863,8 @@ def convert_pdf_to_html(file_path: str, output_name: str = None, *, config: Runn
         html_path = pdf_converter.pdf_to_html(file_path, output_name=output_name)
         filename = os.path.basename(html_path)
 
-        return f'✅ Successfully converted PDF ({page_count} pages) to HTML: <a href="/documents/{filename}" download>{filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting PDF to HTML: {str(e)}"
@@ -2694,15 +2738,15 @@ def convert_and_merge_documents(file_paths: List[str], output_name: str = "combi
         if len(converted_pdfs) == 1:
             # Only one file, return it directly
             filename = os.path.basename(converted_pdfs[0])
-            details = "\n".join(conversion_details)
-            return f'✅ Converted 1 file to PDF:\n{details}\n\n<a href="/documents/{filename}" download>{filename}</a>'
+            # Return ONLY raw HTML - no prose text that AI can paraphrase
+            return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
 
         # Merge all PDFs
         merged_path = pdf_converter.merge_pdfs(converted_pdfs, output_name)
         merged_filename = os.path.basename(merged_path)
 
-        details = "\n".join(conversion_details)
-        return f'✅ Successfully converted and merged {len(converted_pdfs)} files into a single PDF:\n\n{details}\n\n📄 Download: <a href="/documents/{merged_filename}" download>{merged_filename}</a>'
+        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        return f'<a href="/documents/{merged_filename}" download>📄 {merged_filename}</a>'
 
     except Exception as e:
         return f"❌ Error converting and merging documents: {str(e)}"
@@ -2895,22 +2939,24 @@ def build_coordinator():
         "CRITICAL - FORMATTING TOOL RESPONSES:\n"
         "⚠️ ABSOLUTE RULE: If tool output contains '<a href' or '<img src', you MUST output the EXACT raw HTML ⚠️\n\n"
         "FORBIDDEN ACTIONS (these break download links):\n"
-        "❌ NEVER convert HTML to bullet lists: '<a>file</a>' → '- file()' ← FORBIDDEN!\n"
+        "❌ NEVER convert HTML to bullet lists: '<a>file</a>' → '- file' or '- file()' ← FORBIDDEN!\n"
         "❌ NEVER convert HTML to markdown: '<a href>file</a>' → '[file]()' ← FORBIDDEN!\n"
-        "❌ NEVER add extra text like '(Pages 1 to 3)' - include ONLY the tool's output\n"
+        "❌ NEVER add descriptive text around HTML links - output the raw HTML ONLY\n"
         "❌ NEVER rewrite or paraphrase - copy the EXACT string from the tool\n"
-        "❌ NEVER use bullet points (-, •, *) when tool returns HTML links\n\n"
+        "❌ NEVER use bullet points (-, •, *) when tool returns HTML links or images\n\n"
         "REQUIRED ACTIONS:\n"
         "✅ Copy the ENTIRE tool response character-by-character without modification\n"
         "✅ Include ALL HTML tags exactly: <a href=\"...\">text</a><br>\n"
         "✅ Preserve line breaks, <br> tags, and spacing from tool output\n"
-        "✅ If tool says '✅ Successfully...', your response must START with '✅ Successfully...'\n\n"
+        "✅ Tools return ONLY raw HTML (no prose) - you must output it EXACTLY as-is\n\n"
         "EXAMPLES:\n"
-        "Tool output: '✅ Successfully split PDF into 2 files:\\n\\n<a href=\"/documents/file1.pdf\">📄 file1.pdf</a><br><a href=\"/documents/file2.pdf\">📄 file2.pdf</a>'\n"
+        "Tool output: '<a href=\"/documents/file1.pdf\" download>📄 Part 1: Pages 1-3</a><br>\\n<a href=\"/documents/file2.pdf\" download>📄 Part 2: Pages 4-5</a><br>\\n'\n"
         "YOUR OUTPUT: (copy the EXACT string above - no bullet points, no markdown, no extra text)\n\n"
-        "Tool output: '<a href=\"/documents/test.docx\" download>test.docx</a>'\n"
+        "Tool output: '<a href=\"/documents/test.docx\" download>📄 test.docx</a>'\n"
         "YOUR OUTPUT: (copy the EXACT string above)\n\n"
-        "⚠️ If you modify tool output in ANY way, download links will break! ⚠️\n\n"
+        "Tool output: '<img src=\"/assets/image1.png\" class=\"message-image\" onclick=\"openImageModal...\"...>'\n"
+        "YOUR OUTPUT: (copy the EXACT string above)\n\n"
+        "⚠️ If you modify tool output in ANY way, download links and images will break! ⚠️\n\n"
         "MULTI-STEP EXECUTION PATTERN:\n"
         "For complex requests like 'Get news, create video, write post':\n"
         "1. Use analyze_user_intent to acknowledge the full request\n"
