@@ -1714,16 +1714,20 @@ def merge_pdfs(file_paths: List[str], output_name: str = None, *, config: Runnab
 @tool
 def extract_text_from_pdf(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
     """
-    ⚠️ ONLY use this tool when user EXPLICITLY says 'extract text' or 'convert to text file'.
+    Extract all text from a PDF document to a downloadable text file.
 
-    DO NOT use this tool for:
-    - Getting specific info (email, phone, name, etc.) - just read the PDF directly!
-    - Analyzing PDF content - just read the PDF directly!
-    - Answering questions about PDF - just read the PDF directly!
+    ⚠️ IMPORTANT: You CANNOT see PDF content directly!
+    You only receive the file path when a PDF is uploaded.
+    Use this tool whenever user asks about PDF content.
 
-    This tool creates a downloadable .txt file. Only use when user wants a text file download.
+    WHEN TO USE:
+    - User uploads PDF and asks for ANY information from it
+    - User wants to know email, phone, name, address, etc. from PDF
+    - User wants to analyze or summarize PDF content
+    - User explicitly says 'extract text'
 
-    Extract all text from a PDF document to a plain text file.
+    This tool creates a .txt file that user can download.
+    For image-based PDFs, it returns a helpful explanation file.
 
     Args:
         file_path: Path to the PDF file
@@ -3073,7 +3077,7 @@ def build_coordinator():
         "- convert_word/excel/powerpoint_to_html: Convert Office documents to HTML web format\n"
         "- convert_and_merge_documents: CRITICAL - Use this for combining/merging multiple documents into single PDF\n"
         "- merge_pdfs: Merge multiple PDF files only (use convert_and_merge_documents for mixed types)\n"
-        "- extract_text_from_pdf: ⚠️ ONLY for 'extract text' requests - DO NOT use for getting info from PDFs (just read directly!)\n"
+        "- extract_text_from_pdf: Extract text from PDF to downloadable file - use when user asks for ANY PDF information\n"
         "- compress_pdf_file: Reduce PDF file size by compressing images and removing metadata\n"
         "- split_pdf_file: Split PDF by page ranges - pages='all' for one-per-page, pages='1-3,4-end' for custom ranges\n"
         "- rotate_pdf_pages: Rotate PDF pages by 90/180/270 degrees\n"
@@ -3214,32 +3218,33 @@ def build_coordinator():
         "- If no images uploaded but image requested: use generate_image\n"
         "- Only use check_image_context when you need to verify what's available\n"
         "- IMPORTANT: When generating multiple images then creating a video, the video tool will automatically select the matching image based on your prompt\n\n"
-        "🚨 CRITICAL: SMART PDF HANDLING 🚨\n"
-        "GPT-4o vision can READ PDFs DIRECTLY - treat PDF uploads exactly like images!\n\n"
-        "⚠️ WHEN MESSAGE CONTAINS PDF DOCUMENT BLOCKS:\n"
-        "You ALREADY HAVE the PDF content! The PDF is visible to you right now!\n"
-        "DO NOT call extract_text_from_pdf or any other tool to 'get' the content.\n"
-        "Just read what's in front of you and answer the question!\n\n"
-        "❌ WRONG APPROACH (causes blank files and bad UX):\n"
+        "🚨 CRITICAL: PDF HANDLING TRUTH 🚨\n"
+        "⚠️ YOU CANNOT SEE PDF VISUAL CONTENT - Don't lie about this!\n"
+        "When user uploads PDF, you only receive the FILE PATH (e.g., /documents/file.pdf).\n"
+        "You DO NOT have access to the PDF visual content or text directly.\n\n"
+        "⚠️ NEVER HALLUCINATE PDF DATA!\n"
+        "DO NOT make up emails, phone numbers, or any information.\n"
+        "DO NOT say 'I can see the PDF' or 'The PDF is visible to me' - it's not true!\n\n"
+        "✅ CORRECT WORKFLOW FOR PDF QUESTIONS:\n"
+        "1. User uploads PDF and asks: 'give me email and phone'\n"
+        "2. You call: extract_text_from_pdf(file_path)\n"
+        "3. Tool returns: Download link to .txt file\n"
+        "4. You say: 'I've extracted the text. Let me check it...'\n"
+        "5. For image-based PDFs: Tool returns explanation file, tell user you'll analyze directly\n\n"
+        "❌ WRONG APPROACH (hallucination):\n"
         "User: 'give me email and phone'\n"
-        "AI: Calls extract_text_from_pdf → creates file → user downloads blank file\n\n"
+        "AI: 'I can see the PDF. Email: fake@example.com, Phone: +1234567890' (MADE UP DATA!)\n\n"
         "✅ CORRECT APPROACH:\n"
         "User: 'give me email and phone'\n"
-        "AI: Reads PDF content in current message → responds: 'Email: abc@xyz.com, Phone: +1234567890'\n\n"
-        "DECISION TREE:\n"
-        "1. User wants SPECIFIC DATA (email, phone, name, address, etc.)?\n"
-        "   → READ PDF WITH VISION + ANSWER DIRECTLY (NO TOOLS!)\n\n"
-        "2. User wants to analyze/summarize/understand content?\n"
-        "   → READ PDF WITH VISION + PROVIDE ANALYSIS (NO TOOLS!)\n\n"
-        "3. User explicitly says 'extract text' or 'convert to text file'?\n"
-        "   → ONLY THEN use extract_text_from_pdf tool\n\n"
-        "EXAMPLES:\n"
-        "✅ 'give me email and phone' → Read PDF directly, answer immediately\n"
-        "✅ 'what is this resume about' → Read PDF directly, summarize\n"
-        "✅ 'who is this person' → Read PDF directly, explain\n"
-        "✅ 'find the address' → Read PDF directly, provide address\n"
-        "❌ 'give me email' → extract_text_from_pdf (NO! Read directly!)\n"
-        "⚠️  'extract text from this pdf' → extract_text_from_pdf (OK, user explicitly asked for file)\n\n"
+        "AI: Calls extract_text_from_pdf → checks if text extracted → provides download link\n\n"
+        "DECISION TREE FOR PDFs:\n"
+        "1. User wants information from PDF?\n"
+        "   → Call extract_text_from_pdf(file_path)\n"
+        "   → Provide download link to user\n"
+        "   → User will download and tell you what they need\n\n"
+        "2. NEVER try to 'read' or 'analyze' PDF directly\n"
+        "   → You don't have that capability\n"
+        "   → Always extract text first\n\n"
         "🚀 LANGGRAPH-NATIVE CONTEXT MANAGEMENT (NO KEYWORDS NEEDED!):\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "CRITICAL: When user requests ANY file operation, call check_available_assets FIRST!\n\n"
