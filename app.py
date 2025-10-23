@@ -1016,9 +1016,12 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
     Convert PDF pages to individual image files (PNG or JPG).
     Each page becomes a separate image file.
 
+    IMPORTANT: When user asks for JPG/JPEG output, specify output_format='jpg'
+
     Args:
         file_path: Path to the PDF file
-        output_format: Output format ('png' or 'jpg', default: 'png')
+        output_format: Output format - use 'png' or 'jpg' (default: 'png')
+                      Examples: output_format='jpg' for JPEG output
 
     Returns:
         HTML with downloadable image links
@@ -2831,7 +2834,10 @@ def build_coordinator():
         "- generate_video_from_text: Create videos from text prompts using LTX-Video-13B\n"
         "- generate_video_from_image: Animate existing images into videos using LTX-Video-13B\n"
         "- generate_image_from_multiple: Combine multiple uploaded images using nano-banana/edit\n"
-        "- convert_pdf_to_images/word/excel/powerpoint: Convert PDF to other formats\n"
+        "- convert_pdf_to_images: Convert PDF pages to PNG or JPG images (specify output_format='png' or output_format='jpg')\n"
+        "- convert_pdf_to_word: Convert PDF to Word (DOCX) format\n"
+        "- convert_pdf_to_excel: Convert PDF to Excel (XLSX) format\n"
+        "- convert_pdf_to_powerpoint: Convert PDF to PowerPoint (PPTX) format\n"
         "- convert_word/excel/powerpoint_to_pdf: Convert Office documents to PDF\n"
         "- convert_excel_to_csv: Convert Excel spreadsheets to CSV format\n"
         "- convert_csv_to_excel: Convert CSV files to Excel spreadsheets\n"
