@@ -1714,8 +1714,16 @@ def merge_pdfs(file_paths: List[str], output_name: str = None, *, config: Runnab
 @tool
 def extract_text_from_pdf(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
     """
+    ⚠️ ONLY use this tool when user EXPLICITLY says 'extract text' or 'convert to text file'.
+
+    DO NOT use this tool for:
+    - Getting specific info (email, phone, name, etc.) - just read the PDF directly!
+    - Analyzing PDF content - just read the PDF directly!
+    - Answering questions about PDF - just read the PDF directly!
+
+    This tool creates a downloadable .txt file. Only use when user wants a text file download.
+
     Extract all text from a PDF document to a plain text file.
-    Useful for converting PDF text to editable format.
 
     Args:
         file_path: Path to the PDF file
@@ -3065,7 +3073,7 @@ def build_coordinator():
         "- convert_word/excel/powerpoint_to_html: Convert Office documents to HTML web format\n"
         "- convert_and_merge_documents: CRITICAL - Use this for combining/merging multiple documents into single PDF\n"
         "- merge_pdfs: Merge multiple PDF files only (use convert_and_merge_documents for mixed types)\n"
-        "- extract_text_from_pdf: Extract all text from PDF to plain text file\n"
+        "- extract_text_from_pdf: ⚠️ ONLY for 'extract text' requests - DO NOT use for getting info from PDFs (just read directly!)\n"
         "- compress_pdf_file: Reduce PDF file size by compressing images and removing metadata\n"
         "- split_pdf_file: Split PDF by page ranges - pages='all' for one-per-page, pages='1-3,4-end' for custom ranges\n"
         "- rotate_pdf_pages: Rotate PDF pages by 90/180/270 degrees\n"
@@ -3208,12 +3216,16 @@ def build_coordinator():
         "- IMPORTANT: When generating multiple images then creating a video, the video tool will automatically select the matching image based on your prompt\n\n"
         "🚨 CRITICAL: SMART PDF HANDLING 🚨\n"
         "GPT-4o vision can READ PDFs DIRECTLY - treat PDF uploads exactly like images!\n\n"
+        "⚠️ WHEN MESSAGE CONTAINS PDF DOCUMENT BLOCKS:\n"
+        "You ALREADY HAVE the PDF content! The PDF is visible to you right now!\n"
+        "DO NOT call extract_text_from_pdf or any other tool to 'get' the content.\n"
+        "Just read what's in front of you and answer the question!\n\n"
         "❌ WRONG APPROACH (causes blank files and bad UX):\n"
         "User: 'give me email and phone'\n"
         "AI: Calls extract_text_from_pdf → creates file → user downloads blank file\n\n"
         "✅ CORRECT APPROACH:\n"
         "User: 'give me email and phone'\n"
-        "AI: Reads PDF content directly → responds: 'Email: abc@xyz.com, Phone: +1234567890'\n\n"
+        "AI: Reads PDF content in current message → responds: 'Email: abc@xyz.com, Phone: +1234567890'\n\n"
         "DECISION TREE:\n"
         "1. User wants SPECIFIC DATA (email, phone, name, address, etc.)?\n"
         "   → READ PDF WITH VISION + ANSWER DIRECTLY (NO TOOLS!)\n\n"
