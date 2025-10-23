@@ -27,6 +27,51 @@ os.makedirs(DOCUMENTS_DIR, exist_ok=True)
 os.makedirs(ASSETS_DIR, exist_ok=True)
 
 
+# ==================== FILE PATH NORMALIZATION ====================
+
+def normalize_file_path(file_path: str) -> str:
+    """
+    Normalize file paths to handle various input formats:
+    - Full absolute paths: /app/data/documents/file.pdf
+    - Relative paths: documents/file.pdf
+    - Just filenames: file.pdf
+    - Web URLs: /documents/file.pdf
+
+    Returns the full absolute path if file exists, otherwise raises FileNotFoundError.
+    """
+    if not file_path:
+        raise FileNotFoundError("No file path provided")
+
+    # Remove web URL prefix if present
+    if file_path.startswith('/documents/'):
+        file_path = file_path.replace('/documents/', '')
+    elif file_path.startswith('/assets/'):
+        file_path = file_path.replace('/assets/', '')
+    elif file_path.startswith('/uploads/'):
+        file_path = file_path.replace('/uploads/', '')
+
+    # Case 1: Already a valid absolute path
+    if os.path.isabs(file_path) and os.path.exists(file_path):
+        return file_path
+
+    # Case 2: Check in DOCUMENTS_DIR
+    docs_path = os.path.join(DOCUMENTS_DIR, os.path.basename(file_path))
+    if os.path.exists(docs_path):
+        return docs_path
+
+    # Case 3: Check in ASSETS_DIR
+    assets_path = os.path.join(ASSETS_DIR, os.path.basename(file_path))
+    if os.path.exists(assets_path):
+        return assets_path
+
+    # Case 4: Check relative to current directory
+    if os.path.exists(file_path):
+        return os.path.abspath(file_path)
+
+    # File not found in any location
+    raise FileNotFoundError(f"File not found: {file_path}. Searched in: {DOCUMENTS_DIR}, {ASSETS_DIR}, and current directory.")
+
+
 # ==================== PDF to Images ====================
 
 def pdf_to_images(pdf_path: str, output_format: str = 'png', dpi: int = 200) -> List[str]:
@@ -42,6 +87,9 @@ def pdf_to_images(pdf_path: str, output_format: str = 'png', dpi: int = 200) -> 
         List of paths to generated image files
     """
     try:
+        # Normalize file path
+        pdf_path = normalize_file_path(pdf_path)
+
         # Convert PDF to images
         images = convert_from_path(pdf_path, dpi=dpi)
 
@@ -144,6 +192,9 @@ def pdf_to_word(pdf_path: str, output_name: str = None) -> str:
         Path to generated Word file
     """
     try:
+        # Normalize file path
+        pdf_path = normalize_file_path(pdf_path)
+
         # Open PDF
         doc_pdf = fitz.open(pdf_path)
 
@@ -274,6 +325,9 @@ def pdf_to_excel(pdf_path: str, output_name: str = None) -> str:
         Path to generated Excel file
     """
     try:
+        # Normalize file path
+        pdf_path = normalize_file_path(pdf_path)
+
         # Open PDF
         doc = fitz.open(pdf_path)
 
@@ -387,6 +441,9 @@ def pdf_to_powerpoint(pdf_path: str, output_name: str = None, slides_per_page: b
         Path to generated PowerPoint file
     """
     try:
+        # Normalize file path
+        pdf_path = normalize_file_path(pdf_path)
+
         # Open PDF
         doc = fitz.open(pdf_path)
 
@@ -455,6 +512,9 @@ def word_to_pdf(docx_path: str, output_name: str = None) -> str:
         Path to generated PDF file
     """
     try:
+        # Normalize file path
+        docx_path = normalize_file_path(docx_path)
+
         import subprocess
 
         # Validate file exists
@@ -513,6 +573,9 @@ def excel_to_pdf(xlsx_path: str, output_name: str = None) -> str:
         Path to generated PDF file
     """
     try:
+        # Normalize file path
+        xlsx_path = normalize_file_path(xlsx_path)
+
         import subprocess
 
         # Validate file exists
@@ -567,6 +630,9 @@ def powerpoint_to_pdf(pptx_path: str, output_name: str = None) -> str:
         Path to generated PDF file
     """
     try:
+        # Normalize file path
+        pptx_path = normalize_file_path(pptx_path)
+
         import subprocess
 
         # Validate file exists
@@ -612,6 +678,9 @@ def powerpoint_to_pdf(pptx_path: str, output_name: str = None) -> str:
 def get_pdf_info(pdf_path: str) -> dict:
     """Get information about a PDF file"""
     try:
+        # Normalize file path
+        pdf_path = normalize_file_path(pdf_path)
+
         doc = fitz.open(pdf_path)
         info = {
             'pages': len(doc),
@@ -704,6 +773,9 @@ def excel_to_csv(xlsx_path: str, output_name: str = None, sheet_name: str = None
         Path to generated CSV file
     """
     try:
+        # Normalize file path
+        xlsx_path = normalize_file_path(xlsx_path)
+
         import subprocess
 
         # Validate file exists
@@ -759,6 +831,9 @@ def csv_to_excel(csv_path: str, output_name: str = None) -> str:
         Path to generated Excel file
     """
     try:
+        # Normalize file path
+        csv_path = normalize_file_path(csv_path)
+
         import subprocess
 
         # Validate file exists
@@ -813,6 +888,9 @@ def word_to_txt(docx_path: str, output_name: str = None) -> str:
         Path to generated TXT file
     """
     try:
+        # Normalize file path
+        docx_path = normalize_file_path(docx_path)
+
         import subprocess
 
         # Validate file exists
@@ -867,6 +945,9 @@ def excel_to_txt(xlsx_path: str, output_name: str = None) -> str:
         Path to generated TXT file
     """
     try:
+        # Normalize file path
+        xlsx_path = normalize_file_path(xlsx_path)
+
         import subprocess
 
         # Validate file exists
@@ -921,6 +1002,9 @@ def word_to_html(docx_path: str, output_name: str = None) -> str:
         Path to generated HTML file
     """
     try:
+        # Normalize file path
+        docx_path = normalize_file_path(docx_path)
+
         import subprocess
 
         # Validate file exists
@@ -975,6 +1059,9 @@ def excel_to_html(xlsx_path: str, output_name: str = None) -> str:
         Path to generated HTML file
     """
     try:
+        # Normalize file path
+        xlsx_path = normalize_file_path(xlsx_path)
+
         import subprocess
 
         # Validate file exists
@@ -1029,6 +1116,9 @@ def powerpoint_to_html(pptx_path: str, output_name: str = None) -> str:
         Path to generated HTML file
     """
     try:
+        # Normalize file path
+        pptx_path = normalize_file_path(pptx_path)
+
         import subprocess
 
         # Validate file exists
@@ -1083,6 +1173,9 @@ def pdf_to_text(pdf_path: str, output_name: str = None) -> str:
         Path to generated TXT file
     """
     try:
+        # Normalize file path
+        pdf_path = normalize_file_path(pdf_path)
+
         if not os.path.exists(pdf_path):
             raise Exception(f"PDF file not found: {pdf_path}")
 
@@ -1133,6 +1226,9 @@ def compress_pdf(pdf_path: str, output_name: str = None, compression_level: str 
         Path to compressed PDF file
     """
     try:
+        # Normalize file path
+        pdf_path = normalize_file_path(pdf_path)
+
         import pikepdf
 
         if not os.path.exists(pdf_path):
@@ -1214,6 +1310,9 @@ def split_pdf(pdf_path: str, pages: str = 'all', output_name: str = None) -> Lis
         List of paths to generated PDF files
     """
     try:
+        # Normalize file path
+        pdf_path = normalize_file_path(pdf_path)
+
         if not os.path.exists(pdf_path):
             raise Exception(f"PDF file not found: {pdf_path}")
 
@@ -1279,6 +1378,9 @@ def rotate_pdf(pdf_path: str, rotation: int = 90, pages: str = 'all', output_nam
         Path to rotated PDF file
     """
     try:
+        # Normalize file path
+        pdf_path = normalize_file_path(pdf_path)
+
         if not os.path.exists(pdf_path):
             raise Exception(f"PDF file not found: {pdf_path}")
 
@@ -1337,6 +1439,9 @@ def pdf_to_csv(pdf_path: str, output_name: str = None) -> str:
         Path to generated CSV file
     """
     try:
+        # Normalize file path
+        pdf_path = normalize_file_path(pdf_path)
+
         import pdfplumber
         import csv
 
@@ -1398,6 +1503,9 @@ def csv_to_pdf(csv_path: str, output_name: str = None) -> str:
         Path to generated PDF file
     """
     try:
+        # Normalize file path
+        csv_path = normalize_file_path(csv_path)
+
         import csv
         from reportlab.lib.pagesizes import letter, landscape
         from reportlab.lib import colors
@@ -1518,6 +1626,9 @@ def pdf_to_html(pdf_path: str, output_name: str = None) -> str:
         Path to generated HTML file
     """
     try:
+        # Normalize file path
+        pdf_path = normalize_file_path(pdf_path)
+
         import pdfplumber
 
         if not os.path.exists(pdf_path):

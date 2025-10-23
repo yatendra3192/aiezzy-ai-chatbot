@@ -16,6 +16,58 @@ ASSETS_DIR = os.path.join(DATA_DIR, 'assets')
 os.makedirs(ASSETS_DIR, exist_ok=True)
 
 
+# ==================== FILE PATH NORMALIZATION ====================
+
+def normalize_file_path(file_path: str) -> str:
+    """
+    Normalize file paths to handle various input formats:
+    - Full absolute paths: /app/data/assets/image.jpg
+    - Relative paths: assets/image.jpg
+    - Just filenames: image.jpg
+    - Web URLs: /assets/image.jpg
+
+    Returns the full absolute path if file exists, otherwise raises FileNotFoundError.
+    """
+    if not file_path:
+        raise FileNotFoundError("No file path provided")
+
+    # Remove web URL prefix if present
+    if file_path.startswith('/documents/'):
+        file_path = file_path.replace('/documents/', '')
+    elif file_path.startswith('/assets/'):
+        file_path = file_path.replace('/assets/', '')
+    elif file_path.startswith('/uploads/'):
+        file_path = file_path.replace('/uploads/', '')
+
+    # Case 1: Already a valid absolute path
+    if os.path.isabs(file_path) and os.path.exists(file_path):
+        return file_path
+
+    # Case 2: Check in ASSETS_DIR (primary location for images)
+    assets_path = os.path.join(ASSETS_DIR, os.path.basename(file_path))
+    if os.path.exists(assets_path):
+        return assets_path
+
+    # Case 3: Check in parent directory's uploads folder
+    uploads_dir = os.path.join(os.path.dirname(ASSETS_DIR), 'uploads')
+    uploads_path = os.path.join(uploads_dir, os.path.basename(file_path))
+    if os.path.exists(uploads_path):
+        return uploads_path
+
+    # Case 4: Check in parent directory's documents folder (some images might be there)
+    documents_dir = os.path.join(os.path.dirname(ASSETS_DIR), 'documents')
+    documents_path = os.path.join(documents_dir, os.path.basename(file_path))
+    if os.path.exists(documents_path):
+        return documents_path
+
+    # Case 5: Check relative to current directory
+    if os.path.exists(file_path):
+        return os.path.abspath(file_path)
+
+    # File not found in any location
+    raise FileNotFoundError(f"Image file not found: {file_path}. Searched in: {ASSETS_DIR}, {uploads_dir}, {documents_dir}, and current directory.")
+
+
 # ==================== JPEG to PNG ====================
 
 def jpeg_to_png(input_path: str, output_name: str = None) -> str:
@@ -30,6 +82,9 @@ def jpeg_to_png(input_path: str, output_name: str = None) -> str:
         Path to generated PNG file
     """
     try:
+        # Normalize file path
+        input_path = normalize_file_path(input_path)
+
         if not os.path.exists(input_path):
             raise Exception(f"JPEG file not found: {input_path}")
 
@@ -74,6 +129,9 @@ def png_to_jpeg(input_path: str, output_name: str = None, quality: int = 95) -> 
         Path to generated JPEG file
     """
     try:
+        # Normalize file path
+        input_path = normalize_file_path(input_path)
+
         if not os.path.exists(input_path):
             raise Exception(f"PNG file not found: {input_path}")
 
@@ -123,6 +181,9 @@ def webp_to_png(input_path: str, output_name: str = None) -> str:
         Path to generated PNG file
     """
     try:
+        # Normalize file path
+        input_path = normalize_file_path(input_path)
+
         if not os.path.exists(input_path):
             raise Exception(f"WEBP file not found: {input_path}")
 
@@ -161,6 +222,9 @@ def webp_to_jpeg(input_path: str, output_name: str = None, quality: int = 95) ->
         Path to generated JPEG file
     """
     try:
+        # Normalize file path
+        input_path = normalize_file_path(input_path)
+
         if not os.path.exists(input_path):
             raise Exception(f"WEBP file not found: {input_path}")
 
@@ -210,6 +274,9 @@ def heic_to_jpeg(input_path: str, output_name: str = None, quality: int = 95) ->
         Path to generated JPEG file
     """
     try:
+        # Normalize file path
+        input_path = normalize_file_path(input_path)
+
         # Try to import pillow-heif
         try:
             from pillow_heif import register_heif_opener
@@ -260,6 +327,9 @@ def gif_to_png(input_path: str, output_name: str = None, extract_all_frames: boo
         Path to generated PNG file (or first file if multiple frames)
     """
     try:
+        # Normalize file path
+        input_path = normalize_file_path(input_path)
+
         if not os.path.exists(input_path):
             raise Exception(f"GIF file not found: {input_path}")
 
@@ -320,6 +390,9 @@ def resize_image(input_path: str, width: int = None, height: int = None,
         Path to resized image
     """
     try:
+        # Normalize file path
+        input_path = normalize_file_path(input_path)
+
         if not os.path.exists(input_path):
             raise Exception(f"Image file not found: {input_path}")
 
@@ -400,6 +473,9 @@ def compress_image(input_path: str, output_name: str = None,
         Path to compressed image
     """
     try:
+        # Normalize file path
+        input_path = normalize_file_path(input_path)
+
         if not os.path.exists(input_path):
             raise Exception(f"Image file not found: {input_path}")
 
@@ -510,6 +586,9 @@ def rotate_image(input_path: str, angle: int = 90, output_name: str = None,
         Path to rotated image
     """
     try:
+        # Normalize file path
+        input_path = normalize_file_path(input_path)
+
         if not os.path.exists(input_path):
             raise Exception(f"Image file not found: {input_path}")
 
