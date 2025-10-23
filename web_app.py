@@ -121,7 +121,11 @@ ALLOWED_DOCUMENT_EXTENSIONS = {'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt
 recent_images = {}
 # Store the most recent image per thread for editing context
 thread_image_context = {}
-# Store the most recent document per thread for operations context (rotate, split, etc.)
+# Store document context per thread for operations (tracks both original upload and conversions)
+# Structure: {
+#   'original': {'path': '...', 'filename': '...', 'timestamp': ...},  # Never overwritten
+#   'latest': {'path': '...', 'filename': '...', 'timestamp': ...}     # Updated with each conversion
+# }
 thread_document_context = {}
 # Store shared conversations
 shared_conversations = {}
@@ -386,22 +390,36 @@ def chat():
             messages.append({"role": "user", "content": enhanced_message})
         else:
             # Check if user is requesting document operation without specifying file
-            doc_operation_keywords = ['rotate', 'split', 'compress', 'extract', 'merge', 'degree', 'pages']
-            is_doc_operation = any(keyword in message.lower() for keyword in doc_operation_keywords)
+            conversion_keywords = ['convert', 'to pdf', 'to xlsx', 'to docx', 'to csv', 'to txt', 'to html']
+            manipulation_keywords = ['rotate', 'split', 'compress', 'extract', 'merge', 'degree', 'pages']
+
+            is_conversion = any(keyword in message.lower() for keyword in conversion_keywords)
+            is_manipulation = any(keyword in message.lower() for keyword in manipulation_keywords)
             has_document_context = thread_id in thread_document_context
 
-            if is_doc_operation and has_document_context and not documents and not document_path:
+            if (is_conversion or is_manipulation) and has_document_context and not documents and not document_path:
                 # User wants to perform operation on previously processed document
                 doc_context = thread_document_context[thread_id]
-                doc_file_path = doc_context['path']
-                doc_filename = doc_context['filename']
+
+                # SMART CONTEXT SELECTION:
+                # - Conversions (CSV->PDF, CSV->XLSX) use ORIGINAL uploaded file
+                # - Manipulations (rotate, split) use LATEST processed file
+                if is_conversion and 'original' in doc_context:
+                    selected_doc = doc_context['original']
+                    context_type = "original uploaded"
+                else:
+                    selected_doc = doc_context.get('latest', doc_context.get('original'))
+                    context_type = "latest processed"
+
+                doc_file_path = selected_doc['path']
+                doc_filename = selected_doc['filename']
 
                 # Check if context is recent (within last 10 minutes to avoid stale context)
-                context_age = time.time() - doc_context.get('timestamp', 0)
+                context_age = time.time() - selected_doc.get('timestamp', 0)
                 if context_age < 600:  # 10 minutes
-                    enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User is referring to the previously processed document: {doc_filename}]\n[FILE PATH: {doc_file_path}]\n\nPlease use this file for the requested operation."
+                    enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User is referring to the {context_type} document: {doc_filename}]\n[FILE PATH: {doc_file_path}]\n\nPlease use this file for the requested operation."
                     messages.append({"role": "user", "content": enhanced_message})
-                    print(f"DOCUMENT CONTEXT: Providing context for operation: {doc_filename}", file=sys.stderr)
+                    print(f"DOCUMENT CONTEXT: Providing {context_type} for {('conversion' if is_conversion else 'manipulation')}: {doc_filename}", file=sys.stderr)
                 else:
                     # Context too old, ask user to re-upload
                     messages.append({"role": "user", "content": message})
@@ -493,12 +511,30 @@ def chat():
             filename = doc_link_match.group(1)
             document_path = os.path.join(DOCUMENTS_DIR, filename)
             if os.path.exists(document_path):
-                thread_document_context[thread_id] = {
-                    'path': document_path,
-                    'filename': filename,
-                    'timestamp': time.time()
-                }
-                print(f"DOCUMENT CONTEXT: Updated thread {thread_id} with document: {filename}", file=sys.stderr)
+                # Update only the 'latest' field, preserving 'original'
+                if thread_id in thread_document_context:
+                    # Preserve original, update latest
+                    thread_document_context[thread_id]['latest'] = {
+                        'path': document_path,
+                        'filename': filename,
+                        'timestamp': time.time()
+                    }
+                    print(f"DOCUMENT CONTEXT: Updated 'latest' for thread {thread_id}: {filename}", file=sys.stderr)
+                else:
+                    # First operation (shouldn't happen if upload initialized context)
+                    thread_document_context[thread_id] = {
+                        'original': {
+                            'path': document_path,
+                            'filename': filename,
+                            'timestamp': time.time()
+                        },
+                        'latest': {
+                            'path': document_path,
+                            'filename': filename,
+                            'timestamp': time.time()
+                        }
+                    }
+                    print(f"DOCUMENT CONTEXT: Initialized thread {thread_id} with document: {filename}", file=sys.stderr)
             else:
                 print(f"DOCUMENT CONTEXT: File not found: {document_path}", file=sys.stderr)
 
@@ -768,6 +804,22 @@ def upload_document():
 
         # Generate thread ID for this document session
         thread_id = str(uuid.uuid4())
+
+        # DOCUMENT CONTEXT TRACKING: Store original uploaded file
+        # This will never be overwritten, allowing multiple conversions from same source
+        thread_document_context[thread_id] = {
+            'original': {
+                'path': file_path,
+                'filename': unique_filename,
+                'timestamp': timestamp
+            },
+            'latest': {
+                'path': file_path,
+                'filename': unique_filename,
+                'timestamp': timestamp
+            }
+        }
+        print(f"DOCUMENT CONTEXT: Initialized thread {thread_id} with original: {unique_filename}", file=sys.stderr)
 
         # Prepare response with file information
         response_data = {
