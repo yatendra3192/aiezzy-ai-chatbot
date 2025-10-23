@@ -100,8 +100,9 @@ def pdf_to_images(pdf_path: str, output_format: str = 'png', dpi: int = 200) -> 
             output_filename = f"{pdf_name}_page_{i+1}.{output_format}"
             output_path = os.path.join(ASSETS_DIR, output_filename)
 
-            # Save image
-            image.save(output_path, format=output_format.upper())
+            # Save image - PIL expects 'JPEG' not 'JPG'
+            pil_format = 'JPEG' if output_format.lower() == 'jpg' else output_format.upper()
+            image.save(output_path, format=pil_format)
             output_paths.append(output_path)
 
         return output_paths
