@@ -3204,22 +3204,47 @@
             let userContent = message;
             let messageImageData = null;
 
+            // SMART DEFAULT MESSAGE LOGIC
+            // Check if user previously specified an action (e.g., "convert to PNG") but upload failed
+            // If so, reuse that intent instead of defaulting to generic "What's in this image?"
+            const lastUserMessage = conversationHistory.length > 0
+                ? conversationHistory.filter(entry => entry.role === 'user').pop()
+                : null;
+
+            const hasActionIntent = lastUserMessage && lastUserMessage.content &&
+                /(convert|edit|modify|change|make|create|generate|to pdf|to png|to jpg|to word|to excel|to html|rotate|split|compress|merge)/i.test(lastUserMessage.content);
+
             if (hasUploadedDoc) {
                 // Document uploaded
                 if (!message) {
-                    userContent = `Analyze this ${documentForAPI.file_type.toUpperCase()} document`;
+                    // If previous message had action intent, reuse it
+                    if (hasActionIntent) {
+                        userContent = lastUserMessage.content;
+                    } else {
+                        userContent = `Analyze this ${documentForAPI.file_type.toUpperCase()} document`;
+                    }
                 }
             } else if (hasMultiImages) {
                 // Multiple images - show the first image as preview in message
                 messageImageData = uploadedImagesData.length > 0 ? uploadedImagesData[0] : null;
                 if (!message) {
-                    userContent = `Combine these ${uploadedImages.length} images into one artistic composition`;
+                    // If previous message had action intent, reuse it
+                    if (hasActionIntent) {
+                        userContent = lastUserMessage.content;
+                    } else {
+                        userContent = `Combine these ${uploadedImages.length} images into one artistic composition`;
+                    }
                 }
             } else if (hasUploadedImage) {
                 // Single image
                 messageImageData = uploadedImageData;
                 if (!message) {
-                    userContent = 'What\'s in this image?';
+                    // If previous message had action intent, reuse it
+                    if (hasActionIntent) {
+                        userContent = lastUserMessage.content;
+                    } else {
+                        userContent = 'What\'s in this image?';
+                    }
                 }
             }
 
@@ -3293,11 +3318,13 @@
                         imagesForAPI.forEach((image, index) => {
                             formData.append('images', image);
                         });
-                        formData.append('message', message || `Combine these ${imagesForAPI.length} images into one artistic composition`);
+                        // Use userContent which already has smart default logic applied
+                        formData.append('message', userContent);
                     } else {
                         // Single image
                         formData.append('image', imageForAPI);
-                        formData.append('message', message || 'What\'s in this image?');
+                        // Use userContent which already has smart default logic applied
+                        formData.append('message', userContent);
                     }
                     
                     response = await fetch('/api/analyze-image', {
