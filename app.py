@@ -1156,6 +1156,23 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
     Convert PDF pages to individual image files (PNG or JPG).
     Each page becomes a separate image file.
 
+    ⚠️ CRITICAL: After this tool completes, you MUST analyze the images with vision!
+
+    WORKFLOW AFTER CALLING THIS TOOL:
+    1. Tool converts PDF to images and returns HTML with image tags
+    2. Images are now displayed in the conversation
+    3. YOU MUST use your GPT-4o vision to READ the images immediately
+    4. Extract all visible text from the images
+    5. Answer the user's original question using the extracted text
+    6. DO NOT ask user "if you need text extracted" - JUST DO IT!
+
+    Example workflow:
+    - User: "extract text from PDF"
+    - You: Call convert_pdf_to_images(file_path)
+    - Tool: Returns images
+    - You: Immediately analyze images with vision
+    - You: Respond: "I analyzed the PDF and extracted: [all the text you see]"
+
     IMPORTANT: When user asks for JPG/JPEG output, specify output_format='jpg'
 
     Args:
@@ -1164,7 +1181,8 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
                       Examples: output_format='jpg' for JPEG output
 
     Returns:
-        HTML with downloadable image links
+        HTML with image tags that display the PDF pages as images.
+        After this returns, YOU MUST analyze these images with your vision.
     """
     try:
         print(f"INFO: Converting PDF to {output_format} images: {file_path}")
@@ -1176,9 +1194,8 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
         # Convert PDF to images
         image_paths = pdf_converter.pdf_to_images(file_path, output_format=output_format)
 
-        # Return ONLY raw HTML - no prose text that AI can paraphrase
+        # Build HTML for display
         html_parts = []
-
         for i, img_path in enumerate(image_paths, 1):
             filename = os.path.basename(img_path)
             html_parts.append(
@@ -1186,7 +1203,23 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
                 f'onclick="openImageModal(\'/assets/{filename}\')" style="max-width: 150px; margin: 5px;">'
             )
 
-        return "".join(html_parts)
+        html_output = "".join(html_parts)
+
+        # Return response with clear instructions for AI
+        response = (
+            f"✅ PDF converted to {len(image_paths)} image(s):\n\n"
+            f"{html_output}\n\n"
+            f"🤖 AI INSTRUCTION: The images above are now visible in this conversation. "
+            f"You MUST now use your GPT-4o vision capabilities to:\n"
+            f"1. Look at each image carefully\n"
+            f"2. Read ALL visible text from the images\n"
+            f"3. Extract the information the user requested\n"
+            f"4. Provide a complete response with the extracted text/information\n\n"
+            f"Image files created: {', '.join([os.path.basename(p) for p in image_paths])}\n"
+            f"DO NOT say 'if you need text extracted' - analyze the images NOW and provide the extracted information!"
+        )
+
+        return response
 
     except Exception as e:
         return f"❌ Error converting PDF to images: {str(e)}"
@@ -3290,11 +3323,13 @@ def build_coordinator():
         "3️⃣ If tool returns 'IMAGE_BASED_PDF_DETECTED':\n"
         "   ✅ IMAGE-BASED PDF (scanned/designed document)\n"
         "   → Call: convert_pdf_to_images(file_path)\n"
-        "   → Tool returns list of image paths (one per page)\n"
-        "   → ANALYZE the images with your vision capabilities\n"
-        "   → FIND the information user asked for from the images\n"
-        "   → ANSWER user's question directly\n"
-        "   → Example: 'Based on analyzing the PDF images, I found: Email: alkesh@example.com, Phone: +91 97249 02555'\n\n"
+        "   → Tool returns list of image paths and shows images in response\n"
+        "   → IMMEDIATELY ANALYZE the images with your vision capabilities (DO NOT ask user if they want text extracted!)\n"
+        "   → READ all visible text from the images using your vision\n"
+        "   → FIND the specific information user asked for\n"
+        "   → ANSWER user's question directly with the extracted information\n"
+        "   → Example: 'I analyzed the PDF and found: Email: alkesh@example.com, Phone: +91 97249 02555'\n"
+        "   → NEVER say 'If you need text extracted, let me know' - JUST DO IT AUTOMATICALLY!\n\n"
         "4️⃣ If user explicitly asks to 'download text' or 'save as txt':\n"
         "   → Extract text is already saved to file by the tool\n"
         "   → Provide download link from /documents/ directory\n\n"
@@ -3309,13 +3344,19 @@ def build_coordinator():
         "AI: Reads returned text: 'EXTRACTED_TEXT_FROM_PDF (2 pages): John Doe\\nEmail: john.doe@company.com\\nPhone: +1-555-1234...'\n"
         "AI: Responds to user: 'Based on the PDF, I found:\\n\\n**Email:** john.doe@company.com\\n**Phone:** +1-555-1234'\n\n"
         "✅ CORRECT EXAMPLE (Image-based PDF):\n"
-        "User: 'extract phone number from this resume'\n"
+        "User: 'extract text' or 'give me phone number'\n"
         "AI: Calls extract_text_from_pdf(file_path)\n"
         "AI: Gets: 'IMAGE_BASED_PDF_DETECTED'\n"
         "AI: Calls convert_pdf_to_images(file_path)\n"
         "AI: Gets: ['/assets/resume_page_1.png', '/assets/resume_page_2.png']\n"
-        "AI: Analyzes images with vision\n"
-        "AI: Responds: 'I analyzed the resume and found the phone number: +91 97249 02555'\n\n"
+        "AI: Images are now visible - IMMEDIATELY analyzes them with vision\n"
+        "AI: Reads all text from images: 'Alkesh Makwana, Email: alkesh@gmail.com, Phone: +91 97249 02555...'\n"
+        "AI: Responds to user: 'I analyzed the PDF and extracted the text:\\n\\nAlkesh Makwana\\nEmail: alkesh@gmail.com\\nPhone: +91 97249 02555...'\n\n"
+        "❌ WRONG EXAMPLE (Image-based PDF - asking instead of analyzing):\n"
+        "User: 'extract text'\n"
+        "AI: Calls extract_text_from_pdf + convert_pdf_to_images\n"
+        "AI: Shows image and says: 'Here is the first page. If you need text extracted, let me know!' ❌ WRONG!\n"
+        "AI: Should have analyzed immediately without asking!\n\n"
         "✅ CORRECT EXAMPLE (Download request):\n"
         "User: 'download the text from this PDF'\n"
         "AI: Calls extract_text_from_pdf(file_path)\n"
