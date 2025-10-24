@@ -1714,27 +1714,39 @@ def merge_pdfs(file_paths: List[str], output_name: str = None, *, config: Runnab
 @tool
 def extract_text_from_pdf(file_path: str, output_name: str = None, *, config: RunnableConfig) -> str:
     """
-    Extract all text from a PDF document to a downloadable text file.
+    Extract all text from a PDF document and return the raw text content.
 
     ⚠️ IMPORTANT: You CANNOT see PDF content directly!
     You only receive the file path when a PDF is uploaded.
-    Use this tool whenever user asks about PDF content.
+    Use this tool FIRST whenever user asks about PDF content.
 
     WHEN TO USE:
     - User uploads PDF and asks for ANY information from it
     - User wants to know email, phone, name, address, etc. from PDF
     - User wants to analyze or summarize PDF content
-    - User explicitly says 'extract text'
+    - User explicitly says 'extract text' or 'download text'
 
-    This tool creates a .txt file that user can download.
-    For image-based PDFs, it returns a helpful explanation file.
+    WHAT THIS TOOL RETURNS:
+    - For text-based PDFs: Returns the RAW extracted text content
+      → You should READ this text and answer the user's question
+      → Only provide download link if user explicitly asks for download/save/export
+    - For image-based PDFs: Returns 'IMAGE_BASED_PDF_DETECTED'
+      → You must call convert_pdf_to_images() and use vision to analyze
+
+    HOW TO USE THE EXTRACTED TEXT:
+    1. Read the returned text carefully
+    2. Find the specific information user asked for (email, phone, name, etc.)
+    3. Answer user's question directly with the found information
+    4. Do NOT just dump all the extracted text to user
+    5. Only if user asks to "download" or "save", create and provide download link
 
     Args:
         file_path: Path to the PDF file
         output_name: Optional output filename (without extension)
 
     Returns:
-        Download link for the generated text file
+        Raw extracted text content (for you to analyze and answer user's question)
+        OR 'IMAGE_BASED_PDF_DETECTED' (if image-based PDF)
     """
     try:
         print(f"INFO: Extracting text from PDF: {file_path}")
@@ -1751,17 +1763,22 @@ def extract_text_from_pdf(file_path: str, output_name: str = None, *, config: Ru
 
         # Check if this is an image-based PDF (no extractable text)
         if txt_path == "IMAGE_BASED_PDF_DETECTED":
-            return (
-                "⚠️ IMAGE-BASED PDF DETECTED\n\n"
-                "This PDF contains images/scanned content without extractable text.\n\n"
-                "NEXT STEP: Tell the user you'll convert the PDF to images and analyze them with vision.\n"
-                "Use the pdf_to_images tool to convert PDF pages, then analyze the images to answer their question."
-            )
+            return "IMAGE_BASED_PDF_DETECTED"
 
-        filename = os.path.basename(txt_path)
+        # Read the extracted text and return raw content
+        try:
+            with open(txt_path, 'r', encoding='utf-8') as f:
+                extracted_text = f.read()
 
-        # Return ONLY raw HTML - no prose text that AI can paraphrase
-        return f'<a href="/documents/{filename}" download>📄 {filename}</a>'
+            # Store the txt file path for potential download later
+            config_data = config.get("configurable", {})
+            config_data["last_extracted_txt_path"] = txt_path
+
+            # Return raw text for AI to analyze
+            return f"EXTRACTED_TEXT_FROM_PDF ({page_count} pages):\n\n{extracted_text}"
+
+        except Exception as read_error:
+            return f"❌ Error reading extracted text: {str(read_error)}"
 
     except Exception as e:
         return f"❌ Error extracting text from PDF: {str(e)}"
@@ -3087,7 +3104,7 @@ def build_coordinator():
         "- convert_word/excel/powerpoint_to_html: Convert Office documents to HTML web format\n"
         "- convert_and_merge_documents: CRITICAL - Use this for combining/merging multiple documents into single PDF\n"
         "- merge_pdfs: Merge multiple PDF files only (use convert_and_merge_documents for mixed types)\n"
-        "- extract_text_from_pdf: Extract text from PDF to downloadable file - use when user asks for ANY PDF information\n"
+        "- extract_text_from_pdf: Extract text from PDF and return raw content for AI to read and answer questions - use FIRST when user asks ANY PDF question\n"
         "- compress_pdf_file: Reduce PDF file size by compressing images and removing metadata\n"
         "- split_pdf_file: Split PDF by page ranges - pages='all' for one-per-page, pages='1-3,4-end' for custom ranges\n"
         "- rotate_pdf_pages: Rotate PDF pages by 90/180/270 degrees\n"
@@ -3228,42 +3245,58 @@ def build_coordinator():
         "- If no images uploaded but image requested: use generate_image\n"
         "- Only use check_image_context when you need to verify what's available\n"
         "- IMPORTANT: When generating multiple images then creating a video, the video tool will automatically select the matching image based on your prompt\n\n"
-        "🚨 CRITICAL: PDF HANDLING TRUTH 🚨\n"
-        "⚠️ YOU CANNOT SEE PDF VISUAL CONTENT - Don't lie about this!\n"
+        "🚨 CRITICAL: INTELLIGENT PDF HANDLING 🚨\n"
+        "⚠️ YOU CANNOT SEE PDF CONTENT DIRECTLY!\n"
         "When user uploads PDF, you only receive the FILE PATH (e.g., /documents/file.pdf).\n"
         "You DO NOT have access to the PDF visual content or text directly.\n\n"
         "⚠️ NEVER HALLUCINATE PDF DATA!\n"
         "DO NOT make up emails, phone numbers, or any information.\n"
-        "DO NOT say 'I can see the PDF' or 'The PDF is visible to me' - it's not true!\n\n"
-        "✅ CORRECT WORKFLOW FOR PDF QUESTIONS:\n"
-        "1. User uploads PDF and asks: 'give me email and phone'\n"
-        "2. You call: extract_text_from_pdf(file_path)\n"
-        "3a. If successful: Tool returns download link → provide link to user\n"
-        "3b. If IMAGE-BASED PDF detected:\n"
-        "    → Call convert_pdf_to_images(file_path) to get PNG images\n"
-        "    → Analyze the images with your vision capabilities\n"
-        "    → Answer the user's question directly based on what you see\n"
-        "4. NEVER provide download links for image-based PDFs - analyze and answer directly!\n\n"
-        "❌ WRONG APPROACH (hallucination):\n"
-        "User: 'give me email and phone'\n"
-        "AI: 'I can see the PDF. Email: fake@example.com, Phone: +1234567890' (MADE UP DATA!)\n\n"
-        "✅ CORRECT APPROACH (text-based PDF):\n"
-        "User: 'give me email and phone'\n"
-        "AI: Calls extract_text_from_pdf → gets download link → provides link to user\n\n"
-        "✅ CORRECT APPROACH (image-based PDF like designer resumes):\n"
-        "User: 'give me email and phone'\n"
-        "AI: Calls extract_text_from_pdf → gets 'IMAGE-BASED PDF DETECTED'\n"
-        "AI: Calls convert_pdf_to_images(file_path) → gets images of PDF pages\n"
-        "AI: Analyzes images with vision → responds: 'Email: alkeshmakwana1353@gmail.com, Phone: +91 97249 02555'\n\n"
-        "DECISION TREE FOR PDFs:\n"
-        "1. User wants information from PDF?\n"
-        "   → Call extract_text_from_pdf(file_path)\n\n"
-        "2. If tool returns download link:\n"
-        "   → Provide link to user\n\n"
-        "3. If tool returns 'IMAGE-BASED PDF DETECTED':\n"
-        "   → Call convert_pdf_to_images(file_path)\n"
-        "   → Analyze the resulting images\n"
-        "   → Answer question directly\n\n"
+        "DO NOT say 'I can see the PDF' - it's not true! You must use tools first.\n\n"
+        "✅ INTELLIGENT PDF WORKFLOW:\n\n"
+        "1️⃣ User uploads PDF and asks a question (e.g., 'give me email and phone', 'what is the name?')\n"
+        "   → Call: extract_text_from_pdf(file_path)\n\n"
+        "2️⃣ If tool returns 'EXTRACTED_TEXT_FROM_PDF':\n"
+        "   ✅ TEXT-BASED PDF - You can now read the text!\n"
+        "   → READ the extracted text carefully\n"
+        "   → FIND the specific information user asked for\n"
+        "   → ANSWER user's question directly with found information\n"
+        "   → Example: 'Based on the PDF, the email is: john@example.com and phone is: +1234567890'\n"
+        "   → Do NOT dump all extracted text to user (unless they ask for full text)\n"
+        "   → Only provide download link if user explicitly asks to 'download' or 'save'\n\n"
+        "3️⃣ If tool returns 'IMAGE_BASED_PDF_DETECTED':\n"
+        "   ✅ IMAGE-BASED PDF (scanned/designed document)\n"
+        "   → Call: convert_pdf_to_images(file_path)\n"
+        "   → Tool returns list of image paths (one per page)\n"
+        "   → ANALYZE the images with your vision capabilities\n"
+        "   → FIND the information user asked for from the images\n"
+        "   → ANSWER user's question directly\n"
+        "   → Example: 'Based on analyzing the PDF images, I found: Email: alkesh@example.com, Phone: +91 97249 02555'\n\n"
+        "4️⃣ If user explicitly asks to 'download text' or 'save as txt':\n"
+        "   → Extract text is already saved to file by the tool\n"
+        "   → Provide download link from /documents/ directory\n\n"
+        "❌ WRONG APPROACHES:\n"
+        "User: 'give me email from PDF'\n"
+        "AI: 'I can see the PDF. Email: fake@example.com' ❌ HALLUCINATION!\n\n"
+        "User: 'what's in this PDF?'\n"
+        "AI: *dumps 5000 lines of raw text* ❌ BAD UX!\n\n"
+        "✅ CORRECT EXAMPLE (Text-based PDF):\n"
+        "User: 'give me email and phone from this PDF'\n"
+        "AI: Calls extract_text_from_pdf(file_path)\n"
+        "AI: Reads returned text: 'EXTRACTED_TEXT_FROM_PDF (2 pages): John Doe\\nEmail: john.doe@company.com\\nPhone: +1-555-1234...'\n"
+        "AI: Responds to user: 'Based on the PDF, I found:\\n\\n**Email:** john.doe@company.com\\n**Phone:** +1-555-1234'\n\n"
+        "✅ CORRECT EXAMPLE (Image-based PDF):\n"
+        "User: 'extract phone number from this resume'\n"
+        "AI: Calls extract_text_from_pdf(file_path)\n"
+        "AI: Gets: 'IMAGE_BASED_PDF_DETECTED'\n"
+        "AI: Calls convert_pdf_to_images(file_path)\n"
+        "AI: Gets: ['/assets/resume_page_1.png', '/assets/resume_page_2.png']\n"
+        "AI: Analyzes images with vision\n"
+        "AI: Responds: 'I analyzed the resume and found the phone number: +91 97249 02555'\n\n"
+        "✅ CORRECT EXAMPLE (Download request):\n"
+        "User: 'download the text from this PDF'\n"
+        "AI: Calls extract_text_from_pdf(file_path)\n"
+        "AI: Reads extracted text (tool already saved it)\n"
+        "AI: Responds: 'I've extracted the text from your PDF. [📄 Download text file](/documents/filename.txt)'\n\n"
         "🚀 LANGGRAPH-NATIVE CONTEXT MANAGEMENT (NO KEYWORDS NEEDED!):\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "CRITICAL: When user requests ANY file operation, call check_available_assets FIRST!\n\n"
@@ -3349,8 +3382,10 @@ def build_coordinator():
         "DECISION LOGIC:\n"
         "- 'news', 'latest', 'current' -> Use search_web\n"
         "- 'extract text', 'read text', 'OCR', 'get text' + image upload -> Use GPT-4o vision to analyze and extract all text\n"
-        "- PDF uploaded + 'give me [specific info]', 'find [data]', 'what is [field]' -> READ PDF directly with vision and answer\n"
-        "- PDF uploaded + 'extract text', 'convert to text' -> Use extract_text_from_pdf tool\n"
+        "- PDF uploaded + ANY question or request -> ALWAYS call extract_text_from_pdf FIRST:\n"
+        "  • If returns 'EXTRACTED_TEXT_FROM_PDF': Read the text and answer user's question directly\n"
+        "  • If returns 'IMAGE_BASED_PDF_DETECTED': Call convert_pdf_to_images and use vision to analyze\n"
+        "- PDF uploaded + 'download text' or 'save as txt' -> extract_text_from_pdf + provide download link\n"
         "- 'create image', 'generate image' + NO uploads -> Use generate_image\n"
         "- Message contains '[Multi-image request with' -> IMMEDIATELY use generate_image_from_multiple\n"
         "- CURRENT multi-image upload (2-5) -> Use generate_image_from_multiple\n"
@@ -3380,8 +3415,10 @@ def build_coordinator():
         "3. Image + 'video'/'animate': use generate_video_from_image (if image in current message) OR call check_available_assets then use result\n"
         "4. Image + 'edit'/'modify': use edit_image (if image in current message) OR call check_available_assets then use result\n"
         "5. Image + 'extract text'/'read text'/'OCR'/'get text': use GPT-4o vision to analyze and extract all visible text\n"
-        "6. PDF + 'give me [specific data]'/'find [info]'/'what is [field]': READ PDF with vision and answer directly (NO TOOLS!)\n"
-        "7. PDF + 'extract text'/'convert to txt': ONLY then use extract_text_from_pdf tool\n"
+        "6. PDF + ANY QUESTION: ALWAYS call extract_text_from_pdf first, then:\n"
+        "   • If text-based: Read extracted text and answer question directly\n"
+        "   • If image-based: Call convert_pdf_to_images and use vision to answer\n"
+        "7. PDF + 'download text': extract_text_from_pdf + provide download link\n"
         "8. Image + ANY other request (create, make, wearing, etc.): use edit_image to modify uploaded image\n"
         "9. NEVER use generate_image when user has uploaded an image - always edit the uploaded image\n"
         "10. NEVER ask for uploads when image content blocks are present\n"
