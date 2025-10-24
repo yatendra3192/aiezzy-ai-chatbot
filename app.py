@@ -1248,11 +1248,26 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
 
             full_text = "\n".join(all_extracted_text)
 
+            # Save extracted text to a file for download
+            timestamp = int(time.time())
+            pdf_basename = pathlib.Path(file_path).stem
+            txt_filename = f"{timestamp}_0_{pdf_basename}_extracted.txt"
+            txt_path = os.path.join(pdf_converter.DOCUMENTS_DIR, txt_filename)
+
+            # Write extracted text to file
+            with open(txt_path, 'w', encoding='utf-8') as f:
+                f.write(full_text)
+
+            # Create download link
+            download_link = f'<a href="/documents/{txt_filename}" download class="download-link">📄 Download Full Text ({txt_filename})</a>'
+
             # Return both the images (for user to see) AND the extracted text (for AI to analyze)
             return (
                 f"✅ PDF converted to {len(image_paths)} image(s) and text extracted:\n\n"
                 f"{html_output}\n\n"
                 f"**EXTRACTED TEXT FROM ALL PAGES:**\n\n{full_text}\n\n"
+                f"---\n\n"
+                f"💾 **Download extracted text:** {download_link}\n\n"
                 f"Image files: {', '.join([os.path.basename(p) for p in image_paths])}"
             )
 
