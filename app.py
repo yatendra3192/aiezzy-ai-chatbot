@@ -1205,21 +1205,67 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
 
         html_output = "".join(html_parts)
 
-        # Return response with clear instructions for AI
-        response = (
-            f"✅ PDF converted to {len(image_paths)} image(s):\n\n"
-            f"{html_output}\n\n"
-            f"🤖 AI INSTRUCTION: The images above are now visible in this conversation. "
-            f"You MUST now use your GPT-4o vision capabilities to:\n"
-            f"1. Look at each image carefully\n"
-            f"2. Read ALL visible text from the images\n"
-            f"3. Extract the information the user requested\n"
-            f"4. Provide a complete response with the extracted text/information\n\n"
-            f"Image files created: {', '.join([os.path.basename(p) for p in image_paths])}\n"
-            f"DO NOT say 'if you need text extracted' - analyze the images NOW and provide the extracted information!"
-        )
+        # NOW EXTRACT TEXT FROM IMAGES USING OPENAI VISION API
+        # This ensures the AI gets actual extracted text, not just image HTML
+        try:
+            from openai import OpenAI
+            openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-        return response
+            all_extracted_text = []
+
+            for i, img_path in enumerate(image_paths, 1):
+                print(f"INFO: Extracting text from image {i}/{len(image_paths)} using vision...")
+
+                # Read image and encode to base64
+                with open(img_path, "rb") as img_file:
+                    image_data = base64.b64encode(img_file.read()).decode('utf-8')
+
+                # Use OpenAI Vision API to extract text
+                response = openai_client.chat.completions.create(
+                    model="gpt-4o",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": "Extract ALL visible text from this image. Preserve the layout and formatting as much as possible. Return ONLY the extracted text, no commentary or explanations."
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/png;base64,{image_data}"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    max_tokens=2000
+                )
+
+                extracted = response.choices[0].message.content
+                all_extracted_text.append(f"--- Page {i} ---\n{extracted}\n")
+
+            full_text = "\n".join(all_extracted_text)
+
+            # Return both the images (for user to see) AND the extracted text (for AI to analyze)
+            return (
+                f"✅ PDF converted to {len(image_paths)} image(s) and text extracted:\n\n"
+                f"{html_output}\n\n"
+                f"**EXTRACTED TEXT FROM ALL PAGES:**\n\n{full_text}\n\n"
+                f"Image files: {', '.join([os.path.basename(p) for p in image_paths])}"
+            )
+
+        except Exception as vision_error:
+            print(f"WARNING: Vision text extraction failed: {vision_error}")
+            # Fallback to just showing images if vision extraction fails
+            return (
+                f"✅ PDF converted to {len(image_paths)} image(s):\n\n"
+                f"{html_output}\n\n"
+                f"⚠️ Automatic text extraction failed: {str(vision_error)}\n"
+                f"Images displayed above for manual review.\n"
+                f"Image files: {', '.join([os.path.basename(p) for p in image_paths])}"
+            )
 
     except Exception as e:
         return f"❌ Error converting PDF to images: {str(e)}"
@@ -1813,9 +1859,17 @@ def extract_text_from_pdf(file_path: str, output_name: str = None, *, config: Ru
             # This leaves room for system prompts and user messages
             MAX_CHARS = 10000
 
+            # Generate download link HTML
+            download_link = f'<a href="/documents/{filename}" download class="download-link">📄 Download Full Text ({filename})</a>'
+
             if len(extracted_text) <= MAX_CHARS:
-                # Small PDF - return full text
-                return f"EXTRACTED_TEXT_FROM_PDF ({page_count} pages):\n\n{extracted_text}"
+                # Small PDF - return full text with download option
+                return (
+                    f"EXTRACTED_TEXT_FROM_PDF ({page_count} pages):\n\n"
+                    f"{extracted_text}\n\n"
+                    f"---\n\n"
+                    f"💾 **Download Option:** {download_link}"
+                )
             else:
                 # Large PDF - return truncated text with download option
                 truncated_text = extracted_text[:MAX_CHARS]
@@ -1825,13 +1879,11 @@ def extract_text_from_pdf(file_path: str, output_name: str = None, *, config: Ru
                     f"EXTRACTED_TEXT_FROM_PDF ({page_count} pages, {char_count} characters):\n\n"
                     f"{truncated_text}\n\n"
                     f"... [TEXT TRUNCATED - Showing first {MAX_CHARS} of {char_count} characters]\n\n"
-                    f"⚠️ IMPORTANT: This is a large PDF. The text above is truncated.\n"
-                    f"Full text file available at: /documents/{filename}\n\n"
-                    f"INSTRUCTIONS FOR AI:\n"
+                    f"⚠️ **IMPORTANT:** This is a large PDF. The text above is truncated.\n\n"
+                    f"💾 **Full text download:** {download_link}\n\n"
+                    f"**INSTRUCTIONS FOR AI:**\n"
                     f"- If the answer is in the text above, provide it to the user\n"
-                    f"- If the answer is NOT found in the truncated text, tell user:\n"
-                    f"  'The PDF is quite large. I can see the beginning, but the information you're looking for might be in the rest of the document. "
-                    f"You can download the full text file to search: [📄 {filename}](/documents/{filename})'\n"
+                    f"- If the answer is NOT found, tell user: 'The PDF is quite large. The information might be later in the document. You can download the full text file using the link above.'\n"
                 )
 
         except Exception as read_error:
@@ -3315,21 +3367,22 @@ def build_coordinator():
         "2️⃣ If tool returns 'EXTRACTED_TEXT_FROM_PDF':\n"
         "   ✅ TEXT-BASED PDF - You can now read the text!\n"
         "   → READ the extracted text carefully\n"
-        "   → FIND the specific information user asked for\n"
-        "   → ANSWER user's question directly with found information\n"
-        "   → Example: 'Based on the PDF, the email is: john@example.com and phone is: +1234567890'\n"
-        "   → Do NOT dump all extracted text to user (unless they ask for full text)\n"
-        "   → Only provide download link if user explicitly asks to 'download' or 'save'\n\n"
+        "   → The tool response includes a download link at the bottom\n"
+        "   → If user says 'extract text' or 'download text': Show them the extracted text AND the download link\n"
+        "   → If user asks a specific question: Answer the question directly, mention download link is available\n"
+        "   → Example for 'extract text': Show full extracted text + 'You can also download: [link]'\n"
+        "   → Example for specific question: 'Based on the PDF: Email: john@example.com. [Download full text available]'\n\n"
         "3️⃣ If tool returns 'IMAGE_BASED_PDF_DETECTED':\n"
         "   ✅ IMAGE-BASED PDF (scanned/designed document)\n"
         "   → Call: convert_pdf_to_images(file_path)\n"
-        "   → Tool returns list of image paths and shows images in response\n"
-        "   → IMMEDIATELY ANALYZE the images with your vision capabilities (DO NOT ask user if they want text extracted!)\n"
-        "   → READ all visible text from the images using your vision\n"
-        "   → FIND the specific information user asked for\n"
-        "   → ANSWER user's question directly with the extracted information\n"
-        "   → Example: 'I analyzed the PDF and found: Email: alkesh@example.com, Phone: +91 97249 02555'\n"
-        "   → NEVER say 'If you need text extracted, let me know' - JUST DO IT AUTOMATICALLY!\n\n"
+        "   → Tool automatically extracts text using vision and returns:\n"
+        "     • Images (for user to see)\n"
+        "     • **EXTRACTED TEXT FROM ALL PAGES** (for you to analyze)\n"
+        "   → READ the extracted text section from the tool response\n"
+        "   → If user says 'extract text': Show them the extracted text\n"
+        "   → If user asks specific question: Answer using the extracted text\n"
+        "   → Example: 'I analyzed the PDF and extracted: [show full text]'\n"
+        "   → NO HALLUCINATION: The text is real, extracted by vision API inside the tool\n\n"
         "4️⃣ If user explicitly asks to 'download text' or 'save as txt':\n"
         "   → Extract text is already saved to file by the tool\n"
         "   → Provide download link from /documents/ directory\n\n"
@@ -3348,15 +3401,14 @@ def build_coordinator():
         "AI: Calls extract_text_from_pdf(file_path)\n"
         "AI: Gets: 'IMAGE_BASED_PDF_DETECTED'\n"
         "AI: Calls convert_pdf_to_images(file_path)\n"
-        "AI: Gets: ['/assets/resume_page_1.png', '/assets/resume_page_2.png']\n"
-        "AI: Images are now visible - IMMEDIATELY analyzes them with vision\n"
-        "AI: Reads all text from images: 'Alkesh Makwana, Email: alkesh@gmail.com, Phone: +91 97249 02555...'\n"
-        "AI: Responds to user: 'I analyzed the PDF and extracted the text:\\n\\nAlkesh Makwana\\nEmail: alkesh@gmail.com\\nPhone: +91 97249 02555...'\n\n"
-        "❌ WRONG EXAMPLE (Image-based PDF - asking instead of analyzing):\n"
-        "User: 'extract text'\n"
-        "AI: Calls extract_text_from_pdf + convert_pdf_to_images\n"
-        "AI: Shows image and says: 'Here is the first page. If you need text extracted, let me know!' ❌ WRONG!\n"
-        "AI: Should have analyzed immediately without asking!\n\n"
+        "AI: Tool returns: Images + 'EXTRACTED TEXT FROM ALL PAGES: Alkesh Makwana, Email: alkesh@gmail.com, Phone: +91 97249 02555...'\n"
+        "AI: Reads the extracted text from tool response\n"
+        "AI: Responds to user: 'I analyzed the PDF and extracted:\\n\\nAlkesh Makwana\\nEmail: alkesh@gmail.com\\nPhone: +91 97249 02555...'\n\n"
+        "❌ WRONG EXAMPLE (Hallucination with placeholders):\n"
+        "User: 'give me company name'\n"
+        "AI: Calls tools and gets actual extracted text\n"
+        "AI: Responds: 'Company Name: [Extracted Company Name from the image]' ❌ HALLUCINATION!\n"
+        "AI: Should show REAL text, not placeholders in brackets!\n\n"
         "✅ CORRECT EXAMPLE (Download request):\n"
         "User: 'download the text from this PDF'\n"
         "AI: Calls extract_text_from_pdf(file_path)\n"
