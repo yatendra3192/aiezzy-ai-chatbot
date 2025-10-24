@@ -1774,8 +1774,32 @@ def extract_text_from_pdf(file_path: str, output_name: str = None, *, config: Ru
             config_data = config.get("configurable", {})
             config_data["last_extracted_txt_path"] = txt_path
 
-            # Return raw text for AI to analyze
-            return f"EXTRACTED_TEXT_FROM_PDF ({page_count} pages):\n\n{extracted_text}"
+            filename = os.path.basename(txt_path)
+
+            # Limit text to prevent rate limit issues (max ~10000 chars = ~2500 tokens)
+            # This leaves room for system prompts and user messages
+            MAX_CHARS = 10000
+
+            if len(extracted_text) <= MAX_CHARS:
+                # Small PDF - return full text
+                return f"EXTRACTED_TEXT_FROM_PDF ({page_count} pages):\n\n{extracted_text}"
+            else:
+                # Large PDF - return truncated text with download option
+                truncated_text = extracted_text[:MAX_CHARS]
+                char_count = len(extracted_text)
+
+                return (
+                    f"EXTRACTED_TEXT_FROM_PDF ({page_count} pages, {char_count} characters):\n\n"
+                    f"{truncated_text}\n\n"
+                    f"... [TEXT TRUNCATED - Showing first {MAX_CHARS} of {char_count} characters]\n\n"
+                    f"⚠️ IMPORTANT: This is a large PDF. The text above is truncated.\n"
+                    f"Full text file available at: /documents/{filename}\n\n"
+                    f"INSTRUCTIONS FOR AI:\n"
+                    f"- If the answer is in the text above, provide it to the user\n"
+                    f"- If the answer is NOT found in the truncated text, tell user:\n"
+                    f"  'The PDF is quite large. I can see the beginning, but the information you're looking for might be in the rest of the document. "
+                    f"You can download the full text file to search: [📄 {filename}](/documents/{filename})'\n"
+                )
 
         except Exception as read_error:
             return f"❌ Error reading extracted text: {str(read_error)}"
