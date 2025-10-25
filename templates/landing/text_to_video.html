@@ -128,7 +128,18 @@
         .feature-card p { color: #6b7280; }
         footer { background: #111827; color: #9ca3af; padding: 48px 24px; text-align: center; }
         footer a { color: #8b5cf6; text-decoration: none; }
-        @media (max-width: 768px) { .hero h1 { font-size: 32px; } }
+        .comparison { padding: 80px 24px; background: white; }
+        .comparison-container { max-width: 1000px; margin: 0 auto; }
+        .comparison-table { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .comparison-row { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 24px; padding: 24px; border-bottom: 1px solid #e5e7eb; }
+        .comparison-row:first-child { background: #8b5cf6; color: white; font-weight: 700; font-size: 18px; }
+        .comparison-row:last-child { border-bottom: none; }
+        .checkmark { color: #8b5cf6; font-size: 24px; font-weight: 700; }
+        .xmark { color: #ef4444; font-size: 24px; }
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 32px; }
+            .comparison-row { grid-template-columns: 2fr 1fr 1fr; gap: 12px; padding: 16px; font-size: 14px; }
+        }
     </style>
 </head>
 <body>
@@ -164,6 +175,94 @@
                 <div class="feature-icon">🎬</div>
                 <h3>Professional Quality</h3>
                 <p>Powered by LTX-Video-13B AI model. High-quality, smooth video output.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section class="comparison">
+        <div class="comparison-container">
+            <h2 class="section-title">AIezzy vs Other Text-to-Video Generators</h2>
+            <p class="section-subtitle">See why AIezzy leads in free AI video generation</p>
+
+            <div class="comparison-table">
+                <div class="comparison-row">
+                    <div>Feature</div>
+                    <div style="text-align: center;">AIezzy</div>
+                    <div style="text-align: center;">Competitors</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Unlimited Video Generation</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> Free Forever</div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> 3-5 videos/month</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>No Signup Required</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span></div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> Account required</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Video Length</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> 30-60 seconds</div>
+                    <div style="text-align: center;">10-30 seconds</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Generation Speed</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> 60-90 seconds</div>
+                    <div style="text-align: center;">120-180 seconds</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>AI Model</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> LTX-Video-13B</div>
+                    <div style="text-align: center;">Various models</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Image-to-Video</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> Included</div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> Premium only</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Watermarks on Videos</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> None</div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> Yes (free plan)</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Video Quality</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> High quality</div>
+                    <div style="text-align: center;">Medium-High</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>AI Chatbot (GPT-4o)</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> Included</div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> Not available</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>AI Image Generation</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> Free</div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> Separate service</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Commercial Use Rights</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> Yes</div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> Varies</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Monthly Cost</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">$0</span></div>
+                    <div style="text-align: center;">$20-50 per month</div>
+                </div>
             </div>
         </div>
     </section>

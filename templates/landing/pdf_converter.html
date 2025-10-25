@@ -381,6 +381,54 @@
             text-decoration: underline;
         }
 
+        /* Comparison Section */
+        .comparison {
+            padding: 80px 24px;
+            background: white;
+        }
+
+        .comparison-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .comparison-table {
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .comparison-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 24px;
+            padding: 24px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .comparison-row:first-child {
+            background: #10b981;
+            color: white;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .comparison-row:last-child {
+            border-bottom: none;
+        }
+
+        .checkmark {
+            color: #10b981;
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .xmark {
+            color: #ef4444;
+            font-size: 24px;
+        }
+
         @media (max-width: 768px) {
             .hero h1 {
                 font-size: 32px;
@@ -396,6 +444,13 @@
 
             .conversion-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .comparison-row {
+                grid-template-columns: 2fr 1fr 1fr;
+                gap: 12px;
+                padding: 16px;
+                font-size: 14px;
             }
         }
     </style>
@@ -519,6 +574,94 @@
                     <div class="feature-icon">🔄</div>
                     <h3>Batch Processing</h3>
                     <p>Convert multiple documents at once. Upload up to 100 files for batch conversion.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Comparison Section -->
+    <section class="comparison">
+        <div class="comparison-container">
+            <h2 class="section-title">AIezzy vs Other PDF Converters</h2>
+            <p class="section-subtitle">See why AIezzy is the better choice for your PDF conversion needs</p>
+
+            <div class="comparison-table">
+                <div class="comparison-row">
+                    <div>Feature</div>
+                    <div style="text-align: center;">AIezzy</div>
+                    <div style="text-align: center;">Competitors</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Unlimited Conversions</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> Free Forever</div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> 2-5 per day</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>File Size Limit</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> Unlimited</div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> 5-15 MB max</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>No Signup Required</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span></div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> Email required</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Batch Conversion</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> Up to 100 files</div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> Paid only</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>OCR Text Extraction</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> Advanced AI</div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> Premium only</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Format Support</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> 15+ formats</div>
+                    <div style="text-align: center;">5-8 formats</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Conversion Speed</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> 5-15 seconds</div>
+                    <div style="text-align: center;">30-60 seconds</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Watermarks on Output</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> None</div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> Yes (free plan)</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>AI-Powered Chatbot</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> GPT-4o included</div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> Not available</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Image Generation</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> Unlimited</div>
+                    <div style="text-align: center;"><span class="xmark">✗</span> Not available</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Privacy & Security</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> Auto-delete</div>
+                    <div style="text-align: center;"><span class="checkmark">✓</span> Varies</div>
+                </div>
+
+                <div class="comparison-row">
+                    <div><strong>Monthly Cost</strong></div>
+                    <div style="text-align: center;"><span class="checkmark">$0</span></div>
+                    <div style="text-align: center;">$6-12 per month</div>
                 </div>
             </div>
         </div>
