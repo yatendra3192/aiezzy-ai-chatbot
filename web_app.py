@@ -92,6 +92,16 @@ def add_security_headers(response):
     # Permissions-Policy - Disable unnecessary browser features
     response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
 
+    # Cache-Control - Enable browser caching for static assets (Core Web Vitals optimization)
+    if request.path.endswith(('.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.webp')):
+        response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'  # 1 year
+    elif request.path.endswith(('.css', '.js')):
+        response.headers['Cache-Control'] = 'public, max-age=2592000'  # 30 days
+    elif request.path.endswith(('.html', '.txt')):
+        response.headers['Cache-Control'] = 'public, max-age=86400'  # 1 day
+    else:
+        response.headers['Cache-Control'] = 'public, max-age=3600'  # 1 hour
+
     return response
 
 # Add custom filter for timestamp formatting
