@@ -6,6 +6,7 @@ import uuid
 import time
 import json
 import secrets
+import requests
 from werkzeug.utils import secure_filename
 from app import app as langgraph_app, encode_image_to_content_block, set_recent_image_path, clear_thread_cache, clear_thread_context, reset_all_context, set_current_thread_id, set_document_context, update_document_latest
 
@@ -50,6 +51,48 @@ init_auth(web_app)
 
 # Initialize user manager
 user_manager = UserManager()
+
+# ===== Security Headers for A+ Rating =====
+@web_app.after_request
+def add_security_headers(response):
+    """
+    Add comprehensive security headers to all responses for A+ security rating.
+    These headers protect against XSS, clickjacking, MIME sniffing, and other attacks.
+    """
+    # HSTS - Force HTTPS for 1 year, including subdomains
+    response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains; preload'
+
+    # CSP - Strict Content Security Policy (prevent XSS)
+    # Allow same-origin resources, inline styles/scripts (needed for app), external CDNs
+    csp_policy = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "font-src 'self' data:; "
+        "connect-src 'self' https://www.google-analytics.com; "
+        "frame-ancestors 'self'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
+    response.headers['Content-Security-Policy'] = csp_policy
+
+    # X-Frame-Options - Prevent clickjacking
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+
+    # X-Content-Type-Options - Prevent MIME sniffing
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+
+    # X-XSS-Protection - Enable XSS filter (legacy browsers)
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+
+    # Referrer-Policy - Control referer information
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+
+    # Permissions-Policy - Disable unnecessary browser features
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+
+    return response
 
 # Add custom filter for timestamp formatting
 @web_app.template_filter('timestamp_to_date')
@@ -135,6 +178,69 @@ feature_requests = {}
 user_conversations = {}
 
 # Conversations directory already created above with CONVERSATIONS_DIR
+
+# ===== IndexNow Protocol for Instant Search Engine Indexing =====
+INDEXNOW_KEY = "dc42f34e7a2e52048e3d62723b7193017d5f13cc23ca4322b9ebb5e2e2ada103"
+INDEXNOW_ENDPOINT = "https://api.indexnow.org/IndexNow"
+
+def submit_to_indexnow(urls):
+    """
+    Submit URLs to IndexNow for instant indexing in Bing, Yandex, and other search engines.
+
+    Args:
+        urls: Single URL string or list of URLs to submit
+
+    Returns:
+        bool: True if submission successful, False otherwise
+    """
+    if not urls:
+        return False
+
+    # Convert single URL to list
+    if isinstance(urls, str):
+        urls = [urls]
+
+    # Prepare payload
+    payload = {
+        "host": "aiezzy.com",
+        "key": INDEXNOW_KEY,
+        "urlList": urls
+    }
+
+    try:
+        response = requests.post(
+            INDEXNOW_ENDPOINT,
+            json=payload,
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            timeout=10
+        )
+
+        if response.status_code in [200, 202]:
+            print(f"[SUCCESS] IndexNow: Successfully submitted {len(urls)} URL(s)")
+            return True
+        else:
+            print(f"[WARNING] IndexNow: Got status {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"[ERROR] IndexNow: Error - {str(e)}")
+        return False
+
+def submit_key_pages_to_indexnow():
+    """Submit all key landing pages to IndexNow for instant indexing"""
+    key_pages = [
+        "https://aiezzy.com/",
+        "https://aiezzy.com/pdf-converter",
+        "https://aiezzy.com/ai-image-generator",
+        "https://aiezzy.com/word-to-pdf",
+        "https://aiezzy.com/chatgpt-alternative",
+        "https://aiezzy.com/text-to-video",
+        "https://aiezzy.com/pdf-to-word",
+        "https://aiezzy.com/excel-to-pdf",
+        "https://aiezzy.com/pdf-to-excel",
+        "https://aiezzy.com/compress-pdf",
+        "https://aiezzy.com/merge-pdf"
+    ]
+    return submit_to_indexnow(key_pages)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -419,6 +525,37 @@ def chat():
         
         response_content = result["messages"][-1].content
 
+        # CRITICAL FIX: Inject HTML from tool outputs if AI didn't include them
+        # This ensures images/videos/links always appear even if GPT-4o paraphrases
+        from langchain_core.messages import ToolMessage
+        tool_html_outputs = []
+        for msg in result["messages"]:
+            if isinstance(msg, ToolMessage):
+                tool_content = msg.content
+                # Check if tool output contains HTML tags
+                if tool_content and ('<img src=' in tool_content or '<video' in tool_content or '<a href=' in tool_content):
+                    # Extract just the HTML tags, not the descriptive text
+                    import re
+                    # Find all <img> tags
+                    img_tags = re.findall(r'<img[^>]+>', tool_content, re.IGNORECASE)
+                    # Find all <video> tags with their content
+                    video_tags = re.findall(r'<video[^>]*>.*?</video>', tool_content, re.IGNORECASE | re.DOTALL)
+                    # Find all <a> tags
+                    link_tags = re.findall(r'<a[^>]+>[^<]*</a>', tool_content, re.IGNORECASE)
+
+                    tool_html_outputs.extend(img_tags)
+                    tool_html_outputs.extend(video_tags)
+                    tool_html_outputs.extend(link_tags)
+
+        # If we found HTML in tool outputs but it's not in the response, prepend it
+        if tool_html_outputs:
+            html_content = ' '.join(tool_html_outputs)
+            # Check if response already contains this HTML
+            if not any(html_tag in response_content for html_tag in tool_html_outputs[:3]):  # Check first 3 tags
+                print(f"HTML INJECTION FIX: Adding {len(tool_html_outputs)} HTML elements from tool outputs", file=sys.stderr)
+                # Prepend HTML before the conversational response
+                response_content = html_content + '\n\n' + response_content
+
         # CRITICAL FIX: Repair broken download links caused by AI converting HTML to markdown
         # Pattern: "📄 Part 1: Pages 1-3[]()" or "📄 filename.pdf[]()"
         import re
@@ -455,7 +592,7 @@ def chat():
                         part_num, start_page, end_page = part_match.groups()
                         # Search for file matching pattern
                         pattern = f"*part{part_num}_pages{start_page}-{end_page}.pdf"
-                        matching_files = [f for f in docs_filenames.keys() if re.search(f'part{part_num}_pages{start_page}-{end_page}\.pdf', f, re.IGNORECASE)]
+                        matching_files = [f for f in docs_filenames.keys() if re.search(rf'part{part_num}_pages{start_page}-{end_page}\.pdf', f, re.IGNORECASE)]
                         if matching_files:
                             matched_file = matching_files[0]
                             print(f"LINK FIX: Matched by part/pages pattern: {matched_file}", file=sys.stderr)
@@ -702,11 +839,42 @@ def analyze_image():
         )
         
         response_content = result["messages"][-1].content
-        
+
+        # CRITICAL FIX: Inject HTML from tool outputs if AI didn't include them
+        # This ensures images/videos/links always appear even if GPT-4o paraphrases
+        from langchain_core.messages import ToolMessage
+        tool_html_outputs = []
+        for msg in result["messages"]:
+            if isinstance(msg, ToolMessage):
+                tool_content = msg.content
+                # Check if tool output contains HTML tags
+                if tool_content and ('<img src=' in tool_content or '<video' in tool_content or '<a href=' in tool_content):
+                    # Extract just the HTML tags, not the descriptive text
+                    import re
+                    # Find all <img> tags
+                    img_tags = re.findall(r'<img[^>]+>', tool_content, re.IGNORECASE)
+                    # Find all <video> tags with their content
+                    video_tags = re.findall(r'<video[^>]*>.*?</video>', tool_content, re.IGNORECASE | re.DOTALL)
+                    # Find all <a> tags
+                    link_tags = re.findall(r'<a[^>]+>[^<]*</a>', tool_content, re.IGNORECASE)
+
+                    tool_html_outputs.extend(img_tags)
+                    tool_html_outputs.extend(video_tags)
+                    tool_html_outputs.extend(link_tags)
+
+        # If we found HTML in tool outputs but it's not in the response, prepend it
+        if tool_html_outputs:
+            html_content = ' '.join(tool_html_outputs)
+            # Check if response already contains this HTML
+            if not any(html_tag in response_content for html_tag in tool_html_outputs[:3]):  # Check first 3 tags
+                print(f"HTML INJECTION FIX (analyze-image): Adding {len(tool_html_outputs)} HTML elements from tool outputs", file=sys.stderr)
+                # Prepend HTML before the conversational response
+                response_content = html_content + '\n\n' + response_content
+
         # DISABLED PROBLEMATIC FALLBACK: This was causing Krishna image to appear inappropriately
         # The agent should handle image operations correctly without fallback
         pass
-        
+
         return jsonify({
             'response': response_content,
             'thread_id': thread_id,
@@ -733,6 +901,12 @@ def serve_logo():
 @web_app.route('/favicon.png')
 def serve_favicon():
     return send_from_directory('.', 'favicon.png')
+
+# Serve IndexNow verification file
+@web_app.route('/dc42f34e7a2e52048e3d62723b7193017d5f13cc23ca4322b9ebb5e2e2ada103.txt')
+def serve_indexnow_key():
+    """Serve IndexNow API key verification file for instant search engine indexing"""
+    return send_from_directory('.', 'dc42f34e7a2e52048e3d62723b7193017d5f13cc23ca4322b9ebb5e2e2ada103.txt')
 
 @web_app.route('/videos/<filename>')
 def serve_video(filename):
@@ -2457,8 +2631,11 @@ def ai_image_editor_page():
 
 @web_app.route('/chatgpt-alternative')
 def chatgpt_alternative_page():
-    """SEO-optimized landing page for ChatGPT alternative"""
-    return redirect('/')
+    """SEO-optimized landing page for ChatGPT alternative - 90.5K searches/month"""
+    try:
+        return render_template('landing/chatgpt-alternative.html')
+    except:
+        return redirect('/')
 
 @web_app.route('/tools')
 def tools_page():
@@ -2486,5 +2663,9 @@ def faq_page():
     return redirect('/')
 
 if __name__ == '__main__':
+    # Submit key pages to IndexNow for instant indexing on startup
+    print("Submitting key pages to IndexNow for instant search engine indexing...")
+    submit_key_pages_to_indexnow()
+
     port = int(os.environ.get('PORT', 5000))
     web_app.run(debug=False, host='0.0.0.0', port=port)
