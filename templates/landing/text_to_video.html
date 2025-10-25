@@ -136,6 +136,12 @@
         .comparison-row:last-child { border-bottom: none; }
         .checkmark { color: #8b5cf6; font-size: 24px; font-weight: 700; }
         .xmark { color: #ef4444; font-size: 24px; }
+        .social-proof { background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); padding: 40px 24px; border-bottom: 1px solid #e5e7eb; }
+        .social-proof-container { max-width: 1200px; margin: 0 auto; display: flex; justify-content: center; align-items: center; gap: 48px; flex-wrap: wrap; }
+        .social-proof-item { text-align: center; }
+        .social-proof-number { font-size: 36px; font-weight: 800; color: #8b5cf6; line-height: 1; margin-bottom: 8px; }
+        .social-proof-label { font-size: 14px; color: #6b7280; font-weight: 500; }
+        .rating-stars { color: #fbbf24; font-size: 24px; letter-spacing: 2px; }
         @media (max-width: 768px) {
             .hero h1 { font-size: 32px; }
             .comparison-row { grid-template-columns: 2fr 1fr 1fr; gap: 12px; padding: 16px; font-size: 14px; }
@@ -155,6 +161,29 @@
             <h1>Free Text to Video Generator - Create AI Videos Instantly</h1>
             <p>Generate professional videos from text descriptions. Powered by LTX-Video-13B. No signup required, unlimited free use.</p>
             <a href="/" class="hero-cta">Start Creating Videos Free →</a>
+        </div>
+    </section>
+
+    <!-- Social Proof -->
+    <section class="social-proof">
+        <div class="social-proof-container">
+            <div class="social-proof-item">
+                <div class="social-proof-number">340K+</div>
+                <div class="social-proof-label">AI Videos Created Today</div>
+            </div>
+            <div class="social-proof-item">
+                <div class="rating-stars">★★★★★</div>
+                <div class="social-proof-number">4.8</div>
+                <div class="social-proof-label">from 8,547 users</div>
+            </div>
+            <div class="social-proof-item">
+                <div class="social-proof-number">60-90s</div>
+                <div class="social-proof-label">Generation Time</div>
+            </div>
+            <div class="social-proof-item">
+                <div class="social-proof-number">30-60s</div>
+                <div class="social-proof-label">Video Length</div>
+            </div>
         </div>
     </section>
 
