@@ -450,6 +450,20 @@ def get_latest_uploaded_file(thread_id, category=None):
     # Return most recent file of any type
     return context['files'][-1]
 
+def get_all_uploaded_files(thread_id, category=None):
+    """Get all uploaded files in thread, optionally filtered by category"""
+    context = get_unified_file_context(thread_id)
+
+    if not context['files']:
+        return []
+
+    if category:
+        # Filter by category
+        return [f for f in context['files'] if f['category'] == category]
+
+    # Return all files
+    return context['files']
+
 # === END UNIFIED FILE CONTEXT ===
 
 # --- Tool: image editing (FAL AI nano-banana/edit) ------------------------
@@ -1362,55 +1376,108 @@ def create_shareable_link(state: Annotated[dict, InjectedState], *, config: Runn
     else:
         print(f"SHAREABLE_LINK_DEBUG: Thread {thread_id} NOT FOUND in unified context!", flush=True)
 
-    # Get latest uploaded file from unified context (ANY file type)
-    file_info = get_latest_uploaded_file(thread_id)
-    print(f"SHAREABLE_LINK_DEBUG: get_latest_uploaded_file returned = {file_info}", flush=True)
+    # Get ALL uploaded files from unified context (ANY file type)
+    all_files = get_all_uploaded_files(thread_id)
+    print(f"SHAREABLE_LINK_DEBUG: Found {len(all_files)} files in thread", flush=True)
 
-    if not file_info:
+    if not all_files:
         return "❌ No file found in this conversation. Please upload a file first, then ask for a shareable link."
 
-    file_path = file_info['path']
-    file_type = file_info['category']  # image, document, video, etc.
+    # If multiple files, create links for each one
+    if len(all_files) > 1:
+        link_results = []
 
-    # Convert to absolute path if needed
-    file_path = pathlib.Path(file_path)
-    if not file_path.is_absolute():
-        # Try common locations
-        uploads_dir = pathlib.Path('uploads') if not os.environ.get('RAILWAY_ENVIRONMENT') else pathlib.Path('/app/data/uploads')
-        possible_paths = [
-            file_path,  # Try as-is first
-            pathlib.Path.cwd() / file_path,  # Try relative to current dir
-            uploads_dir / file_path.name,  # Uploads directory (all file types)
-            ASSETS_DIR / file_path.name,  # Assets directory (generated images)
-        ]
+        for idx, file_info in enumerate(all_files, 1):
+            file_path = file_info['path']
+            file_type = file_info['category']
 
-        # Find the first path that exists
-        found_path = None
-        for p in possible_paths:
-            if p.exists():
-                found_path = p
-                break
+            # Convert to absolute path if needed
+            file_path = pathlib.Path(file_path)
+            if not file_path.is_absolute():
+                uploads_dir = pathlib.Path('uploads') if not os.environ.get('RAILWAY_ENVIRONMENT') else pathlib.Path('/app/data/uploads')
+                possible_paths = [
+                    file_path,
+                    pathlib.Path.cwd() / file_path,
+                    uploads_dir / file_path.name,
+                    ASSETS_DIR / file_path.name,
+                ]
 
-        if not found_path:
-            return f"❌ File not found at expected locations. Tried: {file_path}\nPlease upload the file again and try."
+                found_path = None
+                for p in possible_paths:
+                    if p.exists():
+                        found_path = p
+                        break
 
-        file_path = found_path
-    elif not file_path.exists():
-        return f"❌ File not found: {file_path}\nPlease upload the file again and try."
+                if not found_path:
+                    link_results.append(f"❌ File {idx} not found: {file_info['filename']}")
+                    continue
 
-    try:
-        # Create permanent link (convert Path to string for compatibility)
-        result = create_permanent_link_for_file(str(file_path))
+                file_path = found_path
+            elif not file_path.exists():
+                link_results.append(f"❌ File {idx} not found: {file_info['filename']}")
+                continue
 
-        # Format response with clickable link
-        link = result['permanent_link']
-        filename = result['original_filename']
-        size_kb = result['file_size'] // 1024
+            try:
+                result = create_permanent_link_for_file(str(file_path))
+                link = result['permanent_link']
+                filename = result['original_filename']
+                size_kb = result['file_size'] // 1024
 
-        return f"✅ **Permanent shareable link created!**\n\n🔗 **Link:** [{link}]({link})\n\n📄 **File:** {filename}\n📊 **Size:** {size_kb} KB\n\n✨ This link is permanent and can be shared with anyone. It will work indefinitely!"
+                link_results.append(f"📄 **{filename}** ({size_kb} KB)\n🔗 [{link}]({link})")
+            except Exception as e:
+                link_results.append(f"❌ Error creating link for {file_info['filename']}: {str(e)}")
 
-    except Exception as e:
-        return f"❌ Error creating shareable link: {str(e)}"
+        response = f"✅ **Permanent shareable links created for {len(all_files)} files!**\n\n"
+        response += "\n\n".join(link_results)
+        response += "\n\n✨ These links are permanent and can be shared with anyone. They will work indefinitely!"
+
+        return response
+
+    # Single file - create link
+    else:
+        file_info = all_files[0]
+        file_path = file_info['path']
+        file_type = file_info['category']
+
+        # Convert to absolute path if needed
+        file_path = pathlib.Path(file_path)
+        if not file_path.is_absolute():
+            # Try common locations
+            uploads_dir = pathlib.Path('uploads') if not os.environ.get('RAILWAY_ENVIRONMENT') else pathlib.Path('/app/data/uploads')
+            possible_paths = [
+                file_path,  # Try as-is first
+                pathlib.Path.cwd() / file_path,  # Try relative to current dir
+                uploads_dir / file_path.name,  # Uploads directory (all file types)
+                ASSETS_DIR / file_path.name,  # Assets directory (generated images)
+            ]
+
+            # Find the first path that exists
+            found_path = None
+            for p in possible_paths:
+                if p.exists():
+                    found_path = p
+                    break
+
+            if not found_path:
+                return f"❌ File not found at expected locations. Tried: {file_path}\nPlease upload the file again and try."
+
+            file_path = found_path
+        elif not file_path.exists():
+            return f"❌ File not found: {file_path}\nPlease upload the file again and try."
+
+        try:
+            # Create permanent link (convert Path to string for compatibility)
+            result = create_permanent_link_for_file(str(file_path))
+
+            # Format response with clickable link
+            link = result['permanent_link']
+            filename = result['original_filename']
+            size_kb = result['file_size'] // 1024
+
+            return f"✅ **Permanent shareable link created!**\n\n🔗 **Link:** [{link}]({link})\n\n📄 **File:** {filename}\n📊 **Size:** {size_kb} KB\n\n✨ This link is permanent and can be shared with anyone. It will work indefinitely!"
+
+        except Exception as e:
+            return f"❌ Error creating shareable link: {str(e)}"
 
 # --- Tool: Analyze Uploaded Image --------------------------------------------
 @tool
