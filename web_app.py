@@ -285,10 +285,12 @@ def submit_key_pages_to_indexnow():
     return submit_to_indexnow(key_pages)
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    # Accept all file types for images
+    return '.' in filename
 
 def allowed_document(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_DOCUMENT_EXTENSIONS
+    # Accept all file types for documents
+    return '.' in filename
 
 def detect_multi_step_request(message, history):
     """Detect if this is a multi-step request"""
@@ -1054,10 +1056,10 @@ def upload_document():
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
 
-        # Validate file type
+        # Validate file has extension (all file types accepted)
         if not allowed_document(file.filename):
             return jsonify({
-                'error': f'Invalid file type. Allowed: {", ".join(ALLOWED_DOCUMENT_EXTENSIONS)}'
+                'error': 'Invalid file: file must have an extension'
             }), 400
 
         # Save the uploaded file
@@ -1139,10 +1141,10 @@ def upload_documents():
             if file.filename == '':
                 continue
 
-            # Validate file type
+            # Validate file has extension (all file types accepted)
             if not allowed_document(file.filename):
                 return jsonify({
-                    'error': f'Invalid file type: {file.filename}. Allowed: {", ".join(ALLOWED_DOCUMENT_EXTENSIONS)}'
+                    'error': f'Invalid file: {file.filename} must have an extension'
                 }), 400
 
             # Save the uploaded file
