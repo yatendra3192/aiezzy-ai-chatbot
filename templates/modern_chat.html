@@ -3294,137 +3294,190 @@
                 let response;
                 
                 if (hasMultiImages || hasUploadedImage) {
-                    // Show loading animation for image processing
-                    const loadingType = hasMultiImages ? 'Processing images' : 'Analyzing image';
+                    // Show loading animation for file processing
+                    const loadingType = hasMultiImages ? 'Uploading files' : 'Uploading file';
                     showLoadingMessage(loadingType);
-                    // Unified image handling - agent decides what to do based on count and prompt
+
+                    // UNIFIED FILE UPLOAD - Agent-driven architecture
+                    // Frontend is "dumb pipe" - just uploads files, AI agent decides what to do
                     const formData = new FormData();
-                    
+                    formData.append('thread_id', currentThreadId || 'default');
+                    formData.append('message', userContent);
+
                     if (hasMultiImages) {
-                        // Multiple images
-                        imagesForAPI.forEach((image, index) => {
-                            formData.append('images', image);
-                        });
-                        // Use userContent which already has smart default logic applied
-                        formData.append('message', userContent);
+                        // Multiple files - upload first one (agent will handle multi-file operations)
+                        formData.append('file', imagesForAPI[0]);
+                        console.log('UNIFIED_UPLOAD: Uploading multiple files (first one)');
                     } else {
-                        // Single image
-                        formData.append('image', imageForAPI);
-                        // Use userContent which already has smart default logic applied
-                        formData.append('message', userContent);
+                        // Single file
+                        formData.append('file', imageForAPI);
+                        console.log('UNIFIED_UPLOAD: Uploading single file');
                     }
-                    
-                    response = await fetch('/api/analyze-image', {
+
+                    // Upload file to unified endpoint (no hardcoded logic)
+                    response = await fetch('/api/upload-file', {
                         method: 'POST',
                         body: formData
                     });
                     
-                    const imageData = await response.json();
-                    
+                    const uploadResult = await response.json();
+
                     // Hide loading message
                     hideLoadingMessage();
-                    
-                    // Store thread_id and image path for image context continuity - MOBILE FIX
-                    if (imageData.thread_id) {
-                        currentThreadId = imageData.thread_id;
-                        localStorage.setItem('currentThreadId', currentThreadId);
-                        console.log('MOBILE FIX: Stored thread_id in localStorage:', currentThreadId);
-                    }
-                    
-                    // Store the uploaded image path in conversation history for future editing
-                    if (conversationHistory.length > 0) {
-                        const lastUserMsg = conversationHistory[conversationHistory.length - 1];
-                        if (lastUserMsg && lastUserMsg.role === 'user') {
-                            // Update imagePath with actual file path from API response
-                            if (imageData.uploaded_image_path) {
-                                // Convert backslashes to forward slashes for web URLs
-                                lastUserMsg.imagePath = imageData.uploaded_image_path.replace(/\\/g, '/');
-                                console.log('Updated imagePath for single image:', lastUserMsg.imagePath);
-                            } else if (imageData.uploaded_image_paths && imageData.uploaded_image_paths.length > 0) {
-                                // Convert all paths to use forward slashes
-                                const normalizedPaths = imageData.uploaded_image_paths.map(path => path.replace(/\\/g, '/'));
-                                lastUserMsg.imagePath = normalizedPaths[0]; // Use first image for display
-                                lastUserMsg.imagePaths = normalizedPaths; // Store all paths
-                                console.log('Updated imagePaths for multiple images:', normalizedPaths);
-                                // Save conversation to persist multi-image paths
-                                saveCurrentConversation();
-                            }
-                        }
-                    }
-                    
-                    // If there was a text message along with the image, and it's an edit request
-                    const editKeywords = ['edit', 'change', 'modify', 'add', 'remove', 'alter', 'fix', 'replace', 'put', 'place', 'behind', 'explosion', 'fire', 'background', 'foreground', 'text', 'overlay'];
-                    const isEditRequest = message && editKeywords.some(word => message.toLowerCase().includes(word));
-                    
-                    // FIXED: Removed duplicate /api/chat call for edit requests
-                    // The /api/analyze-image endpoint already handles edit requests properly
-                    
-                    // Process the original image analysis response (only if not an edit request)
-                    if (imageData.error) {
+
+                    if (uploadResult.error) {
                         hideTyping();
                         hideProgressIndicator();
-                        addMessage(`❌ Error: ${imageData.error}`, false);
+                        addMessage(`❌ Error uploading file: ${uploadResult.error}`, false);
                         updateSendButton();
                         saveCurrentConversation();
                         return;
-                    } else {
-                        let content = imageData.response;
-                        
-                        // Process content once for both display and storage
-                        let processedContent = processImagePaths(content);
-                        
-                        addMessage(processedContent, false);
-                        conversationHistory.push({
-                            role: 'assistant', 
-                            content: processedContent, // Use already processed content
-                            timestamp: new Date().toISOString()
-                        });
                     }
+
+                    console.log('UNIFIED_UPLOAD: File uploaded successfully:', uploadResult.filename);
+
+                    // Now send message to AI agent - agent will access file from unified context
+                    // AI agent decides what to do (analyze, create link, edit, convert, etc.)
+                    showTyping();
+
+                    response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            message: userContent,
+                            history: conversationHistory.slice(-10),
+                            thread_id: currentThreadId
+                        })
+                    });
+
+                    const chatData = await response.json();
+
+                    if (chatData.error) {
+                        hideTyping();
+                        hideProgressIndicator();
+                        addMessage(`❌ Error: ${chatData.error}`, false);
+                        updateSendButton();
+                        saveCurrentConversation();
+                        return;
+                    }
+
+                    hideTyping();
+                    hideProgressIndicator();
+
+                    // Store thread_id
+                    if (chatData.thread_id) {
+                        currentThreadId = chatData.thread_id;
+                        localStorage.setItem('currentThreadId', currentThreadId);
+                    }
+
+                    // Process and display AI response
+                    let content = chatData.response;
+                    let processedContent = processImagePaths(content);
+
+                    addMessage(processedContent, false);
+                    conversationHistory.push({
+                        role: 'assistant',
+                        content: processedContent,
+                        timestamp: new Date().toISOString()
+                    });
+
+                    // Clear uploaded files
+                    uploadedImage = null;
+                    uploadedImageData = null;
+                    uploadedImages = [];
+                    uploadedImagesData = [];
+                    updateSendButton();
+                    saveCurrentConversation();
                     
-                } else {
-                    // Show loading animation for text generation
-                    showLoadingMessage(hasUploadedDoc ? 'Processing document' : 'Thinking');
+                } else if (hasUploadedDoc && documentForAPI) {
+                    // UNIFIED DOCUMENT UPLOAD - Same as images, agent-driven
+                    showLoadingMessage('Uploading document');
 
-                    // Build request body
-                    const requestBody = {
-                        message: message,
-                        history: conversationHistory.slice(-10).map(msg => {
-                            const historyMsg = {
-                                role: msg.role,
-                                content: msg.content,
-                                hasImage: msg.hasImage,
-                                imagePath: msg.imagePath,
-                                timestamp: msg.timestamp
-                            };
-                            return historyMsg;
-                        }),
-                        thread_id: ensureThreadId()
-                    };
+                    const formData = new FormData();
+                    formData.append('thread_id', currentThreadId || 'default');
+                    formData.append('message', userContent);
 
-                    // Add document info if present
-                    if (hasUploadedDoc && documentForAPI) {
-                        // Check if documentForAPI is an array (multiple documents)
-                        if (Array.isArray(documentForAPI)) {
-                            // Multiple documents
-                            requestBody.documents = documentForAPI.map(doc => ({
-                                file_path: doc.file_path,
-                                filename: doc.original_filename,
-                                file_type: doc.file_type
-                            }));
-                            requestBody.document_count = documentForAPI.length;
-                        } else {
-                            // Single document (backward compatibility)
-                            requestBody.document_path = documentForAPI.file_path;
-                            requestBody.document_filename = documentForAPI.original_filename;
-                            requestBody.document_type = documentForAPI.file_type;
-                        }
+                    // Handle single or multiple documents
+                    if (Array.isArray(documentForAPI)) {
+                        formData.append('file', documentForAPI[0]); // Upload first document
+                    } else {
+                        formData.append('file', documentForAPI);
                     }
 
-                    // Chat mode - text or document
+                    // Upload to unified endpoint
+                    response = await fetch('/api/upload-file', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const uploadResult = await response.json();
+                    hideLoadingMessage();
+
+                    if (uploadResult.error) {
+                        hideTyping();
+                        addMessage(`❌ Error uploading document: ${uploadResult.error}`, false);
+                        updateSendButton();
+                        saveCurrentConversation();
+                        return;
+                    }
+
+                    console.log('UNIFIED_UPLOAD: Document uploaded:', uploadResult.filename);
+
+                    // Send message to AI agent
+                    showTyping();
+
                     response = await fetch('/api/chat', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(requestBody)
+                        body: JSON.stringify({
+                            message: userContent,
+                            history: conversationHistory.slice(-10),
+                            thread_id: currentThreadId
+                        })
+                    });
+
+                    const chatData = await response.json();
+                    hideTyping();
+
+                    if (chatData.error) {
+                        addMessage(`❌ Error: ${chatData.error}`, false);
+                    } else {
+                        let content = chatData.response;
+                        let processedContent = processImagePaths(content);
+                        addMessage(processedContent, false);
+                        conversationHistory.push({
+                            role: 'assistant',
+                            content: processedContent,
+                            timestamp: new Date().toISOString()
+                        });
+                    }
+
+                    // Store thread_id
+                    if (chatData.thread_id) {
+                        currentThreadId = chatData.thread_id;
+                        localStorage.setItem('currentThreadId', currentThreadId);
+                    }
+
+                    // Clear uploaded document
+                    uploadedDocument = null;
+                    uploadedDocumentData = null;
+                    updateSendButton();
+                    saveCurrentConversation();
+
+                } else {
+                    // Text-only message
+                    showLoadingMessage('Thinking');
+
+                    response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            message: message,
+                            history: conversationHistory.slice(-10),
+                            thread_id: ensureThreadId()
+                        })
                     });
                     
                     const data = await response.json();
