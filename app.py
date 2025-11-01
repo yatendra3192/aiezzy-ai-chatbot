@@ -1262,12 +1262,36 @@ def create_shareable_link(state: Annotated[dict, InjectedState], *, config: Runn
             file_path = doc_ctx["latest"]["path"]
             file_type = "document"
 
-    if not file_path or not os.path.exists(file_path):
+    if not file_path:
         return "❌ No file found in this conversation. Please upload a file first, then ask for a shareable link."
 
+    # Convert to absolute path if needed
+    file_path = pathlib.Path(file_path)
+    if not file_path.is_absolute():
+        # Try common locations
+        possible_paths = [
+            file_path,  # Try as-is first
+            pathlib.Path.cwd() / file_path,  # Try relative to current dir
+            ASSETS_DIR / file_path.name,  # Try in assets dir
+        ]
+
+        # Find the first path that exists
+        found_path = None
+        for p in possible_paths:
+            if p.exists():
+                found_path = p
+                break
+
+        if not found_path:
+            return f"❌ File not found at expected locations. Tried: {file_path}\nPlease upload the file again and try."
+
+        file_path = found_path
+    elif not file_path.exists():
+        return f"❌ File not found: {file_path}\nPlease upload the file again and try."
+
     try:
-        # Create permanent link
-        result = create_permanent_link_for_file(file_path)
+        # Create permanent link (convert Path to string for compatibility)
+        result = create_permanent_link_for_file(str(file_path))
 
         # Format response
         link = result['permanent_link']
