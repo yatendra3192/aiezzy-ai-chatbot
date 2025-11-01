@@ -3249,12 +3249,30 @@
                 const multiImageDataForMessage = hasMultiImages ? uploadedImagesData : null;
                 addMessage(userContent, true, null, messageImageData, multiImageDataForMessage);
 
+                // Get document metadata for history (not the File objects themselves)
+                let documentMetadata = null;
+                if (hasUploadedDoc && documentForAPI) {
+                    if (Array.isArray(documentForAPI)) {
+                        documentMetadata = documentForAPI.map(file => ({
+                            name: file.name,
+                            size: file.size,
+                            type: file.type
+                        }));
+                    } else {
+                        documentMetadata = {
+                            name: documentForAPI.name,
+                            size: documentForAPI.size,
+                            type: documentForAPI.type
+                        };
+                    }
+                }
+
                 const historyEntry = {
                     role: 'user',
                     content: userContent,
                     hasImage: hasUploadedImage || hasMultiImages,
                     hasDocument: hasUploadedDoc,
-                    documentData: hasUploadedDoc ? documentForAPI : null,
+                    documentData: documentMetadata, // Store metadata, not File objects
                     imageData: messageImageData,
                     imagePath: hasUploadedImage ? 'pending' : null, // Will be updated when response arrives
                     imagePaths: hasMultiImages ? [] : null, // Will be updated when response arrives
