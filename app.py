@@ -1321,6 +1321,80 @@ def create_shareable_link(state: Annotated[dict, InjectedState], *, config: Runn
     except Exception as e:
         return f"❌ Error creating shareable link: {str(e)}"
 
+# --- Tool: Analyze Uploaded Image --------------------------------------------
+@tool
+def analyze_uploaded_image(state: Annotated[dict, InjectedState], *, config: RunnableConfig) -> str:
+    """
+    Analyze the most recently uploaded image using GPT-4o vision.
+
+    Use this when user wants to:
+    - "analyze this image" / "what's in this image"
+    - "describe this" / "tell me about this"
+    - "what do you see" / "analyze"
+    - Extract text: "read text from image" / "OCR"
+
+    This tool fetches the uploaded image from context and analyzes it with vision.
+
+    Returns:
+        Detailed description and analysis of the image content
+    """
+    thread_id = state.get("configurable", {}).get("thread_id", "default") if state else "default"
+    if thread_id == "default":
+        global _current_thread_id
+        thread_id = _current_thread_id
+
+    context = get_thread_context(thread_id)
+
+    # Get most recent uploaded image
+    file_path = None
+    if context.get("recent_images"):
+        file_path = context["recent_images"][-1]
+
+    if not file_path or not os.path.exists(file_path):
+        return "❌ No image found to analyze. Please upload an image first."
+
+    try:
+        # Use OpenAI Vision API to analyze the image
+        from openai import OpenAI
+        openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+        # Read and encode image
+        with open(file_path, "rb") as img_file:
+            image_data = base64.b64encode(img_file.read()).decode('utf-8')
+
+        # Determine image format
+        file_ext = pathlib.Path(file_path).suffix.lower().lstrip('.')
+        mime_type = f"image/{file_ext}" if file_ext in ['jpeg', 'jpg', 'png', 'gif', 'webp'] else "image/jpeg"
+
+        # Call vision API
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Analyze this image in detail. Describe what you see, including objects, text, colors, composition, and any other relevant information."
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:{mime_type};base64,{image_data}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens=1000
+        )
+
+        analysis = response.choices[0].message.content
+        return f"📸 **Image Analysis:**\n\n{analysis}"
+
+    except Exception as e:
+        return f"❌ Error analyzing image: {str(e)}"
+
 # === PDF CONVERSION TOOLS ===================================================
 
 # --- Tool: PDF to Images Conversion ------------------------------------------
@@ -3296,6 +3370,7 @@ def build_coordinator():
         check_image_context,
         check_available_assets,  # LangGraph-native context management
         create_shareable_link,  # Create permanent shareable links for uploaded files
+        analyze_uploaded_image,  # Analyze uploaded images with vision (agent-driven)
         # PDF Conversion tools - FROM PDF
         convert_pdf_to_images,
         convert_pdf_to_word,
@@ -3542,18 +3617,22 @@ def build_coordinator():
         "3. Use generate_video_from_text or generate_image based on request\n"
         "4. Write content incorporating all results\n"
         "5. Present everything in a well-organized response\n\n"
-        "SMART IMAGE HANDLING:\n"
-        "- When the message contains image content blocks, the user has uploaded an image\n"
-        "- If message has image + LINK keywords ('create link', 'share link', 'get link', 'shareable link', 'permanent link', 'give me a link'): call create_shareable_link() DIRECTLY without analyzing\n"
-        "- If message has image + video/animate keywords: use generate_video_from_image directly\n"
-        "- If message has image + edit/modify keywords: use edit_image directly\n"
-        "- If message contains '[Multi-image request with X uploaded images]': use generate_image_from_multiple directly\n"
-        "- If message has multiple images: use generate_image_from_multiple\n"
-        "- If message has single image + analysis: analyze the uploaded image directly\n"
-        "- If message has image + text extraction keywords ('extract text', 'read text', 'OCR', 'get text'): use GPT-4o vision to extract and format all text from the image\n"
-        "- If no images uploaded but image requested: use generate_image\n"
-        "- Only use check_image_context when you need to verify what's available\n"
-        "- IMPORTANT: When generating multiple images then creating a video, the video tool will automatically select the matching image based on your prompt\n\n"
+        "🎯 AGENT-DRIVEN FILE HANDLING (NO HARDCODED KEYWORDS):\n"
+        "When user uploads a file, you'll see: [File uploaded: filename.jpg]\n"
+        "The backend stores the file in context. YOU decide what to do based on user's message:\n\n"
+        "Examples:\n"
+        "- User uploads image + says 'create a link' → call create_shareable_link()\n"
+        "- User uploads image + says 'analyze this' → call analyze_uploaded_image()\n"
+        "- User uploads image + says 'make it darker' → call edit_image()\n"
+        "- User uploads image + says 'animate this' → call generate_video_from_image()\n"
+        "- User uploads 5 images + says 'combine them' → call generate_image_from_multiple()\n\n"
+        "IMPORTANT:\n"
+        "- Backend does NOT send image visuals automatically\n"
+        "- You must call tools to access file content\n"
+        "- This gives maximum flexibility - no hardcoded logic\n"
+        "- Use analyze_uploaded_image() when user wants to see/understand the image\n"
+        "- Use create_shareable_link() when user wants a URL to share\n"
+        "- Use edit_image() when user wants to modify the image\n\n"
         "🚨 CRITICAL: INTELLIGENT PDF HANDLING 🚨\n"
         "⚠️ YOU CANNOT SEE PDF CONTENT DIRECTLY!\n"
         "When user uploads PDF, you only receive the FILE PATH (e.g., /documents/file.pdf).\n"

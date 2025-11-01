@@ -834,36 +834,31 @@ def analyze_image():
                 'gif': 'image/gif', 'webp': 'image/webp'
             }.get(file_ext, 'image/jpeg')
 
-            # Store image path for potential editing - CRITICAL DEBUG
+            # Store image path in context - AI agent will access via tools
             recent_images[thread_id] = file_path
             thread_image_context[thread_id] = file_path
             set_recent_image_path(file_path, thread_id)
-            print(f"DEBUG: Set image path for thread {thread_id}: {file_path}")
-            print(f"DEBUG: File exists: {os.path.exists(file_path)}")
+            print(f"AGENT: Stored image {filename} in context for thread {thread_id}")
 
-            # CRITICAL FIX: Detect if user wants shareable link - DON'T send image visual
-            link_keywords = ['create a link', 'create link', 'make a link', 'share link', 'shareable link',
-                           'get link', 'give me a link', 'give link', 'permanent link', 'get permanent link', 'share this']
-            wants_link = any(keyword in message.lower() for keyword in link_keywords)
+            # ═══════════════════════════════════════════════════════════════
+            # AGENT-DRIVEN ARCHITECTURE - NO HARDCODED KEYWORDS
+            # ═══════════════════════════════════════════════════════════════
+            # Backend is now a "dumb pipe" - just stores file and sends message
+            # AI agent decides what to do based on user intent:
+            #
+            # - "analyze this image" → AI calls vision analysis tool
+            # - "create a link" → AI calls create_shareable_link tool
+            # - "edit to make it darker" → AI calls edit_image tool
+            # - "animate this" → AI calls generate_video_from_image tool
+            #
+            # Maximum flexibility - AI handles ALL intent detection
+            # ═══════════════════════════════════════════════════════════════
 
-            if wants_link:
-                # Don't send image visual - just text message
-                # AI will call create_shareable_link tool to get the file from context
-                user_msg = {
-                    "role": "user",
-                    "content": message,
-                }
-                print(f"LINK FIX: Detected link request, NOT sending image visual to avoid analysis")
-            else:
-                # Normal workflow - send image visual for analysis/editing
-                img_block = encode_image_to_content_block(file_path, mime_type)
-                user_msg = {
-                    "role": "user",
-                    "content": [
-                        {"type": "text", "text": message},
-                        img_block,
-                    ],
-                }
+            user_msg = {
+                "role": "user",
+                "content": f"{message}\n\n[File uploaded: {filename}]",
+            }
+            print(f"AGENT: Sending text-only message, AI will decide what tools to use")
         else:
             # Multiple images - set up thread-specific context for multi-image fusion
             from app import get_thread_context
