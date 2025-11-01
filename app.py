@@ -1229,14 +1229,15 @@ def check_image_context(state: Annotated[dict, InjectedState], *, config: Runnab
 @tool
 def check_available_assets(state: Annotated[dict, InjectedState], *, config: RunnableConfig) -> str:
     """
-    Check what images and documents are available in this conversation.
-    Use this FIRST when user requests any file operation (convert, edit, resize, rotate, split, merge, etc.)
+    Check what files are available in this conversation (images, documents, videos, etc).
 
-    This is the LangGraph-native way to handle context - NO hard-coded keyword matching needed!
-    The AI decides when to call this based on understanding the user's intent.
+    **CRITICAL: The AI should call this tool AUTOMATICALLY when the user's message implies working with files.**
+    Examples: "combine in pdf", "convert to word", "resize image", "edit photo", "make video", etc.
+
+    NO hard-coded keyword matching needed - the AI intelligently decides when files are needed.
 
     Returns:
-        Detailed JSON with all available assets and intelligent recommendations
+        Detailed list of all available files with paths, formats, and intelligent recommendations
     """
     import json
 
@@ -1247,63 +1248,64 @@ def check_available_assets(state: Annotated[dict, InjectedState], *, config: Run
         if _current_thread_id and _current_thread_id != "default":
             thread_id = _current_thread_id
         else:
-            return json.dumps({"error": "No active conversation context"}, indent=2)
+            return json.dumps({"error": "No active conversation context", "files": []}, indent=2)
+
+    # Get ALL uploaded files from unified context (ANY file type)
+    all_files = get_all_uploaded_files(thread_id)
+
+    if not all_files:
+        return json.dumps({
+            "thread_id": thread_id,
+            "files": [],
+            "count": 0,
+            "message": "⚠️ No files available in this conversation. User needs to upload files first."
+        }, indent=2)
+
+    # Build file list with detailed information
+    file_list = []
+    for file_info in all_files:
+        file_list.append({
+            "path": file_info['path'],
+            "filename": file_info['filename'],
+            "category": file_info['category'],  # 'image', 'document', 'video', etc.
+            "format": file_info['filename'].split('.')[-1].upper(),
+            "size_bytes": file_info.get('size'),
+            "uploaded_at": file_info.get('timestamp')
+        })
+
+    # Categorize files
+    images = [f for f in file_list if f['category'] == 'image']
+    documents = [f for f in file_list if f['category'] == 'document']
+    videos = [f for f in file_list if f['category'] == 'video']
+    other = [f for f in file_list if f['category'] == 'other']
 
     result = {
         "thread_id": thread_id,
-        "images": [],
-        "documents": [],
+        "total_files": len(all_files),
+        "files": file_list,
+        "summary": {
+            "images": len(images),
+            "documents": len(documents),
+            "videos": len(videos),
+            "other": len(other)
+        },
         "recommendations": []
     }
 
-    # Check images
-    img_context = get_thread_context(thread_id)
-    recent_image = img_context.get('recent_path')
-    uploaded_images = img_context.get('uploaded_images', [])
+    # Add intelligent recommendations based on available files
+    if images:
+        result["recommendations"].append(f"✅ {len(images)} image(s) available")
+        result["recommendations"].append("📸 Can: convert to PDF/Word/Excel, resize, compress, edit, animate to video, combine multiple images")
 
-    for img_path in uploaded_images:
-        if os.path.exists(img_path):
-            filename = os.path.basename(img_path)
-            file_ext = filename.split('.')[-1].upper()
-            result["images"].append({
-                "path": img_path,
-                "filename": filename,
-                "format": file_ext,
-                "is_recent": img_path == recent_image,
-                "type": "uploaded"
-            })
+    if documents:
+        result["recommendations"].append(f"✅ {len(documents)} document(s) available")
+        result["recommendations"].append("📄 Can: convert between formats (PDF/Word/Excel/PowerPoint), split, merge, compress")
 
-    # Check documents
-    doc_context = get_thread_document_context(thread_id)
-    original_doc = doc_context.get('original')
-    latest_doc = doc_context.get('latest')
+    if videos:
+        result["recommendations"].append(f"✅ {len(videos)} video(s) available")
 
-    if original_doc:
-        result["documents"].append({
-            "path": original_doc['path'],
-            "filename": original_doc['filename'],
-            "format": original_doc['filename'].split('.')[-1].upper(),
-            "type": "original upload",
-            "timestamp": original_doc.get('timestamp', 0)
-        })
-
-    if latest_doc and latest_doc != original_doc:
-        result["documents"].append({
-            "path": latest_doc['path'],
-            "filename": latest_doc['filename'],
-            "format": latest_doc['filename'].split('.')[-1].upper(),
-            "type": "converted/processed version",
-            "timestamp": latest_doc.get('timestamp', 0)
-        })
-
-    # Add intelligent recommendations
-    if not result["images"] and not result["documents"]:
-        result["recommendations"].append("⚠️ No files available. User needs to upload a file first.")
-        return json.dumps(result, indent=2)
-
-    if result["images"]:
-        result["recommendations"].append(f"✅ {len(result['images'])} image(s) available")
-        result["recommendations"].append("📸 Available operations: convert format (JPEG/PNG/WebP/GIF), resize, compress, rotate, grayscale, edit content, animate to video")
+    if len(all_files) >= 2:
+        result["recommendations"].append(f"📦 Can combine {len(all_files)} files into a single PDF or merge documents")
 
     if result["documents"]:
         doc_formats = [d["format"] for d in result["documents"]]
@@ -3620,15 +3622,22 @@ def build_coordinator():
         "→ DO NOT call generate_image, analyze image, or any other tool first\n"
         "→ This is for EXISTING uploaded files, not for generating new content\n\n"
         "CRITICAL: When you receive a message with image content AND animation/video keywords, immediately use generate_video_from_image tool.\n\n"
+        "🔥 MOST IMPORTANT RULE - FILE OPERATIONS:\n"
+        "When user's message implies working with files they uploaded (even if not explicitly uploaded in THIS message):\n"
+        "→ IMMEDIATELY call check_available_assets() FIRST to see what files are available\n"
+        "→ Examples: 'combine in pdf', 'convert to word', 'resize image', 'edit photo', 'make a video'\n"
+        "→ The tool will return ALL uploaded files (images, documents, videos, etc) with their paths\n"
+        "→ Then proceed with the appropriate conversion/manipulation tool using those paths\n"
+        "→ DO NOT ask user 'which files?' - check_available_assets will show you!\n\n"
         "CORE BEHAVIOR:\n"
-        "1. Analyze user requests to understand all required steps\n"
-        "2. When user uploads image(s), they are IMMEDIATELY available for operations\n"
-        "3. ONLY use check_image_context if you're unsure about image availability\n"
-        "4. For multi-step requests, execute ALL steps in sequence within your response\n"
-        "5. Use tools in logical order and show results after each step\n\n"
+        "1. For file operations: Call check_available_assets() FIRST, then execute the operation\n"
+        "2. Analyze user requests to understand all required steps\n"
+        "3. For multi-step requests, execute ALL steps in sequence within your response\n"
+        "4. Use tools in logical order and show results after each step\n"
+        "5. Be proactive - if user says 'combine in pdf', you know they want files converted\n\n"
         "AVAILABLE TOOLS:\n"
+        "- check_available_assets: 🔥 CALL THIS FIRST for file operations - shows ALL uploaded files (images, docs, videos) with paths and formats\n"
         "- analyze_user_intent: Understand complex requests\n"
-        "- check_image_context: Check what images are available for operations\n"
         "- search_web: Get current news and information\n"
         "- generate_image: Create images from descriptions using nano-banana\n"
         "- edit_image: Modify uploaded images using nano-banana/edit\n"
@@ -4077,64 +4086,9 @@ def build_app():
             else:
                 user_text = str(content)
 
-        # Operation keywords that require file context
-        operation_keywords = ['convert', 'save as', 'export', 'resize', 'crop', 'compress',
-                            'rotate', 'flip', 'mirror', 'split', 'merge', 'edit', 'modify',
-                            'grayscale', 'black and white', 'combine', 'pdf', 'join', 'concat']
-        needs_context = any(kw in user_text.lower() for kw in operation_keywords)
-
-        # Also detect dimension patterns: "500x500", "1000 by 1000", "200 x 200", etc.
-        import re
-        dimension_pattern = r'\b\d+\s*(x|by)\s*\d+\b'
-        has_dimension_request = re.search(dimension_pattern, user_text.lower())
-        if has_dimension_request:
-            needs_context = True
-            print(f"INFO: Dimension pattern detected: {has_dimension_request.group()}")
-
-        # HYDRATE ASSETS: If user is operating on previous upload, inject available assets
-        if needs_context and not has_image_content:
-            print(f"INFO: Hydrating assets for thread {thread_id} (operation detected without new upload)")
-
-            # Get available images
-            img_context = get_thread_context(thread_id)
-            uploaded_images = img_context.get('uploaded_images', [])
-
-            # Get available documents
-            doc_context = get_thread_document_context(thread_id)
-
-            # Build asset list
-            assets_text = "AVAILABLE ASSETS FOR THIS CONVERSATION:\n"
-            if uploaded_images:
-                assets_text += "\n📸 IMAGES:\n"
-                for img_path in uploaded_images:
-                    if os.path.exists(img_path):
-                        filename = os.path.basename(img_path)
-                        ext = filename.split('.')[-1].upper()
-                        assets_text += f"  - {img_path} (format: {ext})\n"
-
-            if doc_context.get('original') or doc_context.get('latest'):
-                assets_text += "\n📄 DOCUMENTS:\n"
-                if doc_context.get('original'):
-                    orig = doc_context['original']
-                    ext = orig['filename'].split('.')[-1].upper()
-                    assets_text += f"  - ORIGINAL: {orig['path']} (format: {ext})\n"
-                if doc_context.get('latest') and doc_context['latest'] != doc_context.get('original'):
-                    latest = doc_context['latest']
-                    ext = latest['filename'].split('.')[-1].upper()
-                    assets_text += f"  - LATEST: {latest['path']} (format: {ext})\n"
-
-            if uploaded_images or doc_context.get('original'):
-                # Inject as system message to make assets deterministically available
-                from langchain_core.messages import SystemMessage
-                asset_msg = SystemMessage(content=assets_text +
-                    "\n✅ Use these exact paths when calling conversion/manipulation tools.\n" +
-                    "❌ DO NOT ask user to re-upload - files are already available above!")
-
-                # Prepend asset context to messages
-                state = {"messages": [asset_msg] + messages}
-                print(f"INFO: Injected asset context with {len(uploaded_images)} images and {1 if doc_context.get('original') else 0} documents")
-            else:
-                print(f"WARNING: Operation detected but no assets found for thread {thread_id}")
+        # NO MORE HARDCODED KEYWORD HYDRATION!
+        # The AI agent will intelligently call check_available_assets() when needed.
+        # This eliminates brittleness and allows the AI to understand ANY file operation request.
 
         # Pass config explicitly to ensure tools receive it
         return coordinator.invoke(state, config=config)
