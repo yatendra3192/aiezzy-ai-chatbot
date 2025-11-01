@@ -460,27 +460,28 @@ def chat():
         document_type = data.get('document_type')
 
         # Also check history for recent document uploads
+        # NOTE: documentData now only contains metadata {name, size, type}, not file paths
+        # Files are accessed via unified context in app.py using thread_id
         if not documents and not document_path:
             for msg in reversed(history):
                 if msg.get('hasDocument') and msg.get('documentData'):
                     doc_data = msg.get('documentData')
                     if isinstance(doc_data, list):
-                        # Multiple documents from history
-                        documents = doc_data
+                        # Multiple documents from history - just track count, files in unified context
                         document_count = len(doc_data)
+                        print(f"Found {document_count} document(s) in history (files in unified context)")
                     else:
-                        # Single document from history
-                        document_path = doc_data.get('file_path')
-                        document_filename = doc_data.get('original_filename')
-                        document_type = doc_data.get('file_type')
-                    print(f"Found document(s) in history")
+                        # Single document from history - metadata only
+                        # Note: file_path no longer in doc_data, files accessed via unified context
+                        print(f"Found document in history: {doc_data.get('name', 'unknown')}")
                     break
 
         # Add current message with context for document processing
         if documents and document_count > 0:
-            # Multiple documents
-            file_paths = [doc['file_path'] for doc in documents]
-            file_list = '\n'.join([f"  - {doc['filename']} ({doc['file_type'].upper()}): {doc['file_path']}" for doc in documents])
+            # Multiple documents - use metadata for display only
+            # Actual file paths come from unified context via check_available_assets tool
+            doc_names = [doc.get('name', 'unknown') for doc in documents]
+            file_list = '\n'.join([f"  - {name}" for name in doc_names])
 
             # Check if user wants to combine/merge
             merge_keywords = ['combine', 'merge', 'single pdf', 'into pdf', 'one pdf', 'join']
@@ -488,9 +489,10 @@ def chat():
 
             if wants_merge:
                 # Explicit instruction to use convert_and_merge_documents
-                enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User has uploaded {document_count} documents and wants to COMBINE/MERGE them:]\n{file_list}\n\n[CRITICAL INSTRUCTION: Call convert_and_merge_documents tool with file_paths parameter: {file_paths}]\n\nDO NOT make up links - call the tool and use its returned HTML link exactly."
+                # Note: AI will get file paths from unified context using check_available_assets
+                enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User has uploaded {document_count} documents and wants to COMBINE/MERGE them:]\n{file_list}\n\n[INSTRUCTION: Use check_available_assets tool to get file paths, then call convert_and_merge_documents]\n\nDO NOT make up links - call the tools and use their returned HTML links exactly."
             else:
-                enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User has uploaded {document_count} documents:]\n{file_list}\n\nPlease use the appropriate conversion or merge tools with these exact file paths."
+                enhanced_message = f"{message}\n\n[DOCUMENT CONTEXT: User has uploaded {document_count} documents:]\n{file_list}\n\n[INSTRUCTION: Use check_available_assets tool to get file paths if needed for document operations]"
             messages.append({"role": "user", "content": enhanced_message})
         elif document_path and document_filename:
             # Single document processing request
