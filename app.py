@@ -4080,7 +4080,7 @@ def build_app():
         # Operation keywords that require file context
         operation_keywords = ['convert', 'save as', 'export', 'resize', 'crop', 'compress',
                             'rotate', 'flip', 'mirror', 'split', 'merge', 'edit', 'modify',
-                            'grayscale', 'black and white']
+                            'grayscale', 'black and white', 'combine', 'pdf', 'join', 'concat']
         needs_context = any(kw in user_text.lower() for kw in operation_keywords)
 
         # Also detect dimension patterns: "500x500", "1000 by 1000", "200 x 200", etc.
