@@ -3153,7 +3153,12 @@
             if (!currentConversationId) {
                 currentConversationId = generateConversationId();
             }
-            
+
+            // CRITICAL FIX: Ensure thread_id exists before upload
+            // This prevents upload using 'default' and chat using a new UUID
+            const threadId = ensureThreadId();
+            console.log('THREAD_ID_FIX: Using thread_id for both upload and chat:', threadId);
+
             // Store current image and document data for message display and API calls
             const hasUploadedImage = !!uploadedImage;
             const hasMultiImages = uploadedImages.length > 0;
@@ -3278,7 +3283,7 @@
                     // UNIFIED FILE UPLOAD - Agent-driven architecture
                     // Frontend is "dumb pipe" - just uploads files, AI agent decides what to do
                     const formData = new FormData();
-                    formData.append('thread_id', currentThreadId || 'default');
+                    formData.append('thread_id', threadId);  // Use guaranteed thread_id
                     formData.append('message', userContent);
 
                     // Determine which file to upload (images or documents)
@@ -3335,7 +3340,7 @@
                         body: JSON.stringify({
                             message: userContent,
                             history: conversationHistory.slice(-10),
-                            thread_id: currentThreadId
+                            thread_id: threadId  // Use same thread_id as upload
                         })
                     });
 
@@ -3421,7 +3426,7 @@
                         body: JSON.stringify({
                             message: userContent,
                             history: conversationHistory.slice(-10),
-                            thread_id: currentThreadId
+                            thread_id: threadId  // Use same thread_id as upload
                         })
                     });
 
