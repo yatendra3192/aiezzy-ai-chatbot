@@ -770,8 +770,12 @@ def chat():
             'response': response_content,
             'thread_id': thread_id
         })
-        
+
     except Exception as e:
+        # Log full traceback for debugging
+        import traceback
+        print(f"ERROR in /api/chat: {e}", flush=True)
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @web_app.route('/api/analyze-image', methods=['POST'])
