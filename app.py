@@ -1315,12 +1315,12 @@ def create_shareable_link(state: Annotated[dict, InjectedState], *, config: Runn
         # Create permanent link (convert Path to string for compatibility)
         result = create_permanent_link_for_file(str(file_path))
 
-        # Format response
+        # Format response with clickable link
         link = result['permanent_link']
         filename = result['original_filename']
         size_kb = result['file_size'] // 1024
 
-        return f"✅ **Permanent shareable link created!**\n\n🔗 **Link:** {link}\n\n📄 **File:** {filename}\n📊 **Size:** {size_kb} KB\n\n✨ This link is permanent and can be shared with anyone. It will work indefinitely!"
+        return f"✅ **Permanent shareable link created!**\n\n🔗 **Link:** [{link}]({link})\n\n📄 **File:** {filename}\n📊 **Size:** {size_kb} KB\n\n✨ This link is permanent and can be shared with anyone. It will work indefinitely!"
 
     except Exception as e:
         return f"❌ Error creating shareable link: {str(e)}"
