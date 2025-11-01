@@ -1270,8 +1270,12 @@ def create_shareable_link(state: Annotated[dict, InjectedState], *, config: Runn
     file_path = None
     file_type = None
 
-    if context.get("recent_images"):
-        file_path = context["recent_images"][-1]
+    # Check for uploaded images (use correct context key)
+    if context.get("uploaded_images"):
+        file_path = context["uploaded_images"][-1]
+        file_type = "image"
+    elif context.get("recent_path"):
+        file_path = context["recent_path"]
         file_type = "image"
     elif context.get("document_context"):
         # Use latest document (could be converted)
@@ -1345,10 +1349,12 @@ def analyze_uploaded_image(state: Annotated[dict, InjectedState], *, config: Run
 
     context = get_thread_context(thread_id)
 
-    # Get most recent uploaded image
+    # Get most recent uploaded image (use correct context key)
     file_path = None
-    if context.get("recent_images"):
-        file_path = context["recent_images"][-1]
+    if context.get("uploaded_images"):
+        file_path = context["uploaded_images"][-1]
+    elif context.get("recent_path"):
+        file_path = context["recent_path"]
 
     if not file_path or not os.path.exists(file_path):
         return "❌ No image found to analyze. Please upload an image first."
