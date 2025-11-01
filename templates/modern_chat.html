@@ -3143,13 +3143,16 @@
 
             // Convert line breaks to proper HTML
             text = text.replace(/\n/g, '<br>');
-            
+
+            // Convert markdown links [text](url) to HTML <a> tags
+            text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
             // Convert numbered lists (1) 2) 3) etc.)
             text = text.replace(/^(\d+)\)\s+(.+)$/gm, '<strong>$1) $2</strong>');
-            
+
             // Convert **bold** to <strong>
             text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            
+
             // Convert *italic* to <em>
             text = text.replace(/\*(.*?)\*/g, '<em>$1</em>');
             
