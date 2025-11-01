@@ -2710,28 +2710,65 @@
             // Don't upload immediately - just store files locally
             // Upload will happen when user sends a message (agent-driven)
 
-            // Store first file (for now, single file upload)
-            uploadedDocument = files[0];
-            uploadedDocumentData = files[0]; // Store the File object itself
+            // Store ALL files (support multiple file upload)
+            if (files.length === 1) {
+                // Single file
+                uploadedDocument = files[0];
+                uploadedDocumentData = files[0];
 
-            // Show document preview
-            const preview = document.getElementById('image-preview-container');
-            const file = files[0];
-            const fileSize = (file.size / 1024).toFixed(1);
-            const fileIcon = getDocumentIcon(file.name.split('.').pop());
+                // Show single document preview
+                const preview = document.getElementById('image-preview-container');
+                const file = files[0];
+                const fileSize = (file.size / 1024).toFixed(1);
+                const fileIcon = getDocumentIcon(file.name.split('.').pop());
 
-            preview.innerHTML = `
-                <div class="document-preview">
-                    <div class="document-icon">${fileIcon}</div>
-                    <div class="document-info">
-                        <div class="document-name">${file.name}</div>
-                        <div class="document-size">${fileSize} KB</div>
+                preview.innerHTML = `
+                    <div class="document-preview">
+                        <div class="document-icon">${fileIcon}</div>
+                        <div class="document-info">
+                            <div class="document-name">${file.name}</div>
+                            <div class="document-size">${fileSize} KB</div>
+                        </div>
+                        <button class="remove-image" onclick="removeDocument(0)">×</button>
                     </div>
-                    <button class="remove-image" onclick="removeDocument(0)">×</button>
-                </div>
-            `;
+                `;
 
-            console.log('UNIFIED_UPLOAD: Document ready for upload when user sends message:', file.name);
+                console.log('UNIFIED_UPLOAD: Document ready for upload when user sends message:', file.name);
+            } else {
+                // Multiple files - store as array
+                uploadedDocument = null;
+                uploadedDocumentData = files; // Store all files
+
+                // Show multiple documents preview
+                const preview = document.getElementById('image-preview-container');
+                let previewHTML = '<div class="multi-document-preview">';
+
+                files.forEach((file, index) => {
+                    const fileSize = (file.size / 1024).toFixed(1);
+                    const fileIcon = getDocumentIcon(file.name.split('.').pop());
+
+                    previewHTML += `
+                        <div class="document-preview-item" style="display: inline-block; margin: 5px; padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; position: relative;">
+                            <div class="document-icon" style="font-size: 24px; text-align: center;">${fileIcon}</div>
+                            <div class="document-info" style="font-size: 12px; text-align: center; margin-top: 5px;">
+                                <div class="document-name" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${file.name}</div>
+                                <div class="document-size" style="color: #6b7280;">${fileSize} KB</div>
+                            </div>
+                            <span class="file-number" style="position: absolute; top: 2px; right: 2px; background: #3b82f6; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 10px;">${index + 1}</span>
+                        </div>
+                    `;
+                });
+
+                previewHTML += `
+                    <button class="remove-image" onclick="clearDocument()" style="position: absolute; top: 5px; right: 5px;">×</button>
+                    <div class="file-label" style="text-align: center; margin-top: 10px; font-weight: 600;">${files.length} Files</div>
+                </div>`;
+
+                preview.innerHTML = previewHTML;
+
+                console.log(`UNIFIED_UPLOAD: ${files.length} documents ready for upload when user sends message`);
+            }
+
             updateSendButton();
 
             // Reset file input
@@ -3162,7 +3199,7 @@
             // Store current image and document data for message display and API calls
             const hasUploadedImage = !!uploadedImage;
             const hasMultiImages = uploadedImages.length > 0;
-            const hasUploadedDoc = !!uploadedDocument;
+            const hasUploadedDoc = !!uploadedDocument || (Array.isArray(uploadedDocumentData) && uploadedDocumentData.length > 0) || !!uploadedDocumentData;
             const imageForAPI = uploadedImage; // Store before clearing
             const imagesForAPI = [...uploadedImages]; // Store copy before clearing
             const documentForAPI = uploadedDocumentData; // Store before clearing
@@ -3293,9 +3330,14 @@
                         filesToUpload = [imageForAPI];
                         console.log('UNIFIED_UPLOAD: Uploading single image');
                     } else if (hasUploadedDoc) {
-                        // Document
-                        filesToUpload = [documentForAPI];
-                        console.log('UNIFIED_UPLOAD: Uploading document:', documentForAPI.name);
+                        // Document(s) - could be single file or array of files
+                        if (Array.isArray(documentForAPI)) {
+                            filesToUpload = documentForAPI;
+                            console.log('UNIFIED_UPLOAD: Uploading', documentForAPI.length, 'documents');
+                        } else {
+                            filesToUpload = [documentForAPI];
+                            console.log('UNIFIED_UPLOAD: Uploading single document:', documentForAPI.name);
+                        }
                     }
 
                     // Upload all files sequentially
