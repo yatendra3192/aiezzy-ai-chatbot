@@ -3282,51 +3282,62 @@
 
                     // UNIFIED FILE UPLOAD - Agent-driven architecture
                     // Frontend is "dumb pipe" - just uploads files, AI agent decides what to do
-                    const formData = new FormData();
-                    formData.append('thread_id', threadId);  // Use guaranteed thread_id
-                    formData.append('message', userContent);
+                    let filesToUpload = [];
 
-                    // Determine which file to upload (images or documents)
                     if (hasMultiImages) {
-                        // Multiple images
-                        formData.append('file', imagesForAPI[0]);
-                        console.log('UNIFIED_UPLOAD: Uploading multiple images (first one)');
+                        // Multiple images - upload each one
+                        filesToUpload = imagesForAPI;
+                        console.log('UNIFIED_UPLOAD: Uploading', filesToUpload.length, 'images');
                     } else if (hasUploadedImage) {
                         // Single image
-                        formData.append('file', imageForAPI);
+                        filesToUpload = [imageForAPI];
                         console.log('UNIFIED_UPLOAD: Uploading single image');
                     } else if (hasUploadedDoc) {
                         // Document
-                        console.log('UNIFIED_UPLOAD: Preparing to upload document:', documentForAPI);
-                        formData.append('file', documentForAPI);
-                        console.log('UNIFIED_UPLOAD: Document appended to FormData:', documentForAPI.name);
+                        filesToUpload = [documentForAPI];
+                        console.log('UNIFIED_UPLOAD: Uploading document:', documentForAPI.name);
                     }
 
-                    // Upload file to unified endpoint (no hardcoded logic)
-                    console.log('UNIFIED_UPLOAD: Sending fetch request to /api/upload-file');
-                    response = await fetch('/api/upload-file', {
-                        method: 'POST',
-                        body: formData
-                    });
+                    // Upload all files sequentially
+                    let uploadError = null;
+                    for (let i = 0; i < filesToUpload.length; i++) {
+                        const file = filesToUpload[i];
+                        const formData = new FormData();
+                        formData.append('thread_id', threadId);  // Use guaranteed thread_id
+                        formData.append('message', userContent);
+                        formData.append('file', file);
 
-                    console.log('UNIFIED_UPLOAD: Fetch response received:', response.status);
-                    const uploadResult = await response.json();
-                    console.log('UNIFIED_UPLOAD: Upload result:', uploadResult);
+                        console.log(`UNIFIED_UPLOAD: Uploading file ${i + 1}/${filesToUpload.length}: ${file.name}`);
+
+                        response = await fetch('/api/upload-file', {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        console.log('UNIFIED_UPLOAD: Fetch response received:', response.status);
+                        const uploadResult = await response.json();
+                        console.log('UNIFIED_UPLOAD: Upload result:', uploadResult);
+
+                        if (uploadResult.error) {
+                            console.error('UNIFIED_UPLOAD: Error occurred:', uploadResult.error);
+                            uploadError = uploadResult.error;
+                            break;
+                        }
+                    }
 
                     // Hide loading message
                     hideLoadingMessage();
 
-                    if (uploadResult.error) {
-                        console.error('UNIFIED_UPLOAD: Error occurred:', uploadResult.error);
+                    if (uploadError) {
                         hideTyping();
                         hideProgressIndicator();
-                        addMessage(`❌ Error uploading file: ${uploadResult.error}`, false);
+                        addMessage(`❌ Error uploading files: ${uploadError}`, false);
                         updateSendButton();
                         saveCurrentConversation();
                         return;
                     }
 
-                    console.log('UNIFIED_UPLOAD: File uploaded successfully:', uploadResult.filename);
+                    console.log('UNIFIED_UPLOAD: All files uploaded successfully');
 
                     // Now send message to AI agent - agent will access file from unified context
                     // AI agent decides what to do (analyze, create link, edit, convert, etc.)
