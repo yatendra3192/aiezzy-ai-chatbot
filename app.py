@@ -64,6 +64,83 @@ def save_video_from_url(video_url: str) -> str:
     else:
         raise Exception(f"Failed to download video: {response.status_code}")
 
+# --- Permanent Link Helpers ------------------------------------------------
+def create_permanent_link_for_file(file_path: str) -> dict:
+    """Create a permanent shareable link for an uploaded file"""
+    import json
+    import string
+    import random
+    import shutil
+    from pathlib import Path
+
+    # Configure paths
+    if os.environ.get('RAILWAY_ENVIRONMENT'):
+        permanent_dir = Path('/app/data/permanent_files')
+        db_path = Path('/app/data/permanent_files.json')
+        base_url = "https://aiezzy.com"
+    else:
+        permanent_dir = Path('permanent_files')
+        db_path = Path('permanent_files.json')
+        base_url = "http://localhost:5000"
+
+    permanent_dir.mkdir(exist_ok=True)
+
+    # Load database
+    if db_path.exists():
+        with open(db_path, 'r') as f:
+            db = json.load(f)
+    else:
+        db = {}
+
+    # Generate unique short ID
+    chars = string.ascii_lowercase + string.digits
+    while True:
+        short_id = ''.join(random.choice(chars) for _ in range(12))
+        if short_id not in db:
+            break
+
+    # Get file info
+    file_path = Path(file_path)
+    if not file_path.exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    original_filename = file_path.name
+    file_extension = file_path.suffix.lower().lstrip('.')
+
+    # Create stored filename
+    stored_filename = f"{short_id}.{file_extension}" if file_extension else short_id
+
+    # Copy file to permanent storage
+    dest_path = permanent_dir / stored_filename
+    shutil.copy2(file_path, dest_path)
+
+    # Save to database
+    db[short_id] = {
+        'filename': stored_filename,
+        'original_filename': original_filename,
+        'file_path': str(dest_path),
+        'file_size': file_path.stat().st_size,
+        'file_extension': file_extension,
+        'timestamp': int(time.time()),
+        'views': 0
+    }
+
+    with open(db_path, 'w') as f:
+        json.dump(db, f, indent=2)
+
+    # Generate permanent link
+    permanent_link = f"{base_url}/{short_id}"
+    if file_extension:
+        permanent_link += f".{file_extension}"
+
+    return {
+        'short_id': short_id,
+        'permanent_link': permanent_link,
+        'original_filename': original_filename,
+        'file_size': file_path.stat().st_size,
+        'file_type': file_extension
+    }
+
 # --- Tool: web search for real-time information ---------------------------
 @tool
 def search_web(query: str) -> str:
@@ -1146,6 +1223,61 @@ def check_available_assets(state: Annotated[dict, InjectedState], *, config: Run
             result["recommendations"].append(f"Example: 'convert to XLSX' should convert {original_fmt}→XLSX (not {latest_fmt}→XLSX)")
 
     return json.dumps(result, indent=2)
+
+# --- Tool: Create Permanent Shareable Link -----------------------------------
+@tool
+def create_shareable_link(state: Annotated[dict, InjectedState], *, config: RunnableConfig) -> str:
+    """
+    Create a permanent shareable link for the most recently uploaded file (image, document, or video).
+    Use this when user asks for: "share link", "permanent link", "shareable url", "give me a link", etc.
+
+    This tool automatically finds the last uploaded file in the conversation and creates a short permanent URL.
+
+    Returns:
+        A message with the permanent shareable link (e.g., https://aiezzy.com/abc123xyz456.png)
+
+    Example usage:
+        User uploads image → User: "give me a link to share this"
+        You: Call create_shareable_link() → Returns permanent link
+        You: "Here's your permanent shareable link: https://aiezzy.com/abc123xyz456.png"
+    """
+    thread_id = state.get("configurable", {}).get("thread_id", "default") if state else "default"
+    if thread_id == "default":
+        global _current_thread_id
+        thread_id = _current_thread_id
+
+    context = get_thread_context(thread_id)
+
+    # Check for most recent uploaded file (images first, then documents)
+    file_path = None
+    file_type = None
+
+    if context.get("recent_images"):
+        file_path = context["recent_images"][-1]
+        file_type = "image"
+    elif context.get("document_context"):
+        # Use latest document (could be converted)
+        doc_ctx = context["document_context"]
+        if doc_ctx.get("latest"):
+            file_path = doc_ctx["latest"]["path"]
+            file_type = "document"
+
+    if not file_path or not os.path.exists(file_path):
+        return "❌ No file found in this conversation. Please upload a file first, then ask for a shareable link."
+
+    try:
+        # Create permanent link
+        result = create_permanent_link_for_file(file_path)
+
+        # Format response
+        link = result['permanent_link']
+        filename = result['original_filename']
+        size_kb = result['file_size'] // 1024
+
+        return f"✅ **Permanent shareable link created!**\n\n🔗 **Link:** {link}\n\n📄 **File:** {filename}\n📊 **Size:** {size_kb} KB\n\n✨ This link is permanent and can be shared with anyone. It will work indefinitely!"
+
+    except Exception as e:
+        return f"❌ Error creating shareable link: {str(e)}"
 
 # === PDF CONVERSION TOOLS ===================================================
 
@@ -3121,6 +3253,7 @@ def build_coordinator():
         evaluate_result_quality,
         check_image_context,
         check_available_assets,  # LangGraph-native context management
+        create_shareable_link,  # Create permanent shareable links for uploaded files
         # PDF Conversion tools - FROM PDF
         convert_pdf_to_images,
         convert_pdf_to_word,
