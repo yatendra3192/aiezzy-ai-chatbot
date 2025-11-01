@@ -1264,25 +1264,28 @@ def create_shareable_link(state: Annotated[dict, InjectedState], *, config: Runn
         global _current_thread_id
         thread_id = _current_thread_id
 
-    context = get_thread_context(thread_id)
+    # Check both image and document contexts
+    image_context = get_thread_context(thread_id)
+    doc_context = get_thread_document_context(thread_id)
 
     # Check for most recent uploaded file (images first, then documents)
     file_path = None
     file_type = None
 
-    # Check for uploaded images (use correct context key)
-    if context.get("uploaded_images"):
-        file_path = context["uploaded_images"][-1]
+    # Check for uploaded images
+    if image_context.get("uploaded_images"):
+        file_path = image_context["uploaded_images"][-1]
         file_type = "image"
-    elif context.get("recent_path"):
-        file_path = context["recent_path"]
+    elif image_context.get("recent_path"):
+        file_path = image_context["recent_path"]
         file_type = "image"
-    elif context.get("document_context"):
-        # Use latest document (could be converted)
-        doc_ctx = context["document_context"]
-        if doc_ctx.get("latest"):
-            file_path = doc_ctx["latest"]["path"]
-            file_type = "document"
+    # Check for uploaded documents
+    elif doc_context.get("latest"):
+        file_path = doc_context["latest"]["path"]
+        file_type = "document"
+    elif doc_context.get("original"):
+        file_path = doc_context["original"]["path"]
+        file_type = "document"
 
     if not file_path:
         return "❌ No file found in this conversation. Please upload a file first, then ask for a shareable link."
@@ -1290,12 +1293,25 @@ def create_shareable_link(state: Annotated[dict, InjectedState], *, config: Runn
     # Convert to absolute path if needed
     file_path = pathlib.Path(file_path)
     if not file_path.is_absolute():
-        # Try common locations
+        # Try common locations (check different directories based on file type)
         possible_paths = [
             file_path,  # Try as-is first
             pathlib.Path.cwd() / file_path,  # Try relative to current dir
-            ASSETS_DIR / file_path.name,  # Try in assets dir
         ]
+
+        # Add type-specific directories
+        if file_type == "image":
+            possible_paths.extend([
+                ASSETS_DIR / file_path.name,  # Generated/edited images
+                pathlib.Path('uploads') / file_path.name,  # Uploaded images
+            ])
+        elif file_type == "document":
+            docs_dir = pathlib.Path('documents') if not os.environ.get('RAILWAY_ENVIRONMENT') else pathlib.Path('/app/data/documents')
+            uploads_dir = pathlib.Path('uploads') if not os.environ.get('RAILWAY_ENVIRONMENT') else pathlib.Path('/app/data/uploads')
+            possible_paths.extend([
+                docs_dir / file_path.name,  # Processed documents
+                uploads_dir / file_path.name,  # Uploaded documents
+            ])
 
         # Find the first path that exists
         found_path = None
