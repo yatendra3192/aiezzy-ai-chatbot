@@ -477,10 +477,15 @@ def edit_image(prompt: str, state: Annotated[dict, InjectedState], *, config: Ru
             return "No active conversation context found. Please start a conversation or upload an image first."
 
     print(f"INFO: edit_image using thread_id = {thread_id}")
-    context = get_thread_context(thread_id)
-    recent_image_path = context['recent_path']
+
+    # Get latest uploaded image from unified context
+    file_info = get_latest_uploaded_file(thread_id, category='image')
+    if not file_info:
+        return "❌ No image found to edit. Please upload an image first."
+
+    recent_image_path = file_info['path']
     print(f"DEBUG: edit_image recent_image_path = {recent_image_path}")
-    print(f"DEBUG: edit_image thread context: {context}")
+    print(f"DEBUG: edit_image file_info = {file_info}")
     
     # Define keys early to avoid NameError in exception handling
     current_time = time.time()
@@ -1416,17 +1421,16 @@ def analyze_uploaded_image(state: Annotated[dict, InjectedState], *, config: Run
         global _current_thread_id
         thread_id = _current_thread_id
 
-    context = get_thread_context(thread_id)
+    # Get latest uploaded image from unified context
+    file_info = get_latest_uploaded_file(thread_id, category='image')
 
-    # Get most recent uploaded image (use correct context key)
-    file_path = None
-    if context.get("uploaded_images"):
-        file_path = context["uploaded_images"][-1]
-    elif context.get("recent_path"):
-        file_path = context["recent_path"]
-
-    if not file_path or not os.path.exists(file_path):
+    if not file_info:
         return "❌ No image found to analyze. Please upload an image first."
+
+    file_path = file_info['path']
+
+    if not os.path.exists(file_path):
+        return f"❌ Image file not found: {file_path}"
 
     try:
         # Use OpenAI Vision API to analyze the image
