@@ -1307,9 +1307,9 @@ def check_available_assets(state: Annotated[dict, InjectedState], *, config: Run
     if len(all_files) >= 2:
         result["recommendations"].append(f"📦 Can combine {len(all_files)} files into a single PDF or merge documents")
 
-    if result["documents"]:
-        doc_formats = [d["format"] for d in result["documents"]]
-        result["recommendations"].append(f"✅ {len(result['documents'])} document(s) available: {', '.join(doc_formats)}")
+    # Add smart recommendations based on document formats
+    if documents:
+        doc_formats = [d["format"] for d in documents]
 
         # Smart recommendations based on document type
         if any(fmt == "CSV" for fmt in doc_formats):
@@ -1322,13 +1322,6 @@ def check_available_assets(state: Annotated[dict, InjectedState], *, config: Run
             result["recommendations"].append("📝 Word detected: Can convert to PDF, TXT, HTML")
         if any(fmt in ["PPTX", "PPT"] for fmt in doc_formats):
             result["recommendations"].append("📊 PowerPoint detected: Can convert to PDF, HTML")
-
-        # Recommendation for using original vs latest
-        if len(result["documents"]) > 1:
-            original_fmt = result["documents"][0]["format"]
-            latest_fmt = result["documents"][-1]["format"]
-            result["recommendations"].append(f"🎯 SMART CHOICE: For format conversions, use ORIGINAL ({original_fmt}). For manipulations (rotate/split/etc), use LATEST ({latest_fmt})")
-            result["recommendations"].append(f"Example: 'convert to XLSX' should convert {original_fmt}→XLSX (not {latest_fmt}→XLSX)")
 
     return json.dumps(result, indent=2)
 
