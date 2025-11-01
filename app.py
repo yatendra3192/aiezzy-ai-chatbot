@@ -226,7 +226,13 @@ def generate_image(prompt: str,
                   num_images: int = 1,
                   state: Annotated[dict, InjectedState] = None) -> str:
     """
-    Generate an image from a text prompt using FAL AI nano-banana.
+    Generate a NEW image from a text description/prompt using FAL AI nano-banana.
+
+    Use this when user wants to CREATE/GENERATE a NEW image from text description.
+    Examples: "create an image of a sunset", "generate a picture of a cat"
+
+    DO NOT use this for creating shareable links of uploaded files - use create_shareable_link() instead.
+
     Returns HTML img tag for web display.
     """
     result = fal_client.subscribe(
@@ -1228,18 +1234,30 @@ def check_available_assets(state: Annotated[dict, InjectedState], *, config: Run
 @tool
 def create_shareable_link(state: Annotated[dict, InjectedState], *, config: RunnableConfig) -> str:
     """
-    Create a permanent shareable link for the most recently uploaded file (image, document, or video).
-    Use this when user asks for: "share link", "permanent link", "shareable url", "give me a link", etc.
+    Create a permanent shareable URL/link for files that have already been uploaded to the conversation.
 
-    This tool automatically finds the last uploaded file in the conversation and creates a short permanent URL.
+    WHEN TO USE THIS TOOL:
+    - User asks to "create a link", "share link", "get link", "shareable link", "permanent link"
+    - User wants a URL to share the uploaded file with others
+    - User asks "can I get a link?", "give me a link", "make this shareable"
+    - User wants to share an already-uploaded image/document/file
+
+    IMPORTANT: This is NOT for generating new images! This creates a link for EXISTING uploaded files.
+
+    How it works:
+    1. Finds the most recently uploaded file in this conversation
+    2. Creates a short permanent URL (e.g., https://aiezzy.com/abc123xyz456.png)
+    3. Returns the link that can be shared with anyone
+
+    Example workflow:
+        User: [uploads passport.png]
+        User: "create a link"
+        You: Call create_shareable_link()
+        Tool returns: Permanent link created!
+        You: "Here's your shareable link: https://aiezzy.com/abc123xyz456.png"
 
     Returns:
-        A message with the permanent shareable link (e.g., https://aiezzy.com/abc123xyz456.png)
-
-    Example usage:
-        User uploads image → User: "give me a link to share this"
-        You: Call create_shareable_link() → Returns permanent link
-        You: "Here's your permanent shareable link: https://aiezzy.com/abc123xyz456.png"
+        Success message with the permanent shareable link
     """
     thread_id = state.get("configurable", {}).get("thread_id", "default") if state else "default"
     if thread_id == "default":
