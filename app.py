@@ -3535,6 +3535,7 @@ def build_coordinator():
         "5. Present everything in a well-organized response\n\n"
         "SMART IMAGE HANDLING:\n"
         "- When the message contains image content blocks, the user has uploaded an image\n"
+        "- If message has image + LINK keywords ('create link', 'share link', 'get link', 'shareable link', 'permanent link', 'give me a link'): call create_shareable_link() DIRECTLY without analyzing\n"
         "- If message has image + video/animate keywords: use generate_video_from_image directly\n"
         "- If message has image + edit/modify keywords: use edit_image directly\n"
         "- If message contains '[Multi-image request with X uploaded images]': use generate_image_from_multiple directly\n"
