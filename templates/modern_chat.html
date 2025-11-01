@@ -2330,7 +2330,13 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
                     </svg>
                 </button>
+                <button class="attach-btn" onclick="document.getElementById('permanent-file-input').click()" title="Upload file for permanent shareable link" style="margin-left: 4px;">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                    </svg>
+                </button>
                 <input type="file" id="file-input" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.html,.htm" multiple style="display: none;" onchange="handleFileUpload(event)">
+                <input type="file" id="permanent-file-input" style="display: none;" onchange="handlePermanentFileUpload(event)">
 
                 <!-- Hidden legacy inputs for backward compatibility -->
                 <input type="file" id="image-input" accept="image/*" multiple style="display: none;" onchange="handleImageUpload(event)">
@@ -2453,6 +2459,43 @@
                         <button type="submit" class="share-btn primary">Submit Request</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Permanent Link Modal -->
+    <div class="share-modal" id="permanent-link-modal">
+        <div class="share-modal-content" onclick="event.stopPropagation()">
+            <div class="share-modal-header">
+                <h3 class="share-modal-title">Permanent Link Created</h3>
+                <button class="share-close-btn" onclick="closePermanentLinkModal()">&times;</button>
+            </div>
+            <div class="share-modal-body">
+                <div class="share-success">
+                    ✓ File uploaded successfully!
+                </div>
+                <p class="share-description">Your file is now available at this permanent link:</p>
+                <div class="share-link-container">
+                    <input type="text" id="permanent-link-url" class="share-link-input" readonly>
+                    <button class="share-btn primary" onclick="copyPermanentLink()">Copy Link</button>
+                </div>
+                <div class="share-info">
+                    <div class="info-item">
+                        <span class="info-label">File:</span>
+                        <span id="permanent-file-name" class="info-value"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Size:</span>
+                        <span id="permanent-file-size" class="info-value"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Type:</span>
+                        <span id="permanent-file-type" class="info-value"></span>
+                    </div>
+                </div>
+                <div class="share-actions">
+                    <button class="share-btn secondary" onclick="closePermanentLinkModal()">Close</button>
+                </div>
             </div>
         </div>
     </div>
@@ -3654,6 +3697,81 @@
             document.getElementById('feature-request-modal').classList.remove('open');
             document.getElementById('feature-success').style.display = 'none';
             document.getElementById('feature-request-form').reset();
+        }
+
+        // Permanent Link Modal Functions
+        function closePermanentLinkModal() {
+            document.getElementById('permanent-link-modal').classList.remove('open');
+        }
+
+        function copyPermanentLink() {
+            const linkInput = document.getElementById('permanent-link-url');
+            linkInput.select();
+            document.execCommand('copy');
+
+            // Show feedback
+            const button = event.target;
+            const originalText = button.textContent;
+            button.textContent = 'Copied!';
+            button.style.backgroundColor = '#10b981';
+
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.backgroundColor = '';
+            }, 2000);
+        }
+
+        async function handlePermanentFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            try {
+                // Show loading state
+                const modal = document.getElementById('permanent-link-modal');
+                const linkInput = document.getElementById('permanent-link-url');
+                linkInput.value = 'Uploading...';
+
+                // Create form data
+                const formData = new FormData();
+                formData.append('file', file);
+
+                // Upload file
+                const response = await fetch('/api/upload-permanent', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Update modal with file info
+                    linkInput.value = data.permanent_link;
+                    document.getElementById('permanent-file-name').textContent = data.original_filename;
+                    document.getElementById('permanent-file-size').textContent = formatFileSize(data.file_size);
+                    document.getElementById('permanent-file-type').textContent = data.file_type || 'Unknown';
+
+                    // Show modal
+                    modal.classList.add('open');
+                } else {
+                    alert('Error: ' + (data.error || 'Upload failed'));
+                }
+            } catch (error) {
+                console.error('Error uploading file:', error);
+                alert('Failed to upload file. Please try again.');
+            } finally {
+                // Reset file input
+                event.target.value = '';
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
         }
 
         async function copyShareLink() {

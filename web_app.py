@@ -189,6 +189,38 @@ user_conversations = {}
 
 # Conversations directory already created above with CONVERSATIONS_DIR
 
+# ===== Permanent File Links System =====
+# Store permanent files with short unique IDs
+PERMANENT_FILES_DIR = os.path.join(DATA_DIR, 'permanent_files')
+PERMANENT_FILES_DB = os.path.join(DATA_DIR, 'permanent_files.json')
+os.makedirs(PERMANENT_FILES_DIR, exist_ok=True)
+
+def load_permanent_files_db():
+    """Load the permanent files database"""
+    if os.path.exists(PERMANENT_FILES_DB):
+        try:
+            with open(PERMANENT_FILES_DB, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_permanent_files_db(db):
+    """Save the permanent files database"""
+    with open(PERMANENT_FILES_DB, 'w', encoding='utf-8') as f:
+        json.dump(db, f, indent=2)
+
+def generate_short_id(length=12):
+    """Generate a short unique ID for permanent files"""
+    import string
+    import random
+    chars = string.ascii_lowercase + string.digits
+    while True:
+        short_id = ''.join(random.choice(chars) for _ in range(length))
+        db = load_permanent_files_db()
+        if short_id not in db:
+            return short_id
+
 # ===== IndexNow Protocol for Instant Search Engine Indexing =====
 INDEXNOW_KEY = "dc42f34e7a2e52048e3d62723b7193017d5f13cc23ca4322b9ebb5e2e2ada103"
 INDEXNOW_ENDPOINT = "https://api.indexnow.org/IndexNow"
@@ -922,6 +954,45 @@ def serve_indexnow_key():
 def serve_video(filename):
     return send_from_directory(VIDEOS_DIR, filename)
 
+# === PERMANENT FILE LINKS SERVING ==========================================
+
+@web_app.route('/<path:short_path>')
+def serve_permanent_file(short_path):
+    """
+    Serve permanent files with short URLs like:
+    - /f5h39dhekl79e.gif
+    - /abc123xyz456.pdf
+    """
+    try:
+        # Extract short_id from path (remove extension if present)
+        if '.' in short_path:
+            short_id = short_path.rsplit('.', 1)[0]
+        else:
+            short_id = short_path
+
+        # Check if this is a permanent file
+        db = load_permanent_files_db()
+        if short_id in db:
+            file_info = db[short_id]
+
+            # Increment view counter
+            file_info['views'] = file_info.get('views', 0) + 1
+            save_permanent_files_db(db)
+
+            # Serve the file
+            filename = file_info['filename']
+            return send_from_directory(PERMANENT_FILES_DIR, filename)
+
+        # If not a permanent file, return 404 (will be handled by other routes or error handler)
+        from werkzeug.exceptions import NotFound
+        raise NotFound()
+
+    except NotFound:
+        raise
+    except Exception as e:
+        from werkzeug.exceptions import NotFound
+        raise NotFound()
+
 # === DOCUMENT PROCESSING ENDPOINTS ==========================================
 
 @web_app.route('/documents/<filename>')
@@ -1073,6 +1144,87 @@ def upload_documents():
             'count': len(uploaded_docs),
             'thread_id': thread_id,
             'message': f'✅ Uploaded {len(uploaded_docs)} document(s) ({total_size // 1024}KB total): {filenames}. You can now ask me to convert or analyze them!'
+        }
+
+        return jsonify(response_data)
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# === PERMANENT FILE LINKS ENDPOINT ==========================================
+
+@web_app.route('/api/upload-permanent', methods=['POST'])
+@optional_auth
+def upload_permanent_file():
+    """
+    Upload a file and get a permanent shareable link.
+    Returns a short URL like https://aiezzy.com/f5h39dhekl79e.gif
+    Supports all file types (images, videos, documents, etc.)
+    """
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file provided'}), 400
+
+        file = request.files['file']
+
+        if file.filename == '':
+            return jsonify({'error': 'No file selected'}), 400
+
+        # Save the uploaded file with secure filename
+        original_filename = secure_filename(file.filename)
+        file_extension = ''
+        if '.' in original_filename:
+            file_extension = original_filename.rsplit('.', 1)[1].lower()
+
+        # Generate unique short ID
+        short_id = generate_short_id(12)
+
+        # Create filename with short ID and extension
+        if file_extension:
+            stored_filename = f"{short_id}.{file_extension}"
+        else:
+            stored_filename = short_id
+
+        # Save file to permanent storage
+        file_path = os.path.join(PERMANENT_FILES_DIR, stored_filename)
+        file.save(file_path)
+
+        # Get file info
+        file_size = os.path.getsize(file_path)
+        timestamp = int(time.time())
+
+        # Get user ID if authenticated
+        user_id = get_user_id()
+
+        # Save to database
+        db = load_permanent_files_db()
+        db[short_id] = {
+            'filename': stored_filename,
+            'original_filename': original_filename,
+            'file_path': file_path,
+            'file_size': file_size,
+            'file_extension': file_extension,
+            'timestamp': timestamp,
+            'user_id': user_id,
+            'views': 0
+        }
+        save_permanent_files_db(db)
+
+        # Generate permanent link
+        base_url = request.host_url.rstrip('/')
+        permanent_link = f"{base_url}/{short_id}"
+        if file_extension:
+            permanent_link += f".{file_extension}"
+
+        response_data = {
+            'success': True,
+            'short_id': short_id,
+            'permanent_link': permanent_link,
+            'filename': stored_filename,
+            'original_filename': original_filename,
+            'file_size': file_size,
+            'file_type': file_extension,
+            'message': f'✅ File uploaded successfully! Permanent link: {permanent_link}'
         }
 
         return jsonify(response_data)
