@@ -2081,7 +2081,7 @@ def convert_powerpoint_to_pdf(file_path: str, output_name: str = None, *, config
 def convert_images_to_pdf(output_name: str = None, *, config: RunnableConfig) -> str:
     """
     Combine multiple uploaded images into a single PDF document.
-    Uses the most recently uploaded images from the current conversation.
+    Uses ALL uploaded images from the current conversation (unified context).
 
     Args:
         output_name: Optional output filename (without extension)
@@ -2095,12 +2095,14 @@ def convert_images_to_pdf(output_name: str = None, *, config: RunnableConfig) ->
         # Get thread_id from config
         thread_id = config.get("configurable", {}).get("thread_id", "default")
 
-        # Get recent image paths from conversation context
-        image_paths = get_recent_image_paths(thread_id)
+        # Get ALL uploaded files from UNIFIED context
+        all_files = get_all_uploaded_files(thread_id, category='image')
 
-        if not image_paths or len(image_paths) == 0:
+        if not all_files or len(all_files) == 0:
             return "❌ Error: No images found. Please upload images first before converting to PDF."
 
+        # Extract file paths from unified context
+        image_paths = [f['path'] for f in all_files]
         print(f"INFO: Found {len(image_paths)} images for thread {thread_id}: {image_paths}")
 
         # Verify all images exist
