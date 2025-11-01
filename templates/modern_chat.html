@@ -2706,76 +2706,33 @@
                 }
             }
 
-            // Show loading indicator
-            const fileWord = files.length === 1 ? 'document' : 'documents';
-            showLoadingMessage(`Uploading ${files.length} ${fileWord}...`);
+            // UNIFIED UPLOAD ARCHITECTURE:
+            // Don't upload immediately - just store files locally
+            // Upload will happen when user sends a message (agent-driven)
 
-            try {
-                // Create FormData for upload
-                const formData = new FormData();
-                files.forEach((file, index) => {
-                    formData.append(`document${index}`, file);
-                });
-                formData.append('count', files.length);
+            // Store first file (for now, single file upload)
+            uploadedDocument = files[0];
+            uploadedDocumentData = files[0]; // Store the File object itself
 
-                // Upload documents
-                const response = await fetch('/api/upload-documents', {
-                    method: 'POST',
-                    body: formData,
-                    headers: currentUser ? {
-                        'X-Session-Token': localStorage.getItem('session_token')
-                    } : {}
-                });
+            // Show document preview
+            const preview = document.getElementById('image-preview-container');
+            const file = files[0];
+            const fileSize = (file.size / 1024).toFixed(1);
+            const fileIcon = getDocumentIcon(file.name.split('.').pop());
 
-                const result = await response.json();
+            preview.innerHTML = `
+                <div class="document-preview">
+                    <div class="document-icon">${fileIcon}</div>
+                    <div class="document-info">
+                        <div class="document-name">${file.name}</div>
+                        <div class="document-size">${fileSize} KB</div>
+                    </div>
+                    <button class="remove-image" onclick="removeDocument(0)">×</button>
+                </div>
+            `;
 
-                if (result.success) {
-                    // Store document data (for multiple docs, store the array)
-                    uploadedDocument = files;
-                    uploadedDocumentData = result.documents || [result]; // Handle both single and multiple
-
-                    // Update thread ID if returned
-                    if (result.thread_id) {
-                        currentThreadId = result.thread_id;
-                        localStorage.setItem('currentThreadId', currentThreadId);
-                    }
-
-                    // Show document previews
-                    const preview = document.getElementById('image-preview-container');
-                    const docs = result.documents || [result];
-
-                    preview.innerHTML = docs.map((doc, index) => {
-                        const fileSize = (doc.file_size / 1024).toFixed(1);
-                        const fileIcon = getDocumentIcon(doc.file_type);
-                        return `
-                            <div class="document-preview" data-doc-index="${index}">
-                                <div class="document-icon">${fileIcon}</div>
-                                <div class="document-info">
-                                    <div class="document-name">${doc.original_filename}</div>
-                                    <div class="document-size">${fileSize} KB</div>
-                                </div>
-                                <button class="remove-image" onclick="removeDocument(${index})">×</button>
-                            </div>
-                        `;
-                    }).join('');
-
-                    // Add upload confirmation message to chat
-                    const message = files.length === 1
-                        ? result.message || `Uploaded: ${docs[0].original_filename}`
-                        : `Uploaded ${files.length} documents: ${docs.map(d => d.original_filename).join(', ')}`;
-                    addMessage(message, false);
-
-                    hideLoadingMessage();
-                    updateSendButton();
-                } else {
-                    hideLoadingMessage();
-                    alert(result.error || 'Upload failed');
-                }
-            } catch (error) {
-                hideLoadingMessage();
-                console.error('Document upload error:', error);
-                alert('Failed to upload documents. Please try again.');
-            }
+            console.log('UNIFIED_UPLOAD: Document ready for upload when user sends message:', file.name);
+            updateSendButton();
 
             // Reset file input
             event.target.value = '';
