@@ -962,45 +962,6 @@ def serve_indexnow_key():
 def serve_video(filename):
     return send_from_directory(VIDEOS_DIR, filename)
 
-# === PERMANENT FILE LINKS SERVING ==========================================
-
-@web_app.route('/<path:short_path>')
-def serve_permanent_file(short_path):
-    """
-    Serve permanent files with short URLs like:
-    - /f5h39dhekl79e.gif
-    - /abc123xyz456.pdf
-    """
-    try:
-        # Extract short_id from path (remove extension if present)
-        if '.' in short_path:
-            short_id = short_path.rsplit('.', 1)[0]
-        else:
-            short_id = short_path
-
-        # Check if this is a permanent file
-        db = load_permanent_files_db()
-        if short_id in db:
-            file_info = db[short_id]
-
-            # Increment view counter
-            file_info['views'] = file_info.get('views', 0) + 1
-            save_permanent_files_db(db)
-
-            # Serve the file
-            filename = file_info['filename']
-            return send_from_directory(PERMANENT_FILES_DIR, filename)
-
-        # If not a permanent file, return 404 (will be handled by other routes or error handler)
-        from werkzeug.exceptions import NotFound
-        raise NotFound()
-
-    except NotFound:
-        raise
-    except Exception as e:
-        from werkzeug.exceptions import NotFound
-        raise NotFound()
-
 # === DOCUMENT PROCESSING ENDPOINTS ==========================================
 
 @web_app.route('/documents/<filename>')
@@ -2831,6 +2792,50 @@ def pricing_page():
 def faq_page():
     """FAQ page with structured data"""
     return redirect('/')
+
+# === PERMANENT FILE LINKS SERVING (CATCH-ALL ROUTE - MUST BE LAST!) =========
+
+@web_app.route('/<path:short_path>')
+def serve_permanent_file(short_path):
+    """
+    Serve permanent files with short URLs like:
+    - /abc123xyz456.png
+    - /f5h39dhekl79e.gif
+
+    IMPORTANT: This catch-all route MUST be defined last to avoid
+    intercepting other specific routes.
+    """
+    try:
+        # Extract short_id from path (remove extension if present)
+        if '.' in short_path:
+            short_id = short_path.rsplit('.', 1)[0]
+        else:
+            short_id = short_path
+
+        # Check if this is a permanent file
+        db = load_permanent_files_db()
+        if short_id in db:
+            file_info = db[short_id]
+
+            # Increment view counter
+            file_info['views'] = file_info.get('views', 0) + 1
+            save_permanent_files_db(db)
+
+            # Serve the file
+            filename = file_info['filename']
+            return send_from_directory(PERMANENT_FILES_DIR, filename)
+
+        # If not a permanent file, return 404
+        from werkzeug.exceptions import NotFound
+        raise NotFound()
+
+    except NotFound:
+        raise
+    except Exception as e:
+        from werkzeug.exceptions import NotFound
+        raise NotFound()
+
+# ==============================================================================
 
 if __name__ == '__main__':
     # Submit key pages to IndexNow for instant indexing on startup
