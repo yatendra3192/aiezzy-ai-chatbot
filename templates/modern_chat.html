@@ -2458,12 +2458,18 @@
     </div>
 
     <script>
+        // UNIFIED FILE STORAGE - All files treated equally
+        let uploadedFiles = []; // Single array for ALL files (images, documents, videos, etc.)
+        let uploadedFilesData = []; // Preview data for files
+
+        // Legacy variables (kept for backward compatibility, will be deprecated)
         let uploadedImage = null;
         let uploadedImageData = null;
         let uploadedImages = []; // Array for multiple images
         let uploadedImagesData = []; // Array for multiple image data
         let uploadedDocument = null; // For document uploads
         let uploadedDocumentData = null; // Document metadata
+
         let conversationHistory = [];
         let isAtBottom = true;
         let currentConversationId = null;
@@ -2548,41 +2554,111 @@
             const files = Array.from(event.target.files);
             if (files.length === 0) return;
 
-            // Separate images from other files (all non-images treated as documents)
-            const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'heif'];
+            // UNIFIED APPROACH: Accumulate ALL files without categorization
+            uploadedFiles = [...uploadedFiles, ...files];
 
-            const imageFiles = [];
-            const documentFiles = [];
+            if (uploadedFiles.length > 100) {
+                alert('Maximum 100 files allowed');
+                // Keep only first 100
+                uploadedFiles = uploadedFiles.slice(0, 100);
+            }
 
-            files.forEach(file => {
+            // Update preview for all accumulated files
+            updateFilePreview();
+
+            // Clear the input
+            event.target.value = '';
+        }
+
+        function updateFilePreview() {
+            const preview = document.getElementById('image-preview-container');
+
+            if (uploadedFiles.length === 0) {
+                preview.innerHTML = '';
+                return;
+            }
+
+            const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'heif', 'bmp', 'svg'];
+
+            let previewHTML = '<div class="multi-file-preview" style="position: relative; padding: 10px;">';
+
+            uploadedFiles.forEach((file, index) => {
                 const ext = file.name.split('.').pop().toLowerCase();
-                if (imageExtensions.includes(ext)) {
-                    imageFiles.push(file);
+                const isImage = imageExtensions.includes(ext);
+                const fileSize = (file.size / 1024).toFixed(1);
+
+                if (isImage && uploadedFiles.length <= 10) {
+                    // Show image thumbnail for first 10 images
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const imgElement = document.getElementById(`file-preview-${index}`);
+                        if (imgElement) {
+                            imgElement.src = e.target.result;
+                        }
+                    };
+                    reader.readAsDataURL(file);
+
+                    previewHTML += `
+                        <div class="file-preview-item" style="display: inline-block; margin: 5px; position: relative;">
+                            <img id="file-preview-${index}" src="" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 2px solid #e5e7eb;" alt="${file.name}">
+                            <span class="file-number" style="position: absolute; top: 2px; right: 2px; background: #3b82f6; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 10px;">${index + 1}</span>
+                        </div>
+                    `;
                 } else {
-                    // Treat all non-image files as documents (any file type accepted)
-                    documentFiles.push(file);
+                    // Show file icon for documents
+                    const fileIcon = getFileIcon(ext);
+                    previewHTML += `
+                        <div class="file-preview-item" style="display: inline-block; margin: 5px; padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; position: relative; min-width: 80px;">
+                            <div class="file-icon" style="font-size: 24px; text-align: center;">${fileIcon}</div>
+                            <div class="file-info" style="font-size: 11px; text-align: center; margin-top: 5px;">
+                                <div class="file-name" style="max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${file.name}">${file.name}</div>
+                                <div class="file-size" style="color: #6b7280;">${fileSize} KB</div>
+                            </div>
+                            <span class="file-number" style="position: absolute; top: 2px; right: 2px; background: #3b82f6; color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 10px;">${index + 1}</span>
+                        </div>
+                    `;
                 }
             });
 
-            // Route based on what was uploaded
-            if (documentFiles.length > 0) {
-                // If any documents/files, use document handler (supports all file types)
-                const docInput = document.getElementById('document-input');
-                const dataTransfer = new DataTransfer();
-                files.forEach(file => dataTransfer.items.add(file));
-                docInput.files = dataTransfer.files;
-                handleDocumentUpload({ target: docInput });
-            } else if (imageFiles.length > 0) {
-                // Only images, use image handler
-                const imgInput = document.getElementById('image-input');
-                const dataTransfer = new DataTransfer();
-                imageFiles.forEach(file => dataTransfer.items.add(file));
-                imgInput.files = dataTransfer.files;
-                handleImageUpload({ target: imgInput });
-            }
+            previewHTML += `
+                <button class="remove-image" onclick="clearAllFiles()" style="position: absolute; top: 5px; right: 5px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; font-size: 16px; line-height: 1;">×</button>
+                <div class="file-label" style="text-align: center; margin-top: 10px; font-weight: 600; color: #3b82f6;">${uploadedFiles.length} File${uploadedFiles.length > 1 ? 's' : ''}</div>
+            </div>`;
 
-            // Clear the unified input
-            event.target.value = '';
+            preview.innerHTML = previewHTML;
+            updateSendButton();
+        }
+
+        function getFileIcon(extension) {
+            const icons = {
+                'pdf': '📄',
+                'doc': '📝', 'docx': '📝',
+                'xls': '📊', 'xlsx': '📊',
+                'ppt': '📊', 'pptx': '📊',
+                'zip': '📦', 'rar': '📦', '7z': '📦',
+                'mp4': '🎬', 'avi': '🎬', 'mov': '🎬', 'mkv': '🎬',
+                'mp3': '🎵', 'wav': '🎵', 'flac': '🎵',
+                'txt': '📝', 'md': '📝',
+                'json': '📋', 'xml': '📋', 'csv': '📋',
+                'js': '💻', 'py': '💻', 'java': '💻', 'cpp': '💻',
+                'html': '🌐', 'css': '🎨', 'htm': '🌐'
+            };
+            return icons[extension] || '📄';
+        }
+
+        function clearAllFiles() {
+            uploadedFiles = [];
+            uploadedFilesData = [];
+            // Also clear legacy variables
+            uploadedImage = null;
+            uploadedImageData = null;
+            uploadedImages = [];
+            uploadedImagesData = [];
+            uploadedDocument = null;
+            uploadedDocumentData = null;
+
+            document.getElementById('image-preview-container').innerHTML = '';
+            updateSendButton();
         }
 
         function handleImageUpload(event) {
@@ -3190,7 +3266,11 @@
             const threadId = ensureThreadId();
             console.log('THREAD_ID_FIX: Using thread_id for both upload and chat:', threadId);
 
-            // Store current image and document data for message display and API calls
+            // UNIFIED FILE HANDLING - Use uploadedFiles array if available
+            const hasUnifiedFiles = uploadedFiles.length > 0;
+            const filesForAPI = [...uploadedFiles]; // Store copy before clearing
+
+            // Legacy support - keep for backward compatibility
             const hasUploadedImage = !!uploadedImage;
             const hasMultiImages = uploadedImages.length > 0;
             const hasUploadedDoc = !!uploadedDocument || (Array.isArray(uploadedDocumentData) && uploadedDocumentData.length > 0) || !!uploadedDocumentData;
@@ -3322,33 +3402,39 @@
                     willUpload: hasMultiImages || hasUploadedImage || hasUploadedDoc
                 });
 
-                if (hasMultiImages || hasUploadedImage || hasUploadedDoc) {
+                if (hasUnifiedFiles || hasMultiImages || hasUploadedImage || hasUploadedDoc) {
                     console.log('ENTERING_UNIFIED_UPLOAD_FLOW');
 
                     // Show loading animation for file processing
-                    const loadingType = hasMultiImages ? 'Uploading files' : 'Uploading file';
+                    const loadingType = (hasUnifiedFiles && uploadedFiles.length > 1) || hasMultiImages ? 'Uploading files' : 'Uploading file';
                     showLoadingMessage(loadingType);
 
                     // UNIFIED FILE UPLOAD - Agent-driven architecture
                     // Frontend is "dumb pipe" - just uploads files, AI agent decides what to do
                     let filesToUpload = [];
 
-                    if (hasMultiImages) {
+                    // PRIORITY: Use unified files array if available (treats all files equally)
+                    if (hasUnifiedFiles) {
+                        filesToUpload = filesForAPI;
+                        console.log('UNIFIED_UPLOAD: Uploading', filesToUpload.length, 'files (unified pipeline)');
+                    }
+                    // FALLBACK: Legacy support for backward compatibility
+                    else if (hasMultiImages) {
                         // Multiple images - upload each one
                         filesToUpload = imagesForAPI;
-                        console.log('UNIFIED_UPLOAD: Uploading', filesToUpload.length, 'images');
+                        console.log('UNIFIED_UPLOAD: Uploading', filesToUpload.length, 'images (legacy)');
                     } else if (hasUploadedImage) {
                         // Single image
                         filesToUpload = [imageForAPI];
-                        console.log('UNIFIED_UPLOAD: Uploading single image');
+                        console.log('UNIFIED_UPLOAD: Uploading single image (legacy)');
                     } else if (hasUploadedDoc) {
                         // Document(s) - could be single file or array of files
                         if (Array.isArray(documentForAPI)) {
                             filesToUpload = documentForAPI;
-                            console.log('UNIFIED_UPLOAD: Uploading', documentForAPI.length, 'documents');
+                            console.log('UNIFIED_UPLOAD: Uploading', documentForAPI.length, 'documents (legacy)');
                         } else {
                             filesToUpload = [documentForAPI];
-                            console.log('UNIFIED_UPLOAD: Uploading single document:', documentForAPI.name);
+                            console.log('UNIFIED_UPLOAD: Uploading single document (legacy):', documentForAPI.name);
                         }
                     }
 
@@ -3440,11 +3526,15 @@
                         timestamp: new Date().toISOString()
                     });
 
-                    // Clear uploaded files
+                    // Clear uploaded files (unified + legacy)
+                    uploadedFiles = [];
+                    uploadedFilesData = [];
                     uploadedImage = null;
                     uploadedImageData = null;
                     uploadedImages = [];
                     uploadedImagesData = [];
+                    uploadedDocument = null;
+                    uploadedDocumentData = null;
                     updateSendButton();
                     saveCurrentConversation();
                     
