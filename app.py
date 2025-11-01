@@ -308,6 +308,9 @@ def generate_image(prompt: str,
 _thread_image_context = {}  # {thread_id: {'recent_path': path, 'uploaded_images': [paths], 'image_labels': {}}}
 _thread_document_context = {}  # {thread_id: {'original': {path, filename, timestamp}, 'latest': {path, filename, timestamp}}}
 
+# UNIFIED FILE CONTEXT - Agent-driven architecture (no hardcoded file type logic)
+_thread_unified_files = {}  # {thread_id: {'files': [{path, filename, mime_type, extension, category, size, timestamp}]}}
+
 def get_thread_context(thread_id):
     """Get or create thread-specific image context"""
     if thread_id not in _thread_image_context:
@@ -370,6 +373,84 @@ def clear_thread_context(thread_id):
     """Clear image context for a specific thread"""
     if thread_id in _thread_image_context:
         del _thread_image_context[thread_id]
+
+# === UNIFIED FILE CONTEXT (Agent-Driven Architecture) ===
+
+def get_unified_file_context(thread_id):
+    """Get or create unified file context for thread"""
+    if thread_id not in _thread_unified_files:
+        _thread_unified_files[thread_id] = {
+            'files': []  # List of all uploaded files with metadata
+        }
+    return _thread_unified_files[thread_id]
+
+def add_uploaded_file(thread_id, file_path, filename, mime_type=None, extension=None, file_size=0):
+    """Add a file to unified context (images, documents, videos, anything)"""
+    import time
+    import mimetypes
+
+    context = get_unified_file_context(thread_id)
+
+    # Detect mime type and extension if not provided
+    if not mime_type:
+        mime_type, _ = mimetypes.guess_type(filename)
+        if not mime_type:
+            mime_type = 'application/octet-stream'
+
+    if not extension:
+        extension = pathlib.Path(filename).suffix.lower().lstrip('.')
+
+    # Categorize file based on mime type
+    category = 'unknown'
+    if mime_type.startswith('image/'):
+        category = 'image'
+    elif mime_type.startswith('video/'):
+        category = 'video'
+    elif mime_type == 'application/pdf' or extension == 'pdf':
+        category = 'document'
+    elif mime_type in ['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']:
+        category = 'document'
+    elif mime_type in ['application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']:
+        category = 'document'
+    elif extension in ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv']:
+        category = 'document'
+
+    file_info = {
+        'path': file_path,
+        'filename': filename,
+        'mime_type': mime_type,
+        'extension': extension,
+        'category': category,
+        'size': file_size,
+        'timestamp': time.time()
+    }
+
+    # Add to files list (keep last 10 files)
+    context['files'].append(file_info)
+    if len(context['files']) > 10:
+        context['files'] = context['files'][-10:]
+
+    print(f"UNIFIED_CONTEXT: Added {category} file '{filename}' to thread {thread_id}")
+    print(f"UNIFIED_CONTEXT: Thread now has {len(context['files'])} files")
+
+    return file_info
+
+def get_latest_uploaded_file(thread_id, category=None):
+    """Get the most recent uploaded file, optionally filtered by category"""
+    context = get_unified_file_context(thread_id)
+
+    if not context['files']:
+        return None
+
+    if category:
+        # Filter by category and return most recent
+        filtered = [f for f in context['files'] if f['category'] == category]
+        return filtered[-1] if filtered else None
+
+    # Return most recent file of any type
+    return context['files'][-1]
+
+# === END UNIFIED FILE CONTEXT ===
 
 # --- Tool: image editing (FAL AI nano-banana/edit) ------------------------
 @tool
@@ -1264,54 +1345,26 @@ def create_shareable_link(state: Annotated[dict, InjectedState], *, config: Runn
         global _current_thread_id
         thread_id = _current_thread_id
 
-    # Check both image and document contexts
-    image_context = get_thread_context(thread_id)
-    doc_context = get_thread_document_context(thread_id)
+    # Get latest uploaded file from unified context (ANY file type)
+    file_info = get_latest_uploaded_file(thread_id)
 
-    # Check for most recent uploaded file (images first, then documents)
-    file_path = None
-    file_type = None
-
-    # Check for uploaded images
-    if image_context.get("uploaded_images"):
-        file_path = image_context["uploaded_images"][-1]
-        file_type = "image"
-    elif image_context.get("recent_path"):
-        file_path = image_context["recent_path"]
-        file_type = "image"
-    # Check for uploaded documents
-    elif doc_context.get("latest"):
-        file_path = doc_context["latest"]["path"]
-        file_type = "document"
-    elif doc_context.get("original"):
-        file_path = doc_context["original"]["path"]
-        file_type = "document"
-
-    if not file_path:
+    if not file_info:
         return "❌ No file found in this conversation. Please upload a file first, then ask for a shareable link."
+
+    file_path = file_info['path']
+    file_type = file_info['category']  # image, document, video, etc.
 
     # Convert to absolute path if needed
     file_path = pathlib.Path(file_path)
     if not file_path.is_absolute():
-        # Try common locations (check different directories based on file type)
+        # Try common locations
+        uploads_dir = pathlib.Path('uploads') if not os.environ.get('RAILWAY_ENVIRONMENT') else pathlib.Path('/app/data/uploads')
         possible_paths = [
             file_path,  # Try as-is first
             pathlib.Path.cwd() / file_path,  # Try relative to current dir
+            uploads_dir / file_path.name,  # Uploads directory (all file types)
+            ASSETS_DIR / file_path.name,  # Assets directory (generated images)
         ]
-
-        # Add type-specific directories
-        if file_type == "image":
-            possible_paths.extend([
-                ASSETS_DIR / file_path.name,  # Generated/edited images
-                pathlib.Path('uploads') / file_path.name,  # Uploaded images
-            ])
-        elif file_type == "document":
-            docs_dir = pathlib.Path('documents') if not os.environ.get('RAILWAY_ENVIRONMENT') else pathlib.Path('/app/data/documents')
-            uploads_dir = pathlib.Path('uploads') if not os.environ.get('RAILWAY_ENVIRONMENT') else pathlib.Path('/app/data/uploads')
-            possible_paths.extend([
-                docs_dir / file_path.name,  # Processed documents
-                uploads_dir / file_path.name,  # Uploaded documents
-            ])
 
         # Find the first path that exists
         found_path = None

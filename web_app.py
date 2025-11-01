@@ -8,7 +8,7 @@ import json
 import secrets
 import requests
 from werkzeug.utils import secure_filename
-from app import app as langgraph_app, encode_image_to_content_block, set_recent_image_path, clear_thread_cache, clear_thread_context, reset_all_context, set_current_thread_id, set_document_context, update_document_latest
+from app import app as langgraph_app, encode_image_to_content_block, set_recent_image_path, clear_thread_cache, clear_thread_context, reset_all_context, set_current_thread_id, set_document_context, update_document_latest, add_uploaded_file, get_latest_uploaded_file, get_unified_file_context
 
 # Import authentication modules
 from models import UserManager
@@ -961,6 +961,61 @@ def serve_indexnow_key():
 @web_app.route('/videos/<filename>')
 def serve_video(filename):
     return send_from_directory(VIDEOS_DIR, filename)
+
+# === UNIFIED FILE UPLOAD (Agent-Driven - No Hardcoded Logic) ================
+
+@web_app.route('/api/upload-file', methods=['POST'])
+@optional_auth
+def upload_file_unified():
+    """
+    UNIFIED file upload endpoint - accepts ANY file type (images, PDFs, videos, etc.)
+    Frontend is a "dumb pipe" - just uploads the file
+    AI agent decides what to do based on user's message
+
+    NO hardcoded logic for file types or operations
+    Maximum flexibility for agentic applications
+    """
+    try:
+        thread_id = request.form.get('thread_id', 'default')
+        message = request.form.get('message', '')
+        file = request.files.get('file')
+
+        if not file:
+            return jsonify({'error': 'No file uploaded'}), 400
+
+        # Save file to uploads directory
+        filename = secure_filename(file.filename)
+        timestamp = int(time.time() * 1000)
+        unique_filename = f"{timestamp}_{filename}"
+        file_path = os.path.join(web_app.config['UPLOAD_FOLDER'], unique_filename)
+        file.save(file_path)
+
+        file_size = os.path.getsize(file_path)
+
+        # Add to unified context - NO decisions about what to do with it
+        add_uploaded_file(
+            thread_id=thread_id,
+            file_path=file_path,
+            filename=filename,
+            file_size=file_size
+        )
+
+        print(f"UNIFIED_UPLOAD: Stored '{filename}' in context for thread {thread_id}")
+        print(f"UNIFIED_UPLOAD: AI agent will decide what to do based on user message: '{message}'")
+
+        # Return success - AI agent will access file from context
+        return jsonify({
+            'success': True,
+            'filename': filename,
+            'size': file_size,
+            'message': f'File uploaded: {filename}'
+        })
+
+    except Exception as e:
+        print(f"ERROR in unified upload: {e}", flush=True)
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
 
 # === DOCUMENT PROCESSING ENDPOINTS ==========================================
 
