@@ -3250,7 +3250,7 @@
             try {
                 let response;
                 
-                if (hasMultiImages || hasUploadedImage) {
+                if (hasMultiImages || hasUploadedImage || hasUploadedDoc) {
                     // Show loading animation for file processing
                     const loadingType = hasMultiImages ? 'Uploading files' : 'Uploading file';
                     showLoadingMessage(loadingType);
@@ -3261,14 +3261,19 @@
                     formData.append('thread_id', currentThreadId || 'default');
                     formData.append('message', userContent);
 
+                    // Determine which file to upload (images or documents)
                     if (hasMultiImages) {
-                        // Multiple files - upload first one (agent will handle multi-file operations)
+                        // Multiple images
                         formData.append('file', imagesForAPI[0]);
-                        console.log('UNIFIED_UPLOAD: Uploading multiple files (first one)');
-                    } else {
-                        // Single file
+                        console.log('UNIFIED_UPLOAD: Uploading multiple images (first one)');
+                    } else if (hasUploadedImage) {
+                        // Single image
                         formData.append('file', imageForAPI);
-                        console.log('UNIFIED_UPLOAD: Uploading single file');
+                        console.log('UNIFIED_UPLOAD: Uploading single image');
+                    } else if (hasUploadedDoc) {
+                        // Document
+                        formData.append('file', documentForAPI);
+                        console.log('UNIFIED_UPLOAD: Uploading document:', documentForAPI.name);
                     }
 
                     // Upload file to unified endpoint (no hardcoded logic)
