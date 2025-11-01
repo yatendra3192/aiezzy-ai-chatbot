@@ -372,6 +372,8 @@ def chat():
         if not thread_id or thread_id == 'None' or thread_id == '':
             thread_id = str(uuid.uuid4())
         print(f"MOBILE FIX: Using thread_id = {thread_id}")
+        print(f"CHAT_DEBUG: Received thread_id from frontend = '{data.get('thread_id')}'", flush=True)
+        print(f"CHAT_DEBUG: Final thread_id = '{thread_id}'", flush=True)
         
         # CRITICAL FIX: If this is a new conversation (no history), clear any old image context
         # BUT: Don't clear if this is the same thread continuing a conversation
@@ -992,8 +994,13 @@ def upload_file_unified():
 
         file_size = os.path.getsize(file_path)
 
+        # DEBUG: Log thread_id before adding to context
+        print(f"UNIFIED_UPLOAD_BACKEND: Received thread_id = '{thread_id}'", flush=True)
+        print(f"UNIFIED_UPLOAD_BACKEND: Filename = '{filename}'", flush=True)
+        print(f"UNIFIED_UPLOAD_BACKEND: File path = '{file_path}'", flush=True)
+
         # Add to unified context - NO decisions about what to do with it
-        add_uploaded_file(
+        file_info = add_uploaded_file(
             thread_id=thread_id,
             file_path=file_path,
             filename=filename,
@@ -1001,6 +1008,7 @@ def upload_file_unified():
         )
 
         print(f"UNIFIED_UPLOAD: Stored '{filename}' in context for thread {thread_id}")
+        print(f"UNIFIED_UPLOAD: File added as category: {file_info['category']}", flush=True)
         print(f"UNIFIED_UPLOAD: AI agent will decide what to do based on user message: '{message}'")
 
         # Return success - AI agent will access file from context

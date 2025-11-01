@@ -1350,8 +1350,21 @@ def create_shareable_link(state: Annotated[dict, InjectedState], *, config: Runn
         global _current_thread_id
         thread_id = _current_thread_id
 
+    # DEBUG: Log thread_id and context state
+    print(f"SHAREABLE_LINK_DEBUG: thread_id = {thread_id}", flush=True)
+    print(f"SHAREABLE_LINK_DEBUG: _thread_unified_files keys = {list(_thread_unified_files.keys())}", flush=True)
+    if thread_id in _thread_unified_files:
+        files_count = len(_thread_unified_files[thread_id]['files'])
+        print(f"SHAREABLE_LINK_DEBUG: Thread has {files_count} files in context", flush=True)
+        if files_count > 0:
+            latest = _thread_unified_files[thread_id]['files'][-1]
+            print(f"SHAREABLE_LINK_DEBUG: Latest file = {latest['filename']} ({latest['category']})", flush=True)
+    else:
+        print(f"SHAREABLE_LINK_DEBUG: Thread {thread_id} NOT FOUND in unified context!", flush=True)
+
     # Get latest uploaded file from unified context (ANY file type)
     file_info = get_latest_uploaded_file(thread_id)
+    print(f"SHAREABLE_LINK_DEBUG: get_latest_uploaded_file returned = {file_info}", flush=True)
 
     if not file_info:
         return "❌ No file found in this conversation. Please upload a file first, then ask for a shareable link."
