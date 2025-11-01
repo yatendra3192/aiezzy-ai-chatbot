@@ -12,6 +12,10 @@ httpx
 tavily-python
 gunicorn==21.2.0
 
+# Model Context Protocol (MCP) Support
+langchain-mcp-adapters
+mcp
+
 # PDF Conversion & Processing Libraries
 pypdf
 PyMuPDF

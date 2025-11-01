@@ -4,9 +4,17 @@ A production-ready ChatGPT-style web application featuring advanced LangGraph mu
 
 **🌐 Live at: [aiezzy.com](https://aiezzy.com)**
 
-## 🆕 Latest Updates (October 19, 2025)
+## 🆕 Latest Updates (October 27, 2025)
 
-### 📄 **Complete Document Processing Suite**
+### 🔌 **Model Context Protocol (MCP) Server** (NEW!)
+- **MCP Integration**: AIezzy now supports the Model Context Protocol standard
+- **10 Exposed Tools**: Image generation, video creation, web search, text processing, QR codes & more
+- **LangChain Compatible**: Works seamlessly with LangGraph agents and LangChain applications
+- **IDE Integration**: Connect to Claude Code, Cursor, and other MCP-enabled tools
+- **Universal Interface**: "USB-C for AI" - standardized access to AIezzy capabilities
+- **Complete Documentation**: See [MCP_SETUP.md](MCP_SETUP.md) for full setup guide
+
+### 📄 **Complete Document Processing Suite** (October 19, 2025)
 - **PDF Conversion**: Convert PDFs to Word, Excel, PowerPoint, or images with table preservation
 - **Office to PDF**: Convert Word, Excel, PowerPoint documents to PDF format
 - **Multi-Format Support**: Handle PDF, DOCX, XLSX, PPTX, PNG, JPG, JPEG, GIF, WEBP files
