@@ -3162,6 +3162,16 @@
             const imagesForAPI = [...uploadedImages]; // Store copy before clearing
             const documentForAPI = uploadedDocumentData; // Store before clearing
 
+            // DEBUG: Log upload state
+            console.log('UPLOAD_STATE:', {
+                hasUploadedImage,
+                hasMultiImages,
+                hasUploadedDoc,
+                uploadedDocument,
+                uploadedDocumentData,
+                documentForAPI
+            });
+
             // Add user message
             let userContent = message;
             let messageImageData = null;
@@ -3249,8 +3259,18 @@
             
             try {
                 let response;
-                
+
+                // DEBUG: Log condition check
+                console.log('UPLOAD_CONDITION_CHECK:', {
+                    hasMultiImages,
+                    hasUploadedImage,
+                    hasUploadedDoc,
+                    willUpload: hasMultiImages || hasUploadedImage || hasUploadedDoc
+                });
+
                 if (hasMultiImages || hasUploadedImage || hasUploadedDoc) {
+                    console.log('ENTERING_UNIFIED_UPLOAD_FLOW');
+
                     // Show loading animation for file processing
                     const loadingType = hasMultiImages ? 'Uploading files' : 'Uploading file';
                     showLoadingMessage(loadingType);
@@ -3272,22 +3292,27 @@
                         console.log('UNIFIED_UPLOAD: Uploading single image');
                     } else if (hasUploadedDoc) {
                         // Document
+                        console.log('UNIFIED_UPLOAD: Preparing to upload document:', documentForAPI);
                         formData.append('file', documentForAPI);
-                        console.log('UNIFIED_UPLOAD: Uploading document:', documentForAPI.name);
+                        console.log('UNIFIED_UPLOAD: Document appended to FormData:', documentForAPI.name);
                     }
 
                     // Upload file to unified endpoint (no hardcoded logic)
+                    console.log('UNIFIED_UPLOAD: Sending fetch request to /api/upload-file');
                     response = await fetch('/api/upload-file', {
                         method: 'POST',
                         body: formData
                     });
-                    
+
+                    console.log('UNIFIED_UPLOAD: Fetch response received:', response.status);
                     const uploadResult = await response.json();
+                    console.log('UNIFIED_UPLOAD: Upload result:', uploadResult);
 
                     // Hide loading message
                     hideLoadingMessage();
 
                     if (uploadResult.error) {
+                        console.error('UNIFIED_UPLOAD: Error occurred:', uploadResult.error);
                         hideTyping();
                         hideProgressIndicator();
                         addMessage(`❌ Error uploading file: ${uploadResult.error}`, false);
