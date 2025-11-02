@@ -4148,7 +4148,14 @@ def build_app():
                         age_seconds = int(time.time() - f['timestamp'])
                         files_list.append(f"- {f['filename']} ({f['category']}, {f['size']} bytes, uploaded {age_seconds}s ago)")
 
-                    file_context = "\n\n[SYSTEM: Available files in context:\n" + "\n".join(files_list) + "\nUse these files for any operations the user requests.]"
+                    file_context = "\n\n🚨 CRITICAL SYSTEM NOTIFICATION 🚨\n" + \
+                                  "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" + \
+                                  f"📁 {len(files)} FILE(S) ALREADY UPLOADED AND READY:\n" + \
+                                  "\n".join(files_list) + "\n" + \
+                                  "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" + \
+                                  "⚠️  DO NOT ASK USER TO UPLOAD FILES - THEY ARE ALREADY HERE!\n" + \
+                                  "✅ PROCEED DIRECTLY WITH THE USER'S REQUEST USING THESE FILES\n" + \
+                                  "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
                     # Append context to user message
                     modified_content = user_text + file_context
