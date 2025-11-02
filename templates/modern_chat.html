@@ -3363,7 +3363,12 @@
             if (hasUploadedDoc) {
                 clearDocument();
             }
-            
+
+            // Clear unified file preview immediately
+            if (hasUnifiedFiles) {
+                clearAllFiles();
+            }
+
             // Clear input
             input.value = '';
             input.style.height = 'auto';
