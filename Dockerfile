@@ -26,8 +26,8 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p /app/data /app/uploads /app/assets /app/videos /app/documents
 
-# Expose port
-EXPOSE 5000
+# Expose port (Railway will set $PORT dynamically)
+EXPOSE $PORT
 
-# Run the application
-CMD ["python", "web_app.py"]
+# Run the application with gunicorn (production server)
+CMD gunicorn web_app:web_app --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --preload
