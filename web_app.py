@@ -14,8 +14,18 @@ from app import app as langgraph_app, encode_image_to_content_block, set_recent_
 from models import UserManager
 from auth import login_required, admin_required, optional_auth, get_current_user, get_user_id, create_session, clear_session, get_client_ip, get_user_agent, rate_limit_check, validate_password_strength, sanitize_username, is_valid_email, init_auth
 
+# Enhanced user management imports
+from config import get_config
+from models_v2 import db, init_db
+from api_routes import api as api_v2
+from quota_service import quota_service
+
 # Initialize Flask app
 web_app = Flask(__name__)
+
+# Get enhanced configuration
+config = get_config()
+web_app.config.from_object(config)
 
 # Configure persistent storage paths for Railway
 if os.environ.get('RAILWAY_ENVIRONMENT'):
@@ -46,11 +56,17 @@ os.makedirs(VIDEOS_DIR, exist_ok=True)
 os.makedirs(DOCUMENTS_DIR, exist_ok=True)
 os.makedirs(CONVERSATIONS_DIR, exist_ok=True)
 
+# Initialize enhanced database with SQLAlchemy
+init_db(web_app)
+
 # Initialize authentication
 init_auth(web_app)
 
 # Initialize user manager
 user_manager = UserManager()
+
+# Register enhanced API routes
+web_app.register_blueprint(api_v2)
 
 # ===== Security Headers for A+ Rating =====
 @web_app.after_request
@@ -338,6 +354,13 @@ def get_step_context(history):
     if recent_context:
         return "Context: " + "; ".join(recent_context) + ". Continue with next logical step."
     return None
+
+# Admin dashboard route
+@web_app.route('/admin')
+@admin_required
+def admin_dashboard_page():
+    """Admin dashboard for user management"""
+    return render_template('admin_dashboard.html')
 
 @web_app.route('/')
 @optional_auth

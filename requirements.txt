@@ -12,6 +12,16 @@ httpx
 tavily-python
 gunicorn==21.2.0
 
+# Enhanced User Management (PostgreSQL Support)
+flask-sqlalchemy
+psycopg2-binary
+sqlalchemy
+flask-migrate
+
+# OAuth Support
+authlib
+requests-oauthlib
+
 # Model Context Protocol (MCP) Support
 langchain-mcp-adapters
 mcp
