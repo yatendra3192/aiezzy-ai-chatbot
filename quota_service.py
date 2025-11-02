@@ -60,7 +60,7 @@ class QuotaService:
                 user_id=user_id if user_id else 0,  # 0 for guests
                 resource_type=resource_type,
                 resource_count=count,
-                metadata=str(metadata) if metadata else None
+                resource_metadata=str(metadata) if metadata else None
             )
             db.session.add(usage_log)
 

@@ -167,7 +167,7 @@ class UsageLog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
     resource_type = db.Column(db.String(50), nullable=False)  # image, video, message
     resource_count = db.Column(db.Integer, default=1)
-    metadata = db.Column(db.Text)  # JSON for additional data
+    resource_metadata = db.Column(db.Text)  # JSON for additional data
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
     __table_args__ = (
