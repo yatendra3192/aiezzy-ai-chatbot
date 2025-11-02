@@ -2931,12 +2931,22 @@
             if (sendBtn) sendBtn.disabled = true;
         }
 
+        function updateLoadingMessage(newText) {
+            const loadingMsg = document.getElementById('loading-message');
+            if (loadingMsg) {
+                const loadingTextElement = loadingMsg.querySelector('.loading-text');
+                if (loadingTextElement) {
+                    loadingTextElement.innerHTML = `${newText} <span class="loading-dots"></span>`;
+                }
+            }
+        }
+
         function hideLoadingMessage() {
             const loadingMsg = document.getElementById('loading-message');
             if (loadingMsg) {
                 loadingMsg.remove();
             }
-            
+
             // Re-enable input after loading
             const input = document.getElementById('composer-input');
             const sendBtn = document.querySelector('.send-btn');
@@ -3372,28 +3382,32 @@
             // Clear input
             input.value = '';
             input.style.height = 'auto';
-            
-            // Detect if this is a multi-step request
-            const multiStepInfo = detectMultiStepRequest(message || 'Image analysis');
-            
-            if (multiStepInfo.isMultiStep) {
-                // Show progress indicator instead of simple typing
-                showProgressIndicator(multiStepInfo.steps);
-                // Simulate progress steps based on estimated time
-                simulateProgressSteps(multiStepInfo.steps, multiStepInfo.estimatedTime * 1000);
-                
-                // Add timeout warning for very long requests
-                if (multiStepInfo.estimatedTime > 120) { // 2+ minutes
-                    setTimeout(() => {
-                        const progressStatus = document.getElementById('progress-status');
-                        if (progressStatus && progressStatus.textContent.includes('Working on')) {
-                            progressStatus.textContent += ' • This is taking longer than usual, please wait...';
-                        }
-                    }, 90000); // Show after 90 seconds
+
+            // Skip showing typing/progress indicators if files are being uploaded
+            // File upload flow will handle showing appropriate indicators
+            if (!hasUnifiedFiles && !hasMultiImages && !hasUploadedImage && !hasUploadedDoc) {
+                // Detect if this is a multi-step request
+                const multiStepInfo = detectMultiStepRequest(message || 'Image analysis');
+
+                if (multiStepInfo.isMultiStep) {
+                    // Show progress indicator instead of simple typing
+                    showProgressIndicator(multiStepInfo.steps);
+                    // Simulate progress steps based on estimated time
+                    simulateProgressSteps(multiStepInfo.steps, multiStepInfo.estimatedTime * 1000);
+
+                    // Add timeout warning for very long requests
+                    if (multiStepInfo.estimatedTime > 120) { // 2+ minutes
+                        setTimeout(() => {
+                            const progressStatus = document.getElementById('progress-status');
+                            if (progressStatus && progressStatus.textContent.includes('Working on')) {
+                                progressStatus.textContent += ' • This is taking longer than usual, please wait...';
+                            }
+                        }, 90000); // Show after 90 seconds
+                    }
+                } else {
+                    // Show typing indicator for simple requests
+                    showTyping();
                 }
-            } else {
-                // Show typing indicator for simple requests
-                showTyping();
             }
             
             try {
@@ -3470,10 +3484,8 @@
                         }
                     }
 
-                    // Hide loading message
-                    hideLoadingMessage();
-
                     if (uploadError) {
+                        hideLoadingMessage();
                         hideTyping();
                         hideProgressIndicator();
                         addMessage(`❌ Error uploading files: ${uploadError}`, false);
@@ -3484,9 +3496,11 @@
 
                     console.log('UNIFIED_UPLOAD: All files uploaded successfully');
 
+                    // Update loading message to show AI is processing (no visual gap)
+                    updateLoadingMessage('Processing your request');
+
                     // Now send message to AI agent - agent will access file from unified context
                     // AI agent decides what to do (analyze, create link, edit, convert, etc.)
-                    showTyping();
 
                     response = await fetch('/api/chat', {
                         method: 'POST',
@@ -3503,6 +3517,7 @@
                     const chatData = await response.json();
 
                     if (chatData.error) {
+                        hideLoadingMessage();
                         hideTyping();
                         hideProgressIndicator();
                         addMessage(`❌ Error: ${chatData.error}`, false);
@@ -3511,6 +3526,7 @@
                         return;
                     }
 
+                    hideLoadingMessage();
                     hideTyping();
                     hideProgressIndicator();
 
