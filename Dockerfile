@@ -26,9 +26,12 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p /app/data /app/uploads /app/assets /app/videos /app/documents
 
+# Copy and make startup script executable
+COPY startup.sh /app/startup.sh
+RUN chmod +x /app/startup.sh
+
 # Expose port (Railway sets this dynamically)
 EXPOSE 8080
 
-# Run the application with gunicorn (production server)
-# Use shell form to allow $PORT variable expansion
-CMD gunicorn web_app:web_app --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 120 --preload
+# Run the application using startup script
+CMD ["/app/startup.sh"]
