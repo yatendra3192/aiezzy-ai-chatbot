@@ -3535,9 +3535,7 @@
 
                     // Now send message to AI agent - agent will access file from unified context
                     // AI agent decides what to do (analyze, create link, edit, convert, etc.)
-
-                    // CRITICAL FIX: Prepend marker to tell agent files were just uploaded
-                    const messageToAgent = `[${filesToUpload.length} FILE(S) JUST UPLOADED] ${userContent}`;
+                    // Frontend is DUMB PIPE - just sends message, agent is intelligent
 
                     response = await fetch('/api/chat', {
                         method: 'POST',
@@ -3545,7 +3543,7 @@
                             'Content-Type': 'application/json'
                         },
                         body: JSON.stringify({
-                            message: messageToAgent,
+                            message: userContent,
                             history: conversationHistory.slice(-10),
                             thread_id: threadId  // Use same thread_id as upload
                         })
