@@ -2575,12 +2575,16 @@
 
             if (uploadedFiles.length === 0) {
                 preview.innerHTML = '';
+                uploadedFilesData = []; // Clear preview data too
                 return;
             }
 
             const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'heif', 'bmp', 'svg'];
 
             let previewHTML = '<div class="multi-file-preview" style="position: relative; padding: 10px;">';
+
+            // Clear and rebuild preview data array
+            uploadedFilesData = [];
 
             uploadedFiles.forEach((file, index) => {
                 const ext = file.name.split('.').pop().toLowerCase();
@@ -2595,6 +2599,8 @@
                         if (imgElement) {
                             imgElement.src = e.target.result;
                         }
+                        // Store base64 data for display in chat message
+                        uploadedFilesData[index] = e.target.result;
                     };
                     reader.readAsDataURL(file);
 
@@ -3312,25 +3318,53 @@
             const hasActionIntent = lastUserMessage && lastUserMessage.content &&
                 /(convert|edit|modify|change|make|create|generate|to pdf|to png|to jpg|to word|to excel|to html|rotate|split|compress|merge)/i.test(lastUserMessage.content);
 
+            // Prepare image data for display in user message
+            // PRIORITY: Use unified files if available (new flow)
+            const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'heif', 'bmp', 'svg'];
+            let unifiedImageData = [];
+
+            if (hasUnifiedFiles) {
+                // Extract image files and their preview data from unified storage
+                filesForAPI.forEach((file, index) => {
+                    const ext = file.name.split('.').pop().toLowerCase();
+                    const isImage = imageExtensions.includes(ext);
+                    if (isImage && uploadedFilesData[index]) {
+                        unifiedImageData.push(uploadedFilesData[index]);
+                    }
+                });
+            }
+
             if (hasUploadedDoc) {
                 // Document uploaded
                 // Note: We now REQUIRE message (line 3190), so no auto-injection needed
                 // User must type their intent explicitly (e.g., "convert to PDF", "analyze this")
+            } else if (hasUnifiedFiles && unifiedImageData.length > 0) {
+                // NEW: Unified files with images
+                if (unifiedImageData.length === 1) {
+                    messageImageData = unifiedImageData[0];
+                } else {
+                    messageImageData = null; // Will use multiImageDataForMessage instead
+                }
             } else if (hasMultiImages) {
-                // Multiple images - show the first image as preview in message
+                // LEGACY: Multiple images - show the first image as preview in message
                 messageImageData = uploadedImagesData.length > 0 ? uploadedImagesData[0] : null;
                 // Note: We now REQUIRE message (line 3190), so no auto-injection needed
                 // User must type their intent explicitly (e.g., "combine these", "create collage")
             } else if (hasUploadedImage) {
-                // Single image
+                // LEGACY: Single image
                 messageImageData = uploadedImageData;
                 // Note: We now REQUIRE message (line 3190), so no auto-injection needed
                 // User must type their intent explicitly
             }
 
-            if (userContent || hasUploadedImage || hasMultiImages || hasUploadedDoc) {
+            if (userContent || hasUploadedImage || hasMultiImages || hasUploadedDoc || hasUnifiedFiles) {
                 // Pass all image data for display
-                const multiImageDataForMessage = hasMultiImages ? uploadedImagesData : null;
+                let multiImageDataForMessage = null;
+                if (hasUnifiedFiles && unifiedImageData.length > 1) {
+                    multiImageDataForMessage = unifiedImageData; // NEW: Use unified images
+                } else if (hasMultiImages) {
+                    multiImageDataForMessage = uploadedImagesData; // LEGACY: Use legacy images
+                }
                 addMessage(userContent, true, null, messageImageData, multiImageDataForMessage);
 
                 // Get document metadata for history (not the File objects themselves)
