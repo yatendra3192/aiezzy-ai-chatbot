@@ -370,9 +370,17 @@ def get_recent_image_paths(thread_id="default"):
     return context['uploaded_images']
 
 def clear_thread_context(thread_id):
-    """Clear image context for a specific thread"""
+    """Clear ALL file contexts for a specific thread (old + unified systems)"""
+    # Clear old image context
     if thread_id in _thread_image_context:
         del _thread_image_context[thread_id]
+    # Clear unified file context
+    if thread_id in _thread_unified_files:
+        del _thread_unified_files[thread_id]
+    # Clear document context
+    if thread_id in _thread_document_context:
+        del _thread_document_context[thread_id]
+    print(f"INFO: Cleared all contexts for thread {thread_id}", flush=True)
 
 # === UNIFIED FILE CONTEXT (Agent-Driven Architecture) ===
 
