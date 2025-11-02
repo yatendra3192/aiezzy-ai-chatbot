@@ -430,6 +430,17 @@ def add_uploaded_file(thread_id, file_path, filename, mime_type=None, extension=
     if len(context['files']) > 10:
         context['files'] = context['files'][-10:]
 
+    # BACKWARD COMPATIBILITY: Also populate OLD context system so existing tools work
+    if category == 'image':
+        old_context = get_thread_context(thread_id)
+        old_context['recent_path'] = file_path
+        if file_path not in old_context['uploaded_images']:
+            old_context['uploaded_images'].append(file_path)
+        print(f"BACKWARD_COMPAT: Also added image to old context system for thread {thread_id}", flush=True)
+    elif category == 'document':
+        set_document_context(thread_id, file_path, filename, is_original=True)
+        print(f"BACKWARD_COMPAT: Also added document to old context system for thread {thread_id}", flush=True)
+
     print(f"UNIFIED_CONTEXT: Added {category} file '{filename}' to thread {thread_id}")
     print(f"UNIFIED_CONTEXT: Thread now has {len(context['files'])} files")
 
