@@ -622,8 +622,9 @@ def edit_image(prompt: str, state: Annotated[dict, InjectedState], *, config: Ru
 
                 edited_path.write_bytes(response.content)
                 filename = edited_path.name
-                
-                # CRITICAL FIX: Update the recent_path context to use the edited image for future operations
+
+                # CRITICAL FIX: Get thread context to update the recent_path
+                context = get_thread_context(thread_id)
                 context['recent_path'] = str(edited_path)
                 # Also add the edited image to the uploaded images list for multi-image operations
                 context['uploaded_images'].append(str(edited_path))
