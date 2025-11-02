@@ -26,8 +26,9 @@ COPY . .
 # Create necessary directories
 RUN mkdir -p /app/data /app/uploads /app/assets /app/videos /app/documents
 
-# Expose port (Railway will set $PORT dynamically)
-EXPOSE $PORT
+# Expose port (Railway sets this dynamically)
+EXPOSE 8080
 
 # Run the application with gunicorn (production server)
-CMD gunicorn web_app:web_app --bind 0.0.0.0:$PORT --workers 2 --timeout 120 --preload
+# Use shell form to allow $PORT variable expansion
+CMD gunicorn web_app:web_app --bind 0.0.0.0:${PORT:-8080} --workers 2 --timeout 120 --preload
