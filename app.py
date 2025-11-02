@@ -4090,7 +4090,7 @@ def build_app():
     def coordinator_node(state: dict, *, config: RunnableConfig):
         """
         Wrapper to ensure RunnableConfig propagates to the coordinator agent.
-        AUTO-INJECTS file context when user message implies file operation.
+        ALWAYS checks for available files and injects context - no hardcoded logic.
         """
         thread_id = config.get('configurable', {}).get('thread_id', 'default')
         print(f"INFO: coordinator_node invoked with thread_id = {thread_id}")
@@ -4099,7 +4099,7 @@ def build_app():
         messages = state.get("messages", [])
         last_msg = messages[-1] if messages else None
 
-        # Check if user is requesting an operation on a previous upload
+        # Check if message has content blocks
         has_image_content = False
         user_text = ""
         if last_msg and hasattr(last_msg, 'content'):
@@ -4110,34 +4110,29 @@ def build_app():
             else:
                 user_text = str(content)
 
-        # AUTO-INJECT FILE CONTEXT: If no content blocks but user implies file operation
+        # ALWAYS check for available files (no hardcoded keyword logic)
+        # If files exist in context and message has no content blocks, inject file info
         if not has_image_content and user_text:
-            # Keywords that suggest user is referring to an existing file
-            file_keywords = ['this image', 'the image', 'my image', 'this file', 'the file',
-                            'animate', 'edit', 'modify', 'change', 'convert', 'rotate', 'resize',
-                            'make video', 'create video', 'extract text', 'make it', 'change it']
+            context = get_unified_file_context(thread_id)
+            if context and context.get('files'):
+                # Auto-inject file context for agent
+                from langchain_core.messages import HumanMessage
 
-            user_text_lower = user_text.lower()
-            implies_file_operation = any(keyword in user_text_lower for keyword in file_keywords)
+                files_list = []
+                for f in context['files']:
+                    age_seconds = int(time.time() - f['timestamp'])
+                    files_list.append(f"- {f['filename']} ({f['category']}, {f['size']} bytes, uploaded {age_seconds}s ago)")
 
-            if implies_file_operation:
-                # Check if files are available in context
-                context = get_unified_file_context(thread_id)
-                if context and context.get('files'):
-                    # Auto-inject file information directly into state
-                    from langchain_core.messages import HumanMessage
-                    latest_file = context['files'][-1]
+                file_context = "\n\n[SYSTEM: Available files in context:\n" + "\n".join(files_list) + "\nUse these files for any operations the user requests.]"
 
-                    file_info_msg = f"\n\n[SYSTEM CONTEXT: User uploaded file '{latest_file['filename']}' ({latest_file['category']}, {latest_file['size']} bytes) {int(time.time() - latest_file['timestamp'])} seconds ago. File is available in thread context.]"
+                # Append context to user message
+                modified_content = user_text + file_context
 
-                    # Append context to the user's message
-                    modified_content = user_text + file_info_msg
+                # Create new state with modified message
+                new_messages = messages[:-1] + [HumanMessage(content=modified_content)]
+                state = {"messages": new_messages}
 
-                    # Create new state with modified message
-                    new_messages = messages[:-1] + [HumanMessage(content=modified_content)]
-                    state = {"messages": new_messages}
-
-                    print(f"AUTO-INJECT: Added file context to message for agent")
+                print(f"AUTO-CONTEXT: Injected {len(context['files'])} file(s) info for agent")
 
         # Pass config explicitly to ensure tools receive it
         return coordinator.invoke(state, config=config)
