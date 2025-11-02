@@ -4146,7 +4146,7 @@ def build_app():
                     files_list = []
                     for f in files:
                         age_seconds = int(time.time() - f['timestamp'])
-                        files_list.append(f"- {f['filename']} ({f['category']}, {f['size']} bytes, uploaded {age_seconds}s ago)")
+                        files_list.append(f"- {f['filename']} ({f['category']}, {f['size']} bytes, uploaded {age_seconds}s ago)\n  PATH: {f['path']}")
 
                     file_context = "\n\n🚨 CRITICAL SYSTEM NOTIFICATION 🚨\n" + \
                                   "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" + \
@@ -4154,7 +4154,8 @@ def build_app():
                                   "\n".join(files_list) + "\n" + \
                                   "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n" + \
                                   "⚠️  DO NOT ASK USER TO UPLOAD FILES - THEY ARE ALREADY HERE!\n" + \
-                                  "✅ PROCEED DIRECTLY WITH THE USER'S REQUEST USING THESE FILES\n" + \
+                                  "✅ USE THE FILE PATHS ABOVE DIRECTLY IN YOUR TOOL CALLS\n" + \
+                                  "   Example: convert_pdf_to_images(file_path='/app/data/uploads/...')\n" + \
                                   "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
                     # Append context to user message
