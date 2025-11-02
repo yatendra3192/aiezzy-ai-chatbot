@@ -4090,7 +4090,7 @@ def build_app():
     def coordinator_node(state: dict, *, config: RunnableConfig):
         """
         Wrapper to ensure RunnableConfig propagates to the coordinator agent.
-        HYDRATES available assets before agent step to eliminate brittle tool calling.
+        AUTO-INJECTS file context when user message implies file operation.
         """
         thread_id = config.get('configurable', {}).get('thread_id', 'default')
         print(f"INFO: coordinator_node invoked with thread_id = {thread_id}")
@@ -4100,7 +4100,6 @@ def build_app():
         last_msg = messages[-1] if messages else None
 
         # Check if user is requesting an operation on a previous upload
-        # (no image content blocks in current message, but message contains operation keywords)
         has_image_content = False
         user_text = ""
         if last_msg and hasattr(last_msg, 'content'):
@@ -4111,9 +4110,34 @@ def build_app():
             else:
                 user_text = str(content)
 
-        # NO MORE HARDCODED KEYWORD HYDRATION!
-        # The AI agent will intelligently call check_available_assets() when needed.
-        # This eliminates brittleness and allows the AI to understand ANY file operation request.
+        # AUTO-INJECT FILE CONTEXT: If no content blocks but user implies file operation
+        if not has_image_content and user_text:
+            # Keywords that suggest user is referring to an existing file
+            file_keywords = ['this image', 'the image', 'my image', 'this file', 'the file',
+                            'animate', 'edit', 'modify', 'change', 'convert', 'rotate', 'resize',
+                            'make video', 'create video', 'extract text', 'make it', 'change it']
+
+            user_text_lower = user_text.lower()
+            implies_file_operation = any(keyword in user_text_lower for keyword in file_keywords)
+
+            if implies_file_operation:
+                # Check if files are available in context
+                context = get_unified_file_context(thread_id)
+                if context and context.get('files'):
+                    # Auto-inject file information directly into state
+                    from langchain_core.messages import HumanMessage
+                    latest_file = context['files'][-1]
+
+                    file_info_msg = f"\n\n[SYSTEM CONTEXT: User uploaded file '{latest_file['filename']}' ({latest_file['category']}, {latest_file['size']} bytes) {int(time.time() - latest_file['timestamp'])} seconds ago. File is available in thread context.]"
+
+                    # Append context to the user's message
+                    modified_content = user_text + file_info_msg
+
+                    # Create new state with modified message
+                    new_messages = messages[:-1] + [HumanMessage(content=modified_content)]
+                    state = {"messages": new_messages}
+
+                    print(f"AUTO-INJECT: Added file context to message for agent")
 
         # Pass config explicitly to ensure tools receive it
         return coordinator.invoke(state, config=config)
