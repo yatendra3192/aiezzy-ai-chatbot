@@ -4093,46 +4093,67 @@ def build_app():
         ALWAYS checks for available files and injects context - no hardcoded logic.
         """
         thread_id = config.get('configurable', {}).get('thread_id', 'default')
-        print(f"INFO: coordinator_node invoked with thread_id = {thread_id}")
+        print(f"INFO: coordinator_node invoked with thread_id = {thread_id}", flush=True)
 
         # Get the last user message
         messages = state.get("messages", [])
         last_msg = messages[-1] if messages else None
+        print(f"DEBUG: messages count = {len(messages)}, last_msg exists = {last_msg is not None}", flush=True)
 
         # Check if message has content blocks
         has_image_content = False
         user_text = ""
         if last_msg and hasattr(last_msg, 'content'):
             content = last_msg.content
+            print(f"DEBUG: message content type = {type(content)}", flush=True)
             if isinstance(content, list):
                 has_image_content = any(isinstance(c, dict) and c.get('type') == 'image' for c in content)
                 user_text = " ".join(str(c.get('text', '')) for c in content if isinstance(c, dict))
             else:
                 user_text = str(content)
 
+        print(f"DEBUG: has_image_content = {has_image_content}, user_text = '{user_text[:100]}'", flush=True)
+
         # ALWAYS check for available files (no hardcoded keyword logic)
         # If files exist in context and message has no content blocks, inject file info
+        print(f"DEBUG: Checking condition: not has_image_content ({not has_image_content}) and user_text ({bool(user_text)})", flush=True)
+
         if not has_image_content and user_text:
+            print(f"DEBUG: Condition passed! Calling get_unified_file_context with thread_id = {thread_id}", flush=True)
             context = get_unified_file_context(thread_id)
-            if context and context.get('files'):
-                # Auto-inject file context for agent
-                from langchain_core.messages import HumanMessage
+            print(f"DEBUG: context = {context}", flush=True)
 
-                files_list = []
-                for f in context['files']:
-                    age_seconds = int(time.time() - f['timestamp'])
-                    files_list.append(f"- {f['filename']} ({f['category']}, {f['size']} bytes, uploaded {age_seconds}s ago)")
+            if context:
+                files = context.get('files', [])
+                print(f"DEBUG: context.get('files') returned {len(files)} files", flush=True)
 
-                file_context = "\n\n[SYSTEM: Available files in context:\n" + "\n".join(files_list) + "\nUse these files for any operations the user requests.]"
+                if files:
+                    print(f"DEBUG: Files found! Starting auto-injection...", flush=True)
+                    # Auto-inject file context for agent
+                    from langchain_core.messages import HumanMessage
 
-                # Append context to user message
-                modified_content = user_text + file_context
+                    files_list = []
+                    for f in files:
+                        age_seconds = int(time.time() - f['timestamp'])
+                        files_list.append(f"- {f['filename']} ({f['category']}, {f['size']} bytes, uploaded {age_seconds}s ago)")
 
-                # Create new state with modified message
-                new_messages = messages[:-1] + [HumanMessage(content=modified_content)]
-                state = {"messages": new_messages}
+                    file_context = "\n\n[SYSTEM: Available files in context:\n" + "\n".join(files_list) + "\nUse these files for any operations the user requests.]"
 
-                print(f"AUTO-CONTEXT: Injected {len(context['files'])} file(s) info for agent")
+                    # Append context to user message
+                    modified_content = user_text + file_context
+
+                    # Create new state with modified message
+                    new_messages = messages[:-1] + [HumanMessage(content=modified_content)]
+                    state = {"messages": new_messages}
+
+                    print(f"AUTO-CONTEXT: ✅ Successfully injected {len(files)} file(s) info for agent", flush=True)
+                    print(f"AUTO-CONTEXT: Modified message preview: {modified_content[:200]}...", flush=True)
+                else:
+                    print(f"DEBUG: ❌ No files in context (empty list)", flush=True)
+            else:
+                print(f"DEBUG: ❌ context is None or empty", flush=True)
+        else:
+            print(f"DEBUG: ❌ Condition failed - skipping auto-injection", flush=True)
 
         # Pass config explicitly to ensure tools receive it
         return coordinator.invoke(state, config=config)
