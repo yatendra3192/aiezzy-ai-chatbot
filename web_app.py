@@ -2240,7 +2240,7 @@ def admin_settings():
 
 @web_app.route('/admin/files')
 def file_browser():
-    """Simple file browser for viewing generated assets"""
+    """Modern high-performance file browser - optimized for 4000+ files"""
     # Simple authentication check
     if not require_admin_auth():
         return """
@@ -2254,6 +2254,17 @@ def file_browser():
         </body>
         </html>
         """, 401
+
+    # Redirect to new optimized admin panel
+    admin_key = request.args.get('key', '')
+    return render_template('admin_files_v2.html', admin_key=admin_key)
+
+@web_app.route('/admin/files/old')
+def file_browser_old():
+    """Old file browser (kept for backup) - WARNING: Slow with 4000+ files"""
+    # Simple authentication check
+    if not require_admin_auth():
+        return "Admin access required", 401
     
     try:
         # Get admin key for passing to view URLs
@@ -2349,6 +2360,273 @@ def file_browser():
         
     except Exception as e:
         return f"Error browsing files: {str(e)}", 500
+
+@web_app.route('/admin/api/files')
+def api_get_files():
+    """Paginated API for file listing - optimized for large file counts"""
+    if not require_admin_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        # Get pagination parameters
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 50))  # 50 files per page
+        category = request.args.get('category', 'all')  # all, images, videos, documents, conversations
+        sort_by = request.args.get('sort_by', 'modified')  # modified, size, name
+        sort_order = request.args.get('sort_order', 'desc')  # asc, desc
+        search = request.args.get('search', '').lower()
+
+        # Category to directory mapping
+        category_dirs = {
+            'images': [(ASSETS_DIR, 'image')],
+            'videos': [(VIDEOS_DIR, 'video')],
+            'uploads': [(web_app.config['UPLOAD_FOLDER'], 'upload')],
+            'conversations': [(CONVERSATIONS_DIR, 'conversation')],
+            'shared': [('shared', 'shared')],
+            'all': [
+                (ASSETS_DIR, 'image'),
+                (VIDEOS_DIR, 'video'),
+                (web_app.config['UPLOAD_FOLDER'], 'upload'),
+                (CONVERSATIONS_DIR, 'conversation'),
+                ('shared', 'shared')
+            ]
+        }
+
+        # Get directories to scan
+        dirs_to_scan = category_dirs.get(category, category_dirs['all'])
+
+        all_files = []
+
+        # Collect all files matching criteria
+        for directory_path, file_type in dirs_to_scan:
+            if not os.path.exists(directory_path):
+                continue
+
+            if directory_path == CONVERSATIONS_DIR:
+                # Special handling for conversations
+                for user_dir in os.listdir(directory_path):
+                    user_path = os.path.join(directory_path, user_dir)
+                    if os.path.isdir(user_path):
+                        for filename in os.listdir(user_path):
+                            if filename.endswith('.json'):
+                                file_path = os.path.join(user_path, filename)
+                                if os.path.isfile(file_path):
+                                    if search and search not in filename.lower():
+                                        continue
+                                    stat = os.stat(file_path)
+                                    all_files.append({
+                                        'name': filename,
+                                        'size': stat.st_size,
+                                        'modified': stat.st_mtime,
+                                        'type': 'conversation',
+                                        'path': f'{user_dir}/{filename}',
+                                        'url': f'/admin/view-conversation/{user_dir}/{filename[:-5]}'
+                                    })
+            else:
+                # Standard file handling
+                for filename in os.listdir(directory_path):
+                    if search and search not in filename.lower():
+                        continue
+                    file_path = os.path.join(directory_path, filename)
+                    if os.path.isfile(file_path):
+                        stat = os.stat(file_path)
+
+                        # Determine file URL
+                        file_url = None
+                        if directory_path == ASSETS_DIR:
+                            file_url = f'/assets/{filename}'
+                        elif directory_path == VIDEOS_DIR:
+                            file_url = f'/videos/{filename}'
+                        elif directory_path == web_app.config['UPLOAD_FOLDER']:
+                            file_url = f'/uploads/{filename}'
+                        elif directory_path == 'shared' and filename.endswith('.json'):
+                            file_url = f'/admin/view-shared/{filename[:-5]}'
+
+                        all_files.append({
+                            'name': filename,
+                            'size': stat.st_size,
+                            'modified': stat.st_mtime,
+                            'type': file_type,
+                            'url': file_url,
+                            'path': filename
+                        })
+
+        # Sort files
+        reverse = (sort_order == 'desc')
+        if sort_by == 'modified':
+            all_files.sort(key=lambda x: x['modified'], reverse=reverse)
+        elif sort_by == 'size':
+            all_files.sort(key=lambda x: x['size'], reverse=reverse)
+        elif sort_by == 'name':
+            all_files.sort(key=lambda x: x['name'].lower(), reverse=reverse)
+
+        # Calculate pagination
+        total_files = len(all_files)
+        total_pages = (total_files + per_page - 1) // per_page
+        start_idx = (page - 1) * per_page
+        end_idx = start_idx + per_page
+        page_files = all_files[start_idx:end_idx]
+
+        # Format file sizes and dates for display
+        for file in page_files:
+            file['size_formatted'] = format_file_size(file['size'])
+            file['modified_formatted'] = format_timestamp(file['modified'])
+
+        return jsonify({
+            'files': page_files,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total_files': total_files,
+                'total_pages': total_pages,
+                'has_next': page < total_pages,
+                'has_prev': page > 1
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+def format_file_size(size_bytes):
+    """Format file size in human-readable format"""
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if size_bytes < 1024.0:
+            return f"{size_bytes:.1f} {unit}"
+        size_bytes /= 1024.0
+    return f"{size_bytes:.1f} TB"
+
+def format_timestamp(timestamp):
+    """Format Unix timestamp to human-readable date"""
+    from datetime import datetime
+    dt = datetime.fromtimestamp(timestamp)
+    return dt.strftime('%Y-%m-%d %H:%M:%S')
+
+@web_app.route('/admin/api/delete-files', methods=['POST'])
+def api_delete_files():
+    """Batch delete files"""
+    if not require_admin_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        data = request.get_json()
+        file_paths = data.get('files', [])
+        deleted_count = 0
+        errors = []
+
+        for file_info in file_paths:
+            try:
+                file_type = file_info.get('type')
+                file_path = file_info.get('path')
+
+                # Determine full path based on type
+                if file_type == 'image':
+                    full_path = os.path.join(ASSETS_DIR, file_path)
+                elif file_type == 'video':
+                    full_path = os.path.join(VIDEOS_DIR, file_path)
+                elif file_type == 'upload':
+                    full_path = os.path.join(web_app.config['UPLOAD_FOLDER'], file_path)
+                elif file_type == 'conversation':
+                    full_path = os.path.join(CONVERSATIONS_DIR, file_path)
+                elif file_type == 'shared':
+                    full_path = os.path.join('shared', file_path)
+                else:
+                    continue
+
+                if os.path.exists(full_path) and os.path.isfile(full_path):
+                    os.remove(full_path)
+                    deleted_count += 1
+                else:
+                    errors.append(f"File not found: {file_path}")
+
+            except Exception as e:
+                errors.append(f"Error deleting {file_path}: {str(e)}")
+
+        return jsonify({
+            'success': True,
+            'deleted_count': deleted_count,
+            'errors': errors
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@web_app.route('/admin/api/stats')
+def api_get_stats():
+    """Get file statistics for dashboard"""
+    if not require_admin_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        stats = {
+            'images': {'count': 0, 'size': 0},
+            'videos': {'count': 0, 'size': 0},
+            'uploads': {'count': 0, 'size': 0},
+            'conversations': {'count': 0, 'size': 0},
+            'shared': {'count': 0, 'size': 0}
+        }
+
+        # Count images
+        if os.path.exists(ASSETS_DIR):
+            for filename in os.listdir(ASSETS_DIR):
+                file_path = os.path.join(ASSETS_DIR, filename)
+                if os.path.isfile(file_path):
+                    stats['images']['count'] += 1
+                    stats['images']['size'] += os.path.getsize(file_path)
+
+        # Count videos
+        if os.path.exists(VIDEOS_DIR):
+            for filename in os.listdir(VIDEOS_DIR):
+                file_path = os.path.join(VIDEOS_DIR, filename)
+                if os.path.isfile(file_path):
+                    stats['videos']['count'] += 1
+                    stats['videos']['size'] += os.path.getsize(file_path)
+
+        # Count uploads
+        if os.path.exists(web_app.config['UPLOAD_FOLDER']):
+            for filename in os.listdir(web_app.config['UPLOAD_FOLDER']):
+                file_path = os.path.join(web_app.config['UPLOAD_FOLDER'], filename)
+                if os.path.isfile(file_path):
+                    stats['uploads']['count'] += 1
+                    stats['uploads']['size'] += os.path.getsize(file_path)
+
+        # Count conversations
+        if os.path.exists(CONVERSATIONS_DIR):
+            for user_dir in os.listdir(CONVERSATIONS_DIR):
+                user_path = os.path.join(CONVERSATIONS_DIR, user_dir)
+                if os.path.isdir(user_path):
+                    for filename in os.listdir(user_path):
+                        file_path = os.path.join(user_path, filename)
+                        if os.path.isfile(file_path) and filename.endswith('.json'):
+                            stats['conversations']['count'] += 1
+                            stats['conversations']['size'] += os.path.getsize(file_path)
+
+        # Count shared
+        if os.path.exists('shared'):
+            for filename in os.listdir('shared'):
+                file_path = os.path.join('shared', filename)
+                if os.path.isfile(file_path):
+                    stats['shared']['count'] += 1
+                    stats['shared']['size'] += os.path.getsize(file_path)
+
+        # Format sizes
+        for category in stats.values():
+            category['size_formatted'] = format_file_size(category['size'])
+
+        # Total stats
+        total_count = sum(s['count'] for s in stats.values())
+        total_size = sum(s['size'] for s in stats.values())
+
+        return jsonify({
+            'stats': stats,
+            'total': {
+                'count': total_count,
+                'size': total_size,
+                'size_formatted': format_file_size(total_size)
+            }
+        })
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @web_app.route('/admin/view-conversation/<user_id>/<conversation_id>')
 def view_conversation(user_id, conversation_id):
