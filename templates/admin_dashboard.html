@@ -243,8 +243,8 @@
             <h1>🛠️ AIezzy Admin Dashboard</h1>
             <div class="navbar-user">
                 <span id="adminName">Admin</span>
+                <button class="btn btn-secondary" onclick="window.location.href='/admin/files?key={{ admin_key }}'">File Management</button>
                 <button class="btn btn-secondary" onclick="window.location.href='/'">Back to App</button>
-                <button class="btn btn-secondary" onclick="logout()">Logout</button>
             </div>
         </div>
     </nav>
@@ -326,6 +326,9 @@
     </div>
 
     <script>
+        // Get admin key from template
+        const adminKey = '{{ admin_key }}';
+
         // Load admin data on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadAdminData();
@@ -333,14 +336,10 @@
 
         async function loadAdminData() {
             try {
-                const response = await fetch('/api/admin/dashboard', {
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('session_token')}`
-                    }
-                });
+                const response = await fetch(`/api/admin/dashboard?key=${adminKey}`);
 
                 if (!response.ok) {
-                    if (response.status === 403) {
+                    if (response.status === 403 || response.status === 401) {
                         alert('Access denied. Admin privileges required.');
                         window.location.href = '/';
                         return;
@@ -412,7 +411,7 @@
         }
 
         async function viewUser(userId) {
-            window.location.href = `/admin/users/${userId}`;
+            window.location.href = `/admin/users/${userId}?key=${adminKey}`;
         }
 
         async function editUser(userId) {
@@ -423,11 +422,10 @@
             }
 
             try {
-                const response = await fetch(`/api/admin/users/${userId}/tier`, {
+                const response = await fetch(`/api/admin/users/${userId}/tier?key=${adminKey}`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${localStorage.getItem('session_token')}`
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ tier: tier.toLowerCase() })
                 });
@@ -448,11 +446,8 @@
             if (!confirm('Are you sure you want to deactivate this user?')) return;
 
             try {
-                const response = await fetch(`/api/admin/users/${userId}/deactivate`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('session_token')}`
-                    }
+                const response = await fetch(`/api/admin/users/${userId}/deactivate?key=${adminKey}`, {
+                    method: 'POST'
                 });
 
                 if (response.ok) {
@@ -469,11 +464,8 @@
 
         async function activateUser(userId) {
             try {
-                const response = await fetch(`/api/admin/users/${userId}/activate`, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('session_token')}`
-                    }
+                const response = await fetch(`/api/admin/users/${userId}/activate?key=${adminKey}`, {
+                    method: 'POST'
                 });
 
                 if (response.ok) {
@@ -490,11 +482,6 @@
 
         function refreshData() {
             loadAdminData();
-        }
-
-        function logout() {
-            localStorage.removeItem('session_token');
-            window.location.href = '/';
         }
     </script>
 </body>
