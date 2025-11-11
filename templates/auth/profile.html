@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Aiezzy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f8fafc;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 1rem 0;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo {
+            height: 32px;
+            width: auto;
+        }
+        
+        .app-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .nav-buttons {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+        }
+        
+        .btn-secondary:hover {
+            background: #e5e7eb;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .profile-header {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .profile-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .avatar {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 600;
+            color: white;
+        }
+        
+        .user-details h1 {
+            font-size: 24px;
+            color: #1f2937;
+            margin-bottom: 4px;
+        }
+        
+        .user-details p {
+            color: #6b7280;
+            font-size: 16px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+        
+        .stat-number {
+            font-size: 24px;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+        
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f3f4f6;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #374151;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+        
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+        
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+        
+        .alert-success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        
+        .alert-error {
+            background: #fef2f2;
+            color: #991b1b;
+            border-left: 4px solid #dc2626;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1rem;
+            }
+            
+            .profile-header,
+            .section {
+                padding: 1.5rem;
+            }
+            
+            .header-content {
+                padding: 0 1rem;
+            }
+            
+            .nav-buttons {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="/logo.png" alt="Aiezzy Logo" class="logo" onerror="this.style.display='none'">
+                <h1 class="app-title">Aiezzy</h1>
+            </div>
+            <div class="nav-buttons">
+                <a href="/" class="btn btn-secondary">← Back to Chat</a>
+                <button id="logout-btn" class="btn btn-danger">Logout</button>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="profile-header">
+            <div class="profile-info">
+                <div class="avatar" id="user-avatar">
+                    {{ user.username[0].upper() if user.username else 'U' }}
+                </div>
+                <div class="user-details">
+                    <h1 id="display-name">{{ user.full_name or user.username }}</h1>
+                    <p id="display-email">{{ user.email }}</p>
+                </div>
+            </div>
+            
+            <div class="stats-grid" id="user-stats">
+                <div class="stat-card">
+                    <div class="stat-number" id="conversation-count">-</div>
+                    <div class="stat-label">Conversations</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="member-since">-</div>
+                    <div class="stat-label">Member Since</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="last-login">-</div>
+                    <div class="stat-label">Last Login</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">Profile Information</h2>
+            
+            <div id="profile-success" class="alert alert-success"></div>
+            <div id="profile-error" class="alert alert-error"></div>
+            
+            <form id="profile-form">
+                <div class="form-group">
+                    <label for="full_name">Full Name</label>
+                    <input type="text" id="full_name" name="full_name" value="{{ user.full_name or '' }}">
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" value="{{ user.email }}" required>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Update Profile</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">Change Password</h2>
+            
+            <div id="password-success" class="alert alert-success"></div>
+            <div id="password-error" class="alert alert-error"></div>
+            
+            <form id="password-form">
+                <div class="form-group">
+                    <label for="current_password">Current Password</label>
+                    <input type="password" id="current_password" name="current_password" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="new_password">New Password</label>
+                    <input type="password" id="new_password" name="new_password" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="confirm_password">Confirm New Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Change Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        let currentUser = null;
+        
+        async function loadUserStats() {
+            try {
+                const response = await fetch('/api/user/profile');
+                const result = await response.json();
+                
+                if (result.success) {
+                    currentUser = result.user;
+                    const stats = result.stats;
+                    
+                    // Update stats display
+                    document.getElementById('conversation-count').textContent = stats.conversation_count || 0;
+                    
+                    if (stats.created_at) {
+                        const createdDate = new Date(stats.created_at);
+                        document.getElementById('member-since').textContent = createdDate.toLocaleDateString('en-US', { 
+                            month: 'short', 
+                            year: 'numeric' 
+                        });
+                    }
+                    
+                    if (stats.last_login) {
+                        const lastLogin = new Date(stats.last_login);
+                        const now = new Date();
+                        const diffTime = Math.abs(now - lastLogin);
+                        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                        
+                        if (diffDays === 0) {
+                            document.getElementById('last-login').textContent = 'Today';
+                        } else if (diffDays === 1) {
+                            document.getElementById('last-login').textContent = 'Yesterday';
+                        } else {
+                            document.getElementById('last-login').textContent = `${diffDays} days ago`;
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading user stats:', error);
+            }
+        }
+        
+        function showAlert(elementId, message, type = 'error') {
+            const element = document.getElementById(elementId);
+            element.textContent = message;
+            element.style.display = 'block';
+            element.className = `alert alert-${type}`;
+            
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Profile form submission
+        document.getElementById('profile-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const data = {
+                full_name: formData.get('full_name'),
+                email: formData.get('email')
+            };
+            
+            try {
+                const response = await fetch('/api/user/profile', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('profile-success', 'Profile updated successfully!', 'success');
+                    
+                    // Update display
+                    document.getElementById('display-name').textContent = data.full_name || currentUser.username;
+                    document.getElementById('display-email').textContent = data.email;
+                } else {
+                    showAlert('profile-error', result.error || 'Failed to update profile');
+                }
+            } catch (error) {
+                showAlert('profile-error', 'Network error. Please try again.');
+            }
+        });
+        
+        // Password form submission
+        document.getElementById('password-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const newPassword = formData.get('new_password');
+            const confirmPassword = formData.get('confirm_password');
+            
+            if (newPassword !== confirmPassword) {
+                showAlert('password-error', 'New passwords do not match');
+                return;
+            }
+            
+            const data = {
+                old_password: formData.get('current_password'),
+                new_password: newPassword
+            };
+            
+            try {
+                const response = await fetch('/api/user/change-password', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert('password-success', 'Password changed successfully!', 'success');
+                    e.target.reset(); // Clear form
+                } else {
+                    showAlert('password-error', result.error || 'Failed to change password');
+                }
+            } catch (error) {
+                showAlert('password-error', 'Network error. Please try again.');
+            }
+        });
+        
+        // Logout functionality
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+            if (confirm('Are you sure you want to logout?')) {
+                try {
+                    await fetch('/api/logout', { method: 'POST' });
+                    
+                    // Clear local storage
+                    localStorage.removeItem('session_token');
+                    localStorage.removeItem('current_user');
+                    
+                    // Redirect to login
+                    window.location.href = '/login';
+                } catch (error) {
+                    console.error('Logout error:', error);
+                    // Force redirect even if API call fails
+                    window.location.href = '/login';
+                }
+            }
+        });
+        
+        // Load user stats on page load
+        window.addEventListener('load', loadUserStats);
+    </script>
+</body>
+</html>

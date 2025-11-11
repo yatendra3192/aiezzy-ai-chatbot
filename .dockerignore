@@ -1,0 +1,52 @@
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+*.md
+CLAUDE*.md
+README*.md
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# User data (these will be in persistent volumes)
+data/
+uploads/
+assets/
+videos/
+documents/
+*.db
+*.sqlite
+*.sqlite3
+aiezzy_users.db
+
+# Backups
+*backup*
+*_backup_*
+
+# Logs
+logs/
+*.log.*

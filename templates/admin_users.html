@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Users - Aiezzy Admin</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        .back-link {
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .user-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        .user-card {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .user-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+        .user-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+        .user-email {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .user-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .badge-admin {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+        .badge-active {
+            background: #10b981;
+            color: white;
+        }
+        .badge-inactive {
+            background: #ef4444;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/admin/files?key={{ admin_key }}" class="back-link">← Back to Admin Panel</a>
+
+        <div class="header">
+            <h1>👥 Registered Users</h1>
+            <p style="color: #666;">Total: {{ users|length }} users</p>
+        </div>
+
+        <div class="user-grid">
+            {% for user in users %}
+            <div class="user-card">
+                <div style="margin-bottom: 12px;">
+                    {% if user.is_admin %}<span class="badge badge-admin">Admin</span>{% endif %}
+                    {% if user.is_active %}
+                        <span class="badge badge-active">Active</span>
+                    {% else %}
+                        <span class="badge badge-inactive">Inactive</span>
+                    {% endif %}
+                </div>
+                <div class="user-name">{{ user.username }}</div>
+                <div class="user-email">{{ user.email }}</div>
+                <div class="user-stats">
+                    <div class="stat">
+                        <div class="stat-value">{{ user.conversation_count }}</div>
+                        <div class="stat-label">Conversations</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">{{ user.activity_count }}</div>
+                        <div class="stat-label">Activities</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">{{ user.active_sessions }}</div>
+                        <div class="stat-label">Sessions</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">{{ user.last_login[:10] if user.last_login else 'Never' }}</div>
+                        <div class="stat-label">Last Login</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

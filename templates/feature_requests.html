@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XQEC68F0S9"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-XQEC68F0S9');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature Requests - Aiezzy</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <style>
+        :root {
+            --bg: #FFFFFF;
+            --bg-subtle: #F5F7F9;
+            --text: #111827;
+            --text-muted: #6B7280;
+            --border: #E5E7EB;
+            --accent: #0EA5E9;
+            --shadow: rgba(0,0,0,0.08);
+            --success: #10B981;
+            --warning: #F59E0B;
+            --error: #EF4444;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+            background: var(--bg-subtle);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: var(--bg);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 0;
+            margin-bottom: 32px;
+        }
+
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .logo {
+            height: 32px;
+            width: auto;
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--bg-subtle);
+            color: var(--text);
+            border: 1px solid var(--border);
+            padding: 8px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .back-btn:hover {
+            background: var(--border);
+        }
+
+        .stats-bar {
+            background: var(--bg);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .filter-tab.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .filter-tab:hover:not(.active) {
+            background: var(--bg-subtle);
+        }
+
+        .requests-grid {
+            display: grid;
+            gap: 16px;
+        }
+
+        .request-card {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.2s ease;
+        }
+
+        .request-card:hover {
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .request-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .request-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .status-open {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+
+        .status-in_progress {
+            background: #DBEAFE;
+            color: #1E40AF;
+        }
+
+        .status-completed {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+
+        .status-rejected {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        .request-details {
+            color: var(--text);
+            line-height: 1.5;
+            margin-bottom: 16px;
+        }
+
+        .request-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .vote-button {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-subtle);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .vote-button:hover:not(.voted) {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .vote-button.voted {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+            cursor: not-allowed;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .empty-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .empty-description {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .primary-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .primary-btn:hover {
+            background: #0284c7;
+        }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            .header-content {
+                padding: 0 16px;
+            }
+
+            .stats-bar {
+                padding: 16px;
+            }
+
+            .stat {
+                flex: 1;
+            }
+
+            .request-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .filter-tabs {
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <div class="header-title">
+                <img src="/logo.png" alt="Aiezzy" class="logo">
+                <h1>Feature Requests</h1>
+            </div>
+            <a href="/" class="back-btn">
+                <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                </svg>
+                Back to Chat
+            </a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="stats-bar">
+            <div class="stat">
+                <div class="stat-number" id="total-requests">-</div>
+                <div class="stat-label">Total Requests</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="open-requests">-</div>
+                <div class="stat-label">Open</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="in-progress-requests">-</div>
+                <div class="stat-label">In Progress</div>
+            </div>
+            <div class="stat">
+                <div class="stat-number" id="completed-requests">-</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+
+        <div class="filter-tabs">
+            <div class="filter-tab active" data-status="all">All Requests</div>
+            <div class="filter-tab" data-status="open">Open</div>
+            <div class="filter-tab" data-status="in_progress">In Progress</div>
+            <div class="filter-tab" data-status="completed">Completed</div>
+            <div class="filter-tab" data-status="rejected">Rejected</div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            Loading feature requests...
+        </div>
+
+        <div id="requests-container" class="requests-grid">
+            <!-- Feature requests will be loaded here -->
+        </div>
+
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <div class="empty-icon">💡</div>
+            <div class="empty-title">No feature requests yet</div>
+            <div class="empty-description">Be the first to request a feature!</div>
+            <button class="primary-btn" onclick="window.location.href='/'">Request a Feature</button>
+        </div>
+    </div>
+
+    <script>
+        let allRequests = [];
+        let currentFilter = 'all';
+        let userVotes = JSON.parse(localStorage.getItem('user_votes') || '[]');
+
+        // Load feature requests on page load
+        document.addEventListener('DOMContentLoaded', loadFeatureRequests);
+
+        async function loadFeatureRequests() {
+            try {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('requests-container').style.display = 'none';
+                document.getElementById('empty-state').style.display = 'none';
+
+                const response = await fetch('/api/feature-requests');
+                const data = await response.json();
+
+                if (data.requests) {
+                    allRequests = data.requests;
+                    updateStats();
+                    displayRequests();
+                }
+            } catch (error) {
+                console.error('Error loading feature requests:', error);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function updateStats() {
+            const stats = {
+                total: allRequests.length,
+                open: allRequests.filter(r => r.status === 'open').length,
+                in_progress: allRequests.filter(r => r.status === 'in_progress').length,
+                completed: allRequests.filter(r => r.status === 'completed').length
+            };
+
+            document.getElementById('total-requests').textContent = stats.total;
+            document.getElementById('open-requests').textContent = stats.open;
+            document.getElementById('in-progress-requests').textContent = stats.in_progress;
+            document.getElementById('completed-requests').textContent = stats.completed;
+        }
+
+        function displayRequests() {
+            const container = document.getElementById('requests-container');
+            const emptyState = document.getElementById('empty-state');
+
+            // Filter requests
+            let filteredRequests = allRequests;
+            if (currentFilter !== 'all') {
+                filteredRequests = allRequests.filter(r => r.status === currentFilter);
+            }
+
+            if (filteredRequests.length === 0) {
+                container.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            container.style.display = 'grid';
+            emptyState.style.display = 'none';
+
+            container.innerHTML = filteredRequests.map(request => `
+                <div class="request-card">
+                    <div class="request-header">
+                        <div>
+                            <div class="request-title">${escapeHtml(request.feature_name)}</div>
+                            <div class="request-meta">
+                                Requested by ${escapeHtml(request.requested_by)} • 
+                                ${formatDate(request.created_at)}
+                            </div>
+                        </div>
+                        <span class="status-badge status-${request.status}">
+                            ${request.status.replace('_', ' ')}
+                        </span>
+                    </div>
+                    <div class="request-details">
+                        ${escapeHtml(request.feature_details)}
+                    </div>
+                    <div class="request-footer">
+                        <button class="vote-button ${userVotes.includes(request.id) ? 'voted' : ''}" 
+                                onclick="voteForFeature('${request.id}', this)"
+                                ${userVotes.includes(request.id) ? 'disabled' : ''}>
+                            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M7.493 18.75c-.425 0-.82-.236-.975-.632A7.48 7.48 0 016 15.125c0-1.75.599-3.358 1.602-4.634.151-.192.373-.309.6-.397.473-.183.89-.514 1.212-.924a9.042 9.042 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558-.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23h-.777zM2.331 10.977a11.969 11.969 0 00-.831 4.398 12 12 0 00.52 3.507c.26.85 1.084 1.368 1.973 1.368H4.9c.445 0 .72-.498.523-.898a8.963 8.963 0 01-.924-3.977c0-1.708.476-3.305 1.302-4.666.245-.403-.028-.959-.5-.959H4.25c-.832 0-1.612.453-1.918 1.227z"/>
+                            </svg>
+                            ${request.votes} ${request.votes === 1 ? 'Vote' : 'Votes'}
+                        </button>
+                        <div class="request-meta">
+                            Updated ${formatDate(request.updated_at)}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function voteForFeature(requestId, button) {
+            if (userVotes.includes(requestId)) {
+                return; // Already voted
+            }
+
+            try {
+                const response = await fetch(`/api/feature-request/${requestId}/vote`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update UI
+                    userVotes.push(requestId);
+                    localStorage.setItem('user_votes', JSON.stringify(userVotes));
+                    
+                    button.classList.add('voted');
+                    button.disabled = true;
+                    button.innerHTML = `
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M7.493 18.75c-.425 0-.82-.236-.975-.632A7.48 7.48 0 016 15.125c0-1.75.599-3.358 1.602-4.634.151-.192.373-.309.6-.397.473-.183.89-.514 1.212-.924a9.042 9.042 0 012.861-2.4c.723-.384 1.35-.956 1.653-1.715a4.498 4.498 0 00.322-1.672V3a.75.75 0 01.75-.75 2.25 2.25 0 012.25 2.25c0 1.152-.26 2.243-.723 3.218-.266.558-.107 1.282.725 1.282h3.126c1.026 0 1.945.694 2.054 1.715.045.422.068.85.068 1.285a11.95 11.95 0 01-2.649 7.521c-.388.482-.987.729-1.605.729H14.23c-.483 0-.964-.078-1.423-.23l-3.114-1.04a4.501 4.501 0 00-1.423-.23h-.777zM2.331 10.977a11.969 11.969 0 00-.831 4.398 12 12 0 00.52 3.507c.26.85 1.084 1.368 1.973 1.368H4.9c.445 0 .72-.498.523-.898a8.963 8.963 0 01-.924-3.977c0-1.708.476-3.305 1.302-4.666.245-.403-.028-.959-.5-.959H4.25c-.832 0-1.612.453-1.918 1.227z"/>
+                        </svg>
+                        ${result.votes} ${result.votes === 1 ? 'Vote' : 'Votes'}
+                    `;
+
+                    // Update the request in allRequests
+                    const request = allRequests.find(r => r.id === requestId);
+                    if (request) {
+                        request.votes = result.votes;
+                    }
+                } else {
+                    alert(result.error || 'Failed to vote');
+                }
+            } catch (error) {
+                console.error('Error voting:', error);
+                alert('Failed to vote. Please try again.');
+            }
+        }
+
+        // Filter tabs functionality
+        document.querySelectorAll('.filter-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                currentFilter = this.dataset.status;
+                displayRequests();
+            });
+        });
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp * 1000);
+            const now = new Date();
+            const diffMs = now - date;
+            const diffMins = Math.floor(diffMs / 60000);
+            const diffHours = Math.floor(diffMins / 60);
+            const diffDays = Math.floor(diffHours / 24);
+
+            if (diffMins < 1) return 'just now';
+            if (diffMins < 60) return `${diffMins}m ago`;
+            if (diffHours < 24) return `${diffHours}h ago`;
+            if (diffDays < 7) return `${diffDays}d ago`;
+            
+            return date.toLocaleDateString();
+        }
+    </script>
+</body>
+</html>

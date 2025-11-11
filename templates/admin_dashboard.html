@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - AIezzy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        .navbar {
+            background: #10a37f;
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .navbar-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .navbar-user {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-card h3 {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #10a37f;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-change {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .stat-change.positive {
+            color: #10a37f;
+        }
+
+        .stat-change.negative {
+            color: #ef4444;
+        }
+
+        .section {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 0.75rem;
+            background: #f5f5f5;
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        td {
+            padding: 0.75rem;
+            border-top: 1px solid #eee;
+        }
+
+        tr:hover {
+            background: #f9f9f9;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .badge-free {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
+        .badge-pro {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-enterprise {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .action-btn {
+            padding: 0.4rem 0.8rem;
+            font-size: 0.85rem;
+            margin-right: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #10a37f;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0d8968;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+        }
+
+        .quota-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .quota-fill {
+            height: 100%;
+            background: #10a37f;
+            transition: width 0.3s;
+        }
+
+        .quota-fill.warning {
+            background: #f59e0b;
+        }
+
+        .quota-fill.danger {
+            background: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-content">
+            <h1>🛠️ AIezzy Admin Dashboard</h1>
+            <div class="navbar-user">
+                <span id="adminName">Admin</span>
+                <button class="btn btn-secondary" onclick="window.location.href='/'">Back to App</button>
+                <button class="btn btn-secondary" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Statistics Overview -->
+        <div class="dashboard-grid">
+            <div class="stat-card">
+                <h3>Total Users</h3>
+                <div class="stat-value" id="totalUsers">-</div>
+                <div class="stat-change positive" id="newUsersToday">+0 today</div>
+            </div>
+            <div class="stat-card">
+                <h3>Active Sessions</h3>
+                <div class="stat-value" id="activeSessions">-</div>
+                <div class="stat-change" id="sessionChange">Last 24 hours</div>
+            </div>
+            <div class="stat-card">
+                <h3>Images Generated (Today)</h3>
+                <div class="stat-value" id="imagesGenerated">-</div>
+                <div class="stat-change" id="imagesChange">+0 vs yesterday</div>
+            </div>
+            <div class="stat-card">
+                <h3>Videos Created (Today)</h3>
+                <div class="stat-value" id="videosCreated">-</div>
+                <div class="stat-change" id="videosChange">+0 vs yesterday</div>
+            </div>
+        </div>
+
+        <!-- Recent Users -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Recent Users</h2>
+                <button class="btn btn-primary" onclick="refreshData()">🔄 Refresh</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Tier</th>
+                        <th>Status</th>
+                        <th>Joined</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTable">
+                    <tr>
+                        <td colspan="8" class="loading">Loading users...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Usage Analytics -->
+        <div class="section">
+            <div class="section-header">
+                <h2>Top Users by Usage (Last 7 Days)</h2>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Images</th>
+                        <th>Videos</th>
+                        <th>Messages</th>
+                        <th>Total Activity</th>
+                    </tr>
+                </thead>
+                <tbody id="usageTable">
+                    <tr>
+                        <td colspan="5" class="loading">Loading usage data...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // Load admin data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAdminData();
+        });
+
+        async function loadAdminData() {
+            try {
+                const response = await fetch('/api/admin/dashboard', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('session_token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    if (response.status === 403) {
+                        alert('Access denied. Admin privileges required.');
+                        window.location.href = '/';
+                        return;
+                    }
+                    throw new Error('Failed to load admin data');
+                }
+
+                const data = await response.json();
+                updateDashboard(data);
+
+            } catch (error) {
+                console.error('Error loading admin data:', error);
+                alert('Failed to load dashboard data');
+            }
+        }
+
+        function updateDashboard(data) {
+            // Update stats
+            document.getElementById('totalUsers').textContent = data.stats.total_users || 0;
+            document.getElementById('newUsersToday').textContent = `+${data.stats.new_users_today || 0} today`;
+            document.getElementById('activeSessions').textContent = data.stats.active_sessions || 0;
+            document.getElementById('imagesGenerated').textContent = data.stats.images_today || 0;
+            document.getElementById('videosCreated').textContent = data.stats.videos_today || 0;
+
+            // Update users table
+            const usersTable = document.getElementById('usersTable');
+            if (data.users && data.users.length > 0) {
+                usersTable.innerHTML = data.users.map(user => `
+                    <tr>
+                        <td>${user.id}</td>
+                        <td>${user.username}</td>
+                        <td>${user.email}</td>
+                        <td><span class="badge badge-${user.tier}">${user.tier.toUpperCase()}</span></td>
+                        <td><span class="badge badge-${user.is_active ? 'active' : 'inactive'}">${user.is_active ? 'Active' : 'Inactive'}</span></td>
+                        <td>${formatDate(user.created_at)}</td>
+                        <td>${user.last_login ? formatDate(user.last_login) : 'Never'}</td>
+                        <td>
+                            <button class="btn action-btn btn-primary" onclick="viewUser(${user.id})">View</button>
+                            <button class="btn action-btn btn-secondary" onclick="editUser(${user.id})">Edit</button>
+                            ${!user.is_active ? '<button class="btn action-btn btn-primary" onclick="activateUser(' + user.id + ')">Activate</button>' : '<button class="btn action-btn btn-danger" onclick="deactivateUser(' + user.id + ')">Deactivate</button>'}
+                        </td>
+                    </tr>
+                `).join('');
+            } else {
+                usersTable.innerHTML = '<tr><td colspan="8" style="text-align: center; color: #666;">No users found</td></tr>';
+            }
+
+            // Update usage table
+            const usageTable = document.getElementById('usageTable');
+            if (data.usage && data.usage.length > 0) {
+                usageTable.innerHTML = data.usage.map(u => `
+                    <tr>
+                        <td>${u.username}</td>
+                        <td>${u.images || 0}</td>
+                        <td>${u.videos || 0}</td>
+                        <td>${u.messages || 0}</td>
+                        <td><strong>${(u.images || 0) + (u.videos || 0) + (u.messages || 0)}</strong></td>
+                    </tr>
+                `).join('');
+            } else {
+                usageTable.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #666;">No usage data yet</td></tr>';
+            }
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        async function viewUser(userId) {
+            window.location.href = `/admin/users/${userId}`;
+        }
+
+        async function editUser(userId) {
+            const tier = prompt('Enter new tier (free/pro/enterprise):');
+            if (!tier || !['free', 'pro', 'enterprise'].includes(tier.toLowerCase())) {
+                alert('Invalid tier');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/tier`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${localStorage.getItem('session_token')}`
+                    },
+                    body: JSON.stringify({ tier: tier.toLowerCase() })
+                });
+
+                if (response.ok) {
+                    alert('User tier updated successfully');
+                    refreshData();
+                } else {
+                    alert('Failed to update user tier');
+                }
+            } catch (error) {
+                console.error('Error updating user:', error);
+                alert('Error updating user');
+            }
+        }
+
+        async function deactivateUser(userId) {
+            if (!confirm('Are you sure you want to deactivate this user?')) return;
+
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/deactivate`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('session_token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('User deactivated successfully');
+                    refreshData();
+                } else {
+                    alert('Failed to deactivate user');
+                }
+            } catch (error) {
+                console.error('Error deactivating user:', error);
+                alert('Error deactivating user');
+            }
+        }
+
+        async function activateUser(userId) {
+            try {
+                const response = await fetch(`/api/admin/users/${userId}/activate`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('session_token')}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('User activated successfully');
+                    refreshData();
+                } else {
+                    alert('Failed to activate user');
+                }
+            } catch (error) {
+                console.error('Error activating user:', error);
+                alert('Error activating user');
+            }
+        }
+
+        function refreshData() {
+            loadAdminData();
+        }
+
+        function logout() {
+            localStorage.removeItem('session_token');
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>
