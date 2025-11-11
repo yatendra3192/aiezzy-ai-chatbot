@@ -2414,13 +2414,14 @@ def api_get_files():
                                     if search and search not in filename.lower():
                                         continue
                                     stat = os.stat(file_path)
+                                    admin_key_param = f'?key={request.args.get("key", "")}'
                                     all_files.append({
                                         'name': filename,
                                         'size': stat.st_size,
                                         'modified': stat.st_mtime,
                                         'type': 'conversation',
                                         'path': f'{user_dir}/{filename}',
-                                        'url': f'/admin/view-conversation/{user_dir}/{filename[:-5]}'
+                                        'url': f'/admin/view-conversation/{user_dir}/{filename[:-5]}{admin_key_param}'
                                     })
             else:
                 # Standard file handling
@@ -2433,6 +2434,7 @@ def api_get_files():
 
                         # Determine file URL
                         file_url = None
+                        admin_key_param = f'?key={request.args.get("key", "")}'
                         if directory_path == ASSETS_DIR:
                             file_url = f'/assets/{filename}'
                         elif directory_path == VIDEOS_DIR:
@@ -2440,7 +2442,7 @@ def api_get_files():
                         elif directory_path == web_app.config['UPLOAD_FOLDER']:
                             file_url = f'/uploads/{filename}'
                         elif directory_path == 'shared' and filename.endswith('.json'):
-                            file_url = f'/admin/view-shared/{filename[:-5]}'
+                            file_url = f'/admin/view-shared/{filename[:-5]}{admin_key_param}'
 
                         all_files.append({
                             'name': filename,
