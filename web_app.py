@@ -2135,88 +2135,103 @@ def api_admin_dashboard():
         conn = user_manager.db.get_connection()
 
         # Get total users
-        total_users = conn.execute('SELECT COUNT(*) FROM users').fetchone()[0]
+        total_users_result = conn.execute('SELECT COUNT(*) FROM users').fetchone()
+        total_users = total_users_result[0] if total_users_result else 0
 
         # Get new users today
         from datetime import datetime, timedelta
         today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        new_users_today = conn.execute(
+        new_users_result = conn.execute(
             'SELECT COUNT(*) FROM users WHERE created_at >= ?',
             (today.isoformat(),)
-        ).fetchone()[0]
+        ).fetchone()
+        new_users_today = new_users_result[0] if new_users_result else 0
 
         # Get active sessions
-        active_sessions = conn.execute(
+        active_sessions_result = conn.execute(
             'SELECT COUNT(*) FROM user_sessions WHERE is_active = TRUE'
-        ).fetchone()[0]
+        ).fetchone()
+        active_sessions = active_sessions_result[0] if active_sessions_result else 0
 
         # Count images and videos generated today
-        import os
-        from pathlib import Path
-
-        assets_dir = Path('assets')
-        videos_dir = Path('videos')
-
         images_today = 0
         videos_today = 0
 
-        if assets_dir.exists():
-            today_ts = today.timestamp()
-            for file in assets_dir.iterdir():
-                if file.is_file() and file.stat().st_mtime >= today_ts:
-                    images_today += 1
+        try:
+            import os
+            from pathlib import Path
 
-        if videos_dir.exists():
-            today_ts = today.timestamp()
-            for file in videos_dir.iterdir():
-                if file.is_file() and file.stat().st_mtime >= today_ts:
-                    videos_today += 1
+            assets_dir = Path('assets')
+            videos_dir = Path('videos')
+
+            if assets_dir.exists():
+                today_ts = today.timestamp()
+                for file in assets_dir.iterdir():
+                    if file.is_file() and file.stat().st_mtime >= today_ts:
+                        images_today += 1
+
+            if videos_dir.exists():
+                today_ts = today.timestamp()
+                for file in videos_dir.iterdir():
+                    if file.is_file() and file.stat().st_mtime >= today_ts:
+                        videos_today += 1
+        except Exception as file_error:
+            print(f"Error counting files: {file_error}")
 
         # Get recent users (last 10)
-        recent_users = conn.execute('''
-            SELECT
-                id, username, email,
-                CASE
-                    WHEN is_admin THEN 'enterprise'
-                    ELSE 'free'
-                END as tier,
-                is_active, created_at, last_login
-            FROM users
-            ORDER BY created_at DESC
-            LIMIT 10
-        ''').fetchall()
+        try:
+            recent_users = conn.execute('''
+                SELECT
+                    id, username, email,
+                    CASE
+                        WHEN is_admin THEN 'enterprise'
+                        ELSE 'free'
+                    END as tier,
+                    is_active, created_at, last_login
+                FROM users
+                ORDER BY created_at DESC
+                LIMIT 10
+            ''').fetchall()
 
-        users_list = [{
-            'id': u[0],
-            'username': u[1],
-            'email': u[2],
-            'tier': u[3],
-            'is_active': bool(u[4]),
-            'created_at': u[5],
-            'last_login': u[6]
-        } for u in recent_users]
+            users_list = [{
+                'id': u[0],
+                'username': u[1],
+                'email': u[2],
+                'tier': u[3],
+                'is_active': bool(u[4]),
+                'created_at': u[5],
+                'last_login': u[6]
+            } for u in recent_users]
+        except Exception as users_error:
+            print(f"Error loading users: {users_error}")
+            users_list = []
 
-        # Get top users by activity (placeholder - you can enhance this)
-        top_usage = conn.execute('''
-            SELECT
-                u.username,
-                COUNT(DISTINCT CASE WHEN ua.activity_type = 'image_generated' THEN ua.id END) as images,
-                COUNT(DISTINCT CASE WHEN ua.activity_type = 'video_generated' THEN ua.id END) as videos,
-                COUNT(DISTINCT CASE WHEN ua.activity_type = 'message_sent' THEN ua.id END) as messages
-            FROM users u
-            LEFT JOIN user_activity ua ON u.id = ua.user_id
-            WHERE ua.created_at >= datetime('now', '-7 days')
-            GROUP BY u.id, u.username
-            ORDER BY (images + videos + messages) DESC
-            LIMIT 5
-        ''').fetchall()
+        # Get top users by activity (last 7 days)
+        try:
+            top_usage = conn.execute('''
+                SELECT
+                    u.username,
+                    COUNT(DISTINCT CASE WHEN ua.activity_type = 'image_generated' THEN ua.id END) as images,
+                    COUNT(DISTINCT CASE WHEN ua.activity_type = 'video_generated' THEN ua.id END) as videos,
+                    COUNT(DISTINCT CASE WHEN ua.activity_type = 'message_sent' THEN ua.id END) as messages
+                FROM users u
+                LEFT JOIN user_activity ua ON u.id = ua.user_id
+                    AND ua.created_at >= datetime('now', '-7 days')
+                GROUP BY u.id, u.username
+                HAVING (images + videos + messages) > 0
+                ORDER BY (images + videos + messages) DESC
+                LIMIT 5
+            ''').fetchall()
 
-        usage_list = [{
-            'username': u[0],
-            'images': u[1],
-            'videos': u[2],
-            'messages': u[3]
-        } for u in top_usage]
+            usage_list = [{
+                'username': u[0],
+                'images': u[1],
+                'videos': u[2],
+                'messages': u[3]
+            } for u in top_usage]
+        except Exception as usage_error:
+            print(f"Error loading usage stats: {usage_error}")
+            usage_list = []
 
         return jsonify({
             'stats': {
