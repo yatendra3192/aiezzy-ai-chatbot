@@ -2694,79 +2694,83 @@ def api_delete_files():
 
 @web_app.route('/admin/api/download-all')
 def api_download_all_files():
-    """Download all files as a ZIP archive"""
+    """Download all files as a streaming ZIP archive to avoid memory issues"""
     if not require_admin_auth():
         return jsonify({'error': 'Unauthorized'}), 401
 
     try:
         import zipfile
         import tempfile
-        from flask import send_file
+        from flask import Response, stream_with_context
         from datetime import datetime
 
-        # Create a temporary file for the ZIP
-        temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
+        def generate_zip_stream():
+            """Generator that creates ZIP on disk and streams it in chunks"""
+            # Create temp file on disk (not in memory)
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
+            temp_path = temp_file.name
+            temp_file.close()
+
+            try:
+                # Create ZIP file on disk
+                print(f"[ADMIN] Creating ZIP backup at {temp_path}")
+                with zipfile.ZipFile(temp_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as zipf:
+                    directories = [
+                        (ASSETS_DIR, 'assets'),
+                        (VIDEOS_DIR, 'videos'),
+                        (web_app.config['UPLOAD_FOLDER'], 'uploads'),
+                        (CONVERSATIONS_DIR, 'conversations'),
+                        ('shared', 'shared'),
+                        (DOCUMENTS_DIR, 'documents')
+                    ]
+
+                    for source_dir, archive_prefix in directories:
+                        if os.path.exists(source_dir):
+                            print(f"[ADMIN] Adding {archive_prefix} to ZIP...")
+                            for root, dirs, files in os.walk(source_dir):
+                                for file in files:
+                                    try:
+                                        file_path = os.path.join(root, file)
+                                        arcname = os.path.join(archive_prefix, os.path.relpath(file_path, source_dir))
+                                        zipf.write(file_path, arcname)
+                                    except Exception as e:
+                                        print(f"[ADMIN] Warning: Skipping {file}: {str(e)}")
+                                        continue
+
+                print(f"[ADMIN] ZIP created, streaming to client...")
+                # Stream the file in 64KB chunks
+                with open(temp_path, 'rb') as f:
+                    while True:
+                        chunk = f.read(65536)  # 64KB chunks
+                        if not chunk:
+                            break
+                        yield chunk
+
+            finally:
+                # Clean up temp file after streaming
+                try:
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
+                        print(f"[ADMIN] Cleaned up temp file: {temp_path}")
+                except Exception as e:
+                    print(f"[ADMIN] Warning: Could not delete temp file: {str(e)}")
+
         zip_filename = f'aiezzy_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.zip'
+        print(f"[ADMIN] Starting backup download: {zip_filename}")
 
-        with zipfile.ZipFile(temp_zip.name, 'w', zipfile.ZIP_DEFLATED) as zipf:
-            # Add images from assets directory
-            if os.path.exists(ASSETS_DIR):
-                for root, dirs, files in os.walk(ASSETS_DIR):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        arcname = os.path.join('assets', os.path.relpath(file_path, ASSETS_DIR))
-                        zipf.write(file_path, arcname)
-
-            # Add videos
-            if os.path.exists(VIDEOS_DIR):
-                for root, dirs, files in os.walk(VIDEOS_DIR):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        arcname = os.path.join('videos', os.path.relpath(file_path, VIDEOS_DIR))
-                        zipf.write(file_path, arcname)
-
-            # Add uploads
-            if os.path.exists(web_app.config['UPLOAD_FOLDER']):
-                for root, dirs, files in os.walk(web_app.config['UPLOAD_FOLDER']):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        arcname = os.path.join('uploads', os.path.relpath(file_path, web_app.config['UPLOAD_FOLDER']))
-                        zipf.write(file_path, arcname)
-
-            # Add conversations
-            if os.path.exists(CONVERSATIONS_DIR):
-                for root, dirs, files in os.walk(CONVERSATIONS_DIR):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        arcname = os.path.join('conversations', os.path.relpath(file_path, CONVERSATIONS_DIR))
-                        zipf.write(file_path, arcname)
-
-            # Add shared content if it exists
-            if os.path.exists('shared'):
-                for root, dirs, files in os.walk('shared'):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        arcname = os.path.join('shared', os.path.relpath(file_path, 'shared'))
-                        zipf.write(file_path, arcname)
-
-            # Add documents if they exist
-            if os.path.exists(DOCUMENTS_DIR):
-                for root, dirs, files in os.walk(DOCUMENTS_DIR):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        arcname = os.path.join('documents', os.path.relpath(file_path, DOCUMENTS_DIR))
-                        zipf.write(file_path, arcname)
-
-        # Send the ZIP file
-        return send_file(
-            temp_zip.name,
+        return Response(
+            stream_with_context(generate_zip_stream()),
             mimetype='application/zip',
-            as_attachment=True,
-            download_name=zip_filename
+            headers={
+                'Content-Disposition': f'attachment; filename={zip_filename}',
+                'Cache-Control': 'no-cache'
+            }
         )
 
     except Exception as e:
-        print(f"Error creating ZIP archive: {str(e)}")
+        print(f"[ADMIN] Error creating ZIP archive: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': f'Failed to create backup: {str(e)}'}), 500
 
 @web_app.route('/admin/api/stats')
