@@ -10,7 +10,7 @@ worker_class = "sync"
 worker_connections = 1000
 
 # Timeouts
-timeout = 120
+timeout = 1800  # 30 minutes for large file downloads
 keepalive = 2
 
 # Logging
