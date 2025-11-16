@@ -392,7 +392,6 @@
     <div class="topbar">
         <div class="topbar-title">📁 File Management</div>
         <div class="topbar-actions">
-            <button onclick="downloadAllFiles()" class="primary" title="Download all files as ZIP">📥 Download All</button>
             <button onclick="loadStats()" title="Refresh">🔄 Refresh</button>
             <button onclick="window.location.href='/admin?key={{ admin_key }}'">📊 Dashboard</button>
         </div>
@@ -405,25 +404,29 @@
             <div class="stat-value" id="totalFiles">-</div>
             <div class="stat-subtitle" id="totalSize">-</div>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">Images</div>
+        <div class="stat-card" style="cursor: pointer; position: relative;">
+            <div class="stat-label">📸 Images</div>
             <div class="stat-value" id="imagesCount">-</div>
             <div class="stat-subtitle" id="imagesSize">-</div>
+            <button onclick="downloadCategory('images', event)" class="primary" style="margin-top: 12px; width: 100%; padding: 8px; font-size: 13px;">📥 Download Images</button>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">Videos</div>
+        <div class="stat-card" style="cursor: pointer; position: relative;">
+            <div class="stat-label">🎬 Videos</div>
             <div class="stat-value" id="videosCount">-</div>
             <div class="stat-subtitle" id="videosSize">-</div>
+            <button onclick="downloadCategory('videos', event)" class="primary" style="margin-top: 12px; width: 100%; padding: 8px; font-size: 13px;">📥 Download Videos</button>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">Uploads</div>
+        <div class="stat-card" style="cursor: pointer; position: relative;">
+            <div class="stat-label">📁 Uploads</div>
             <div class="stat-value" id="uploadsCount">-</div>
             <div class="stat-subtitle" id="uploadsSize">-</div>
+            <button onclick="downloadCategory('uploads', event)" class="primary" style="margin-top: 12px; width: 100%; padding: 8px; font-size: 13px;">📥 Download Uploads</button>
         </div>
-        <div class="stat-card">
-            <div class="stat-label">Conversations</div>
+        <div class="stat-card" style="cursor: pointer; position: relative;">
+            <div class="stat-label">💬 Conversations</div>
             <div class="stat-value" id="conversationsCount">-</div>
             <div class="stat-subtitle" id="conversationsSize">-</div>
+            <button onclick="downloadCategory('conversations', event)" class="primary" style="margin-top: 12px; width: 100%; padding: 8px; font-size: 13px;">📥 Download Chats</button>
         </div>
     </div>
 
@@ -505,9 +508,20 @@
             loadFiles();
         });
 
-        // Download All Files
-        async function downloadAllFiles() {
-            if (!confirm('Download all files as ZIP? This may take a few minutes depending on the amount of data.')) {
+        // Download Category Files
+        async function downloadCategory(category, event) {
+            event.stopPropagation();
+
+            const categoryNames = {
+                'images': 'Images',
+                'videos': 'Videos',
+                'uploads': 'Uploads',
+                'conversations': 'Conversations'
+            };
+
+            const displayName = categoryNames[category] || category;
+
+            if (!confirm(`Download all ${displayName}? This may take a few minutes depending on the size.`)) {
                 return;
             }
 
@@ -519,16 +533,16 @@
                 downloadBtn.disabled = true;
 
                 // Initiate download
-                window.location.href = `/admin/api/download-all?key=${adminKey}`;
+                window.location.href = `/admin/api/download-category/${category}?key=${adminKey}`;
 
                 // Reset button after a delay
                 setTimeout(() => {
                     downloadBtn.innerHTML = originalText;
                     downloadBtn.disabled = false;
-                }, 3000);
+                }, 5000);
             } catch (error) {
-                console.error('Error downloading files:', error);
-                alert('Failed to download files. Please try again.');
+                console.error(`Error downloading ${category}:`, error);
+                alert(`Failed to download ${displayName}. Please try again.`);
             }
         }
 

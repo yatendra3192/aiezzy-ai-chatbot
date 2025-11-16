@@ -2773,6 +2773,94 @@ def api_download_all_files():
         traceback.print_exc()
         return jsonify({'error': f'Failed to create backup: {str(e)}'}), 500
 
+@web_app.route('/admin/api/download-category/<category>')
+def api_download_category(category):
+    """Download files from a specific category as ZIP"""
+    if not require_admin_auth():
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    try:
+        import zipfile
+        import tempfile
+        from flask import Response, stream_with_context
+        from datetime import datetime
+
+        # Define category mappings
+        category_map = {
+            'images': (ASSETS_DIR, 'assets', 'Images'),
+            'videos': (VIDEOS_DIR, 'videos', 'Videos'),
+            'uploads': (web_app.config['UPLOAD_FOLDER'], 'uploads', 'Uploads'),
+            'conversations': (CONVERSATIONS_DIR, 'conversations', 'Conversations'),
+            'shared': ('shared', 'shared', 'Shared'),
+            'documents': (DOCUMENTS_DIR, 'documents', 'Documents')
+        }
+
+        if category not in category_map:
+            return jsonify({'error': f'Invalid category: {category}'}), 400
+
+        source_dir, archive_prefix, display_name = category_map[category]
+
+        if not os.path.exists(source_dir):
+            return jsonify({'error': f'{display_name} directory not found'}), 404
+
+        def generate_category_zip():
+            """Generator that creates category-specific ZIP on disk and streams it"""
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.zip')
+            temp_path = temp_file.name
+            temp_file.close()
+
+            try:
+                print(f"[ADMIN] Creating {display_name} ZIP at {temp_path}")
+                with zipfile.ZipFile(temp_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as zipf:
+                    file_count = 0
+                    for root, dirs, files in os.walk(source_dir):
+                        for file in files:
+                            try:
+                                file_path = os.path.join(root, file)
+                                arcname = os.path.join(archive_prefix, os.path.relpath(file_path, source_dir))
+                                zipf.write(file_path, arcname)
+                                file_count += 1
+                            except Exception as e:
+                                print(f"[ADMIN] Warning: Skipping {file}: {str(e)}")
+                                continue
+
+                print(f"[ADMIN] Added {file_count} files to {display_name} ZIP, streaming to client...")
+
+                # Stream the file in 64KB chunks
+                with open(temp_path, 'rb') as f:
+                    while True:
+                        chunk = f.read(65536)
+                        if not chunk:
+                            break
+                        yield chunk
+
+            finally:
+                # Clean up temp file
+                try:
+                    if os.path.exists(temp_path):
+                        os.unlink(temp_path)
+                        print(f"[ADMIN] Cleaned up temp file: {temp_path}")
+                except Exception as e:
+                    print(f"[ADMIN] Warning: Could not delete temp file: {str(e)}")
+
+        zip_filename = f'aiezzy_{category}_{datetime.now().strftime("%Y%m%d_%H%M%S")}.zip'
+        print(f"[ADMIN] Starting {display_name} download: {zip_filename}")
+
+        return Response(
+            stream_with_context(generate_category_zip()),
+            mimetype='application/zip',
+            headers={
+                'Content-Disposition': f'attachment; filename={zip_filename}',
+                'Cache-Control': 'no-cache'
+            }
+        )
+
+    except Exception as e:
+        print(f"[ADMIN] Error creating category ZIP: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': f'Failed to create {category} backup: {str(e)}'}), 500
+
 @web_app.route('/admin/api/stats')
 def api_get_stats():
     """Get file statistics for dashboard"""
