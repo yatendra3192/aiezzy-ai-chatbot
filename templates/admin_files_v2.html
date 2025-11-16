@@ -392,6 +392,7 @@
     <div class="topbar">
         <div class="topbar-title">📁 File Management</div>
         <div class="topbar-actions">
+            <button onclick="downloadAllFiles()" class="primary" title="Download all files as ZIP">📥 Download All</button>
             <button onclick="loadStats()" title="Refresh">🔄 Refresh</button>
             <button onclick="window.location.href='/admin?key={{ admin_key }}'">📊 Dashboard</button>
         </div>
@@ -503,6 +504,33 @@
             loadStats();
             loadFiles();
         });
+
+        // Download All Files
+        async function downloadAllFiles() {
+            if (!confirm('Download all files as ZIP? This may take a few minutes depending on the amount of data.')) {
+                return;
+            }
+
+            try {
+                // Show loading state
+                const downloadBtn = event.target;
+                const originalText = downloadBtn.innerHTML;
+                downloadBtn.innerHTML = '⏳ Creating ZIP...';
+                downloadBtn.disabled = true;
+
+                // Initiate download
+                window.location.href = `/admin/api/download-all?key=${adminKey}`;
+
+                // Reset button after a delay
+                setTimeout(() => {
+                    downloadBtn.innerHTML = originalText;
+                    downloadBtn.disabled = false;
+                }, 3000);
+            } catch (error) {
+                console.error('Error downloading files:', error);
+                alert('Failed to download files. Please try again.');
+            }
+        }
 
         // Load Statistics
         async function loadStats() {
