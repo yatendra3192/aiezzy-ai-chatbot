@@ -1207,7 +1207,8 @@ def evaluate_result_quality(user_request: str, operation_type: str, result_conte
             model="gemini-2.5-flash",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             temperature=0.3,
-            transport="rest"  # Use REST API instead of gRPC to avoid ADC requirement
+            transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
+            max_output_tokens=4096  # Fix empty response issue (min 2048 required)
         )
         
         evaluation_prompt = f"""
@@ -1623,7 +1624,8 @@ def analyze_uploaded_image(state: Annotated[dict, InjectedState], *, config: Run
         model = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
-            transport="rest"  # Use REST API instead of gRPC to avoid ADC requirement
+            transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
+            max_output_tokens=4096  # Fix empty response issue (min 2048 required)
         )
 
         # Read and encode image
@@ -1716,7 +1718,8 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
             gemini_model = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash",
                 google_api_key=os.getenv("GOOGLE_API_KEY"),
-                transport="rest"  # Use REST API instead of gRPC to avoid ADC requirement
+                transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
+                max_output_tokens=4096  # Fix empty response issue (min 2048 required)
             )
 
             all_extracted_text = []
@@ -3619,7 +3622,8 @@ def build_coordinator():
             transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
             verbose=True,  # Enable verbose logging
             max_retries=2,  # Add retries for network issues
-            request_timeout=60  # Set explicit timeout
+            request_timeout=60,  # Set explicit timeout
+            max_output_tokens=8192  # CRITICAL: Fix empty response issue (min 2048 required)
         )
         print(f"✅ SUCCESS: Gemini model initialized successfully", flush=True)
     except Exception as e:
