@@ -150,14 +150,14 @@ A production-ready ChatGPT-style web application with advanced LangGraph multi-a
 
 ### Core Components
 1. **app.py**: Advanced LangGraph coordination system
-   - **Master Coordinator Agent** (Gemini 2.0 Flash) - Unified intelligent orchestration
+   - **Master Coordinator Agent** (Gemini 2.5 Flash) - Unified intelligent orchestration
    - **Text-to-Video Agent** (FAL AI LTX-Video-13B) - Video generation from prompts
    - **Image-to-Video Agent** (FAL AI LTX-Video-13B) - Image animation
    - **Multi-Image Fusion Agent** (FAL AI nano-banana/edit) - Image combination using Gemini
    - **Web Search Agent** (Tavily AI) - Real-time information retrieval
    - **Image Generation Agent** (FAL AI nano-banana) - High-quality image creation using Gemini
    - **Image Editing Agent** (FAL AI nano-banana/edit) - Advanced image modification using Gemini
-   - **Vision Analysis** (Gemini 2.0 Flash Vision) - Comprehensive image understanding and OCR
+   - **Vision Analysis** (Gemini 2.5 Flash Vision) - Comprehensive image understanding and OCR
 
 2. **web_app.py**: Enhanced Flask web server with authentication
    - `/api/chat` - Multi-agent text conversations (authenticated & guest access)

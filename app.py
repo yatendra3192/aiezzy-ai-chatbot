@@ -1120,9 +1120,9 @@ def evaluate_result_quality(user_request: str, operation_type: str, result_conte
     try:
         from langchain_google_genai import ChatGoogleGenerativeAI
 
-        # Use Gemini 2.0 Flash for quick evaluation (fast and cost-effective)
+        # Use Gemini 2.5 Flash for quick evaluation (latest stable, fast and cost-effective)
         evaluator_model = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",
+            model="gemini-2.5-flash",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             temperature=0.3
         )
@@ -1536,8 +1536,8 @@ def analyze_uploaded_image(state: Annotated[dict, InjectedState], *, config: Run
         import google.generativeai as genai
         genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-        # Initialize Gemini model with vision capabilities
-        model = genai.GenerativeModel('gemini-2.0-flash-exp')
+        # Initialize Gemini model with vision capabilities (latest stable)
+        model = genai.GenerativeModel('gemini-2.5-flash')
 
         # Read image file
         from PIL import Image
@@ -1618,8 +1618,8 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
             from PIL import Image
             genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-            # Initialize Gemini model with vision capabilities
-            gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
+            # Initialize Gemini model with vision capabilities (latest stable)
+            gemini_model = genai.GenerativeModel('gemini-2.5-flash')
 
             all_extracted_text = []
 
@@ -3498,10 +3498,10 @@ def analyze_user_intent(user_request: str) -> str:
 
 # --- Master coordinator agent ----------------------------------------------
 def build_coordinator():
-    # Using Google Gemini 2.0 Flash for superior reasoning and multi-step planning
-    # Gemini 2.0 Flash offers excellent performance with multimodal capabilities
+    # Using Google Gemini 2.5 Flash for superior reasoning and multi-step planning
+    # Gemini 2.5 Flash is the latest stable model with excellent performance and multimodal capabilities
     model = ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash-exp",
+        model="gemini-2.5-flash",
         google_api_key=os.getenv("GOOGLE_API_KEY"),
         temperature=0.7
     )

@@ -76,7 +76,7 @@ For a comprehensive list of all features, see **[FEATURES.md](FEATURES.md)**
 ## ✨ Features
 
 ### 🤖 **Enhanced Multi-Agent Architecture**
-- **Master Coordinator Agent**: Unified intelligent orchestration using Google Gemini 2.0 Flash
+- **Master Coordinator Agent**: Unified intelligent orchestration using Google Gemini 2.5 Flash
 - **Vision Analyst Agent**: Analyzes images and provides detailed descriptions using Gemini Vision
 - **Image Generator Agent**: Creates high-quality images from text prompts using FAL AI nano-banana
 - **Image Editor Agent**: Edits existing images using FAL AI flux-kontext model
@@ -322,7 +322,7 @@ python app.py
 ## 🔧 Technical Details
 
 ### Models & APIs Used
-- **Google Gemini 2.0 Flash**: Vision analysis, general conversation, and coordination
+- **Google Gemini 2.5 Flash**: Vision analysis, general conversation, and coordination (latest stable)
 - **FAL AI nano-banana**: High-quality image generation
 - **FAL AI flux-kontext**: Advanced image editing capabilities
 - **FAL AI LTX-Video-13B**: Professional video generation from text
