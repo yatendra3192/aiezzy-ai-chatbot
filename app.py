@@ -663,10 +663,9 @@ def edit_image(prompt: str, state: Annotated[dict, InjectedState], *, config: Ru
         import base64
         import mimetypes
 
-        # Read and encode the image
+        # Read the image as raw bytes
         with open(image_path, 'rb') as img_file:
             image_data_bytes = img_file.read()
-        image_data_b64 = base64.b64encode(image_data_bytes).decode('utf-8')
 
         # Determine MIME type
         file_ext = pathlib.Path(image_path).suffix.lower().lstrip('.')
@@ -685,7 +684,7 @@ def edit_image(prompt: str, state: Annotated[dict, InjectedState], *, config: Ru
                     types.Part.from_inline_data(
                         inline_data=types.Blob(
                             mime_type=mime_type,
-                            data=image_data_b64
+                            data=image_data_bytes  # Pass raw bytes, not base64 string
                         )
                     )
                 ]
