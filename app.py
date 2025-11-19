@@ -3615,15 +3615,23 @@ def build_coordinator():
 
         print(f"INFO: API key found (length: {len(api_key)})", flush=True)
 
+        # Import safety settings
+        from langchain_google_genai import HarmBlockThreshold, HarmCategory
+
         model = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             google_api_key=api_key,
             temperature=0.7,
             transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
-            verbose=True,  # Enable verbose logging
             max_retries=2,  # Add retries for network issues
             request_timeout=60,  # Set explicit timeout
-            max_output_tokens=8192  # CRITICAL: Fix empty response issue (min 2048 required)
+            max_tokens=8192,  # Fix empty response issue (alias for max_output_tokens)
+            safety_settings={
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+            }
         )
         print(f"✅ SUCCESS: Gemini model initialized successfully", flush=True)
     except Exception as e:
