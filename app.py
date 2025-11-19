@@ -1124,7 +1124,8 @@ def evaluate_result_quality(user_request: str, operation_type: str, result_conte
         evaluator_model = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
-            temperature=0.3
+            temperature=0.3,
+            transport="rest"  # Use REST API instead of gRPC to avoid ADC requirement
         )
         
         evaluation_prompt = f"""
@@ -1539,7 +1540,8 @@ def analyze_uploaded_image(state: Annotated[dict, InjectedState], *, config: Run
         # Initialize Gemini model with vision capabilities (latest stable)
         model = ChatGoogleGenerativeAI(
             model="gemini-2.5-flash",
-            google_api_key=os.getenv("GOOGLE_API_KEY")
+            google_api_key=os.getenv("GOOGLE_API_KEY"),
+            transport="rest"  # Use REST API instead of gRPC to avoid ADC requirement
         )
 
         # Read and encode image
@@ -1631,7 +1633,8 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
             # Initialize Gemini model with vision capabilities (latest stable)
             gemini_model = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash",
-                google_api_key=os.getenv("GOOGLE_API_KEY")
+                google_api_key=os.getenv("GOOGLE_API_KEY"),
+                transport="rest"  # Use REST API instead of gRPC to avoid ADC requirement
             )
 
             all_extracted_text = []
@@ -3521,7 +3524,8 @@ def build_coordinator():
     model = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
         google_api_key=os.getenv("GOOGLE_API_KEY"),
-        temperature=0.7
+        temperature=0.7,
+        transport="rest"  # Use REST API instead of gRPC to avoid ADC requirement
     )
     
     # Give the coordinator access to ALL tools for sequential execution
