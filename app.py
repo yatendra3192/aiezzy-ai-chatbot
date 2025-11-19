@@ -246,7 +246,7 @@ def generate_image(prompt: str,
 
     # Initialize Google Gemini client
     client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-    model = "gemini-2.5-flash-preview-image"
+    model = "gemini-2.5-flash-image"
 
     generated_paths = []
     generated_filenames = []
@@ -673,7 +673,7 @@ def edit_image(prompt: str, state: Annotated[dict, InjectedState], *, config: Ru
 
         # Initialize Gemini client
         client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-        model = "gemini-2.5-flash-preview-image"
+        model = "gemini-2.5-flash-image"
 
         # Create multimodal content with image + edit instruction
         contents = [
