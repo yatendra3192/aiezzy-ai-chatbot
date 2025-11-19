@@ -1,6 +1,7 @@
-langgraph
-langchain-google-genai
+# Core LangChain packages - force compatible versions
+langchain-google-genai>=3.0.0
 google-generativeai
+langgraph
 pydantic>=2.0.0
 pillow
 python-dotenv
