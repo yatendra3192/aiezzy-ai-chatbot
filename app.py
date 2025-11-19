@@ -3603,12 +3603,28 @@ def analyze_user_intent(user_request: str) -> str:
 def build_coordinator():
     # Using Google Gemini 2.5 Flash for superior reasoning and multi-step planning
     # Gemini 2.5 Flash is the latest stable model with excellent performance and multimodal capabilities
-    model = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        google_api_key=os.getenv("GOOGLE_API_KEY"),
-        temperature=0.7,
-        transport="rest"  # Use REST API instead of gRPC to avoid ADC requirement
-    )
+    try:
+        print(f"INFO: Initializing Gemini model: gemini-2.5-flash", flush=True)
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            print(f"❌ ERROR: GOOGLE_API_KEY not found in environment!", flush=True)
+            raise ValueError("GOOGLE_API_KEY is required")
+
+        print(f"INFO: API key found (length: {len(api_key)})", flush=True)
+
+        model = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            google_api_key=api_key,
+            temperature=0.7,
+            transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
+            verbose=True,  # Enable verbose logging
+            max_retries=2,  # Add retries for network issues
+            request_timeout=60  # Set explicit timeout
+        )
+        print(f"✅ SUCCESS: Gemini model initialized successfully", flush=True)
+    except Exception as e:
+        print(f"❌ ERROR: Failed to initialize Gemini model: {type(e).__name__}: {e}", flush=True)
+        raise
     
     # Give the coordinator access to ALL tools for sequential execution
     tools = [
@@ -4260,7 +4276,47 @@ def build_app():
             print(f"DEBUG: ❌ Condition failed - skipping auto-injection", flush=True)
 
         # Pass config explicitly to ensure tools receive it
-        return coordinator.invoke(state, config=config)
+        try:
+            print(f"DEBUG: About to invoke coordinator with state having {len(state.get('messages', []))} messages", flush=True)
+
+            # Add timeout and error handling
+            import time
+            start_time = time.time()
+
+            result = coordinator.invoke(state, config=config)
+
+            elapsed_time = time.time() - start_time
+            print(f"DEBUG: Coordinator returned after {elapsed_time:.2f}s", flush=True)
+
+            # Log the response details
+            if result and 'messages' in result:
+                last_response = result['messages'][-1] if result['messages'] else None
+                if last_response:
+                    response_content = getattr(last_response, 'content', '')
+                    print(f"DEBUG RESPONSE CONTENT: {response_content[:500]}", flush=True)
+                    print(f"DEBUG RESPONSE TYPE: {type(last_response)}", flush=True)
+                    print(f"DEBUG RESPONSE LENGTH: {len(str(response_content))}", flush=True)
+
+                    # Check if response is empty or whitespace
+                    if not response_content or str(response_content).strip() == '':
+                        print(f"⚠️ WARNING: Coordinator returned EMPTY response!", flush=True)
+                        print(f"DEBUG: Full result = {result}", flush=True)
+                else:
+                    print(f"⚠️ WARNING: No last message in result!", flush=True)
+            else:
+                print(f"⚠️ WARNING: Invalid result structure from coordinator!", flush=True)
+                print(f"DEBUG: Result = {result}", flush=True)
+
+            return result
+
+        except TimeoutError as e:
+            print(f"❌ ERROR: Coordinator timed out: {e}", flush=True)
+            raise
+        except Exception as e:
+            print(f"❌ ERROR: Coordinator failed with exception: {type(e).__name__}: {e}", flush=True)
+            import traceback
+            print(f"❌ TRACEBACK: {traceback.format_exc()}", flush=True)
+            raise
 
     builder.add_node("coordinator", coordinator_node)
     builder.add_edge(START, "coordinator")
