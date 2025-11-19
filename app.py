@@ -1532,22 +1532,33 @@ def analyze_uploaded_image(state: Annotated[dict, InjectedState], *, config: Run
         return f"❌ Image file not found: {file_path}"
 
     try:
-        # Use Google Gemini Vision API to analyze the image
-        import google.generativeai as genai
-        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+        # Use LangChain Google Gemini for vision analysis
+        from langchain_google_genai import ChatGoogleGenerativeAI
+        from langchain_core.messages import HumanMessage
 
         # Initialize Gemini model with vision capabilities (latest stable)
-        model = genai.GenerativeModel('gemini-2.5-flash')
+        model = ChatGoogleGenerativeAI(
+            model="gemini-2.5-flash",
+            google_api_key=os.getenv("GOOGLE_API_KEY")
+        )
 
-        # Read image file
-        from PIL import Image
-        img = Image.open(file_path)
+        # Read and encode image
+        image_data = base64.b64encode(open(file_path, "rb").read()).decode('utf-8')
 
-        # Call Gemini Vision API
-        prompt = "Analyze this image in detail. Describe what you see, including objects, text, colors, composition, and any other relevant information."
-        response = model.generate_content([prompt, img])
+        # Determine image format
+        file_ext = pathlib.Path(file_path).suffix.lower().lstrip('.')
+        mime_type = f"image/{file_ext}" if file_ext in ['jpeg', 'jpg', 'png', 'gif', 'webp'] else "image/jpeg"
 
-        analysis = response.text
+        # Call Gemini Vision API via LangChain
+        message = HumanMessage(
+            content=[
+                {"type": "text", "text": "Analyze this image in detail. Describe what you see, including objects, text, colors, composition, and any other relevant information."},
+                {"type": "image_url", "image_url": f"data:{mime_type};base64,{image_data}"}
+            ]
+        )
+
+        response = model.invoke([message])
+        analysis = response.content
         return f"📸 **Image Analysis:**\n\n{analysis}"
 
     except Exception as e:
@@ -1614,26 +1625,33 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
         # NOW EXTRACT TEXT FROM IMAGES USING GEMINI VISION API
         # This ensures the AI gets actual extracted text, not just image HTML
         try:
-            import google.generativeai as genai
-            from PIL import Image
-            genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+            from langchain_google_genai import ChatGoogleGenerativeAI
+            from langchain_core.messages import HumanMessage
 
             # Initialize Gemini model with vision capabilities (latest stable)
-            gemini_model = genai.GenerativeModel('gemini-2.5-flash')
+            gemini_model = ChatGoogleGenerativeAI(
+                model="gemini-2.5-flash",
+                google_api_key=os.getenv("GOOGLE_API_KEY")
+            )
 
             all_extracted_text = []
 
             for i, img_path in enumerate(image_paths, 1):
                 print(f"INFO: Extracting text from image {i}/{len(image_paths)} using Gemini vision...")
 
-                # Read image file
-                img = Image.open(img_path)
+                # Read and encode image
+                img_data = base64.b64encode(open(img_path, "rb").read()).decode('utf-8')
 
-                # Use Gemini Vision API to extract text
-                prompt = "Extract ALL visible text from this image. Preserve the layout and formatting as much as possible. Return ONLY the extracted text, no commentary or explanations."
-                response = gemini_model.generate_content([prompt, img])
+                # Use Gemini Vision API to extract text via LangChain
+                message = HumanMessage(
+                    content=[
+                        {"type": "text", "text": "Extract ALL visible text from this image. Preserve the layout and formatting as much as possible. Return ONLY the extracted text, no commentary or explanations."},
+                        {"type": "image_url", "image_url": f"data:image/png;base64,{img_data}"}
+                    ]
+                )
 
-                extracted = response.text
+                response = gemini_model.invoke([message])
+                extracted = response.content
                 all_extracted_text.append(f"--- Page {i} ---\n{extracted}\n")
 
             full_text = "\n".join(all_extracted_text)
