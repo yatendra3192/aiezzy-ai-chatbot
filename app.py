@@ -220,13 +220,13 @@ def search_web(query: str) -> str:
     except Exception as e:
         return f"Web search error: {str(e)}"
 
-# --- Tool: external image generation (FAL AI nano-banana) ------------------
+# --- Tool: external image generation (Google Gemini 2.5 Flash Image) -------
 @tool
 def generate_image(prompt: str,
                   num_images: int = 1,
                   state: Annotated[dict, InjectedState] = None) -> str:
     """
-    Generate a NEW image from a text description/prompt using FAL AI nano-banana.
+    Generate a NEW image from a text description/prompt using Google Gemini 2.5 Flash Image.
 
     Use this when user wants to CREATE/GENERATE a NEW image from text description.
     Examples: "create an image of a sunset", "generate a picture of a cat"
@@ -235,41 +235,61 @@ def generate_image(prompt: str,
 
     Returns HTML img tag for web display.
     """
-    result = fal_client.subscribe(
-        "fal-ai/nano-banana",
-        arguments={
-            "prompt": prompt,
-            "num_images": num_images
-        },
-        with_logs=True
+    from google import genai
+    from google.genai import types
+    import time
+
+    # Initialize Google Gemini client
+    client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+
+    # Use Gemini 2.5 Flash Image model for generation
+    model = "gemini-2.5-flash-image"
+    contents = [
+        types.Content(
+            role="user",
+            parts=[types.Part.from_text(text=prompt)]
+        )
+    ]
+    generate_content_config = types.GenerateContentConfig(
+        response_modalities=["IMAGE", "TEXT"]
     )
-    
-    if result and result.get('images') and len(result['images']) > 0:
-        image_url = result['images'][0]['url']
-        
-        # Download and save the image locally
-        import requests
-        response = requests.get(image_url)
-        if response.status_code == 200:
-            # Use microsecond precision to avoid filename collisions when called rapidly
-            import time
-            timestamp = int(time.time() * 1000000)  # Microsecond timestamp
-            filename = f"img_{timestamp}.png"
+
+    # Generate image using streaming
+    image_data = None
+    mime_type = None
+
+    for chunk in client.models.generate_content_stream(
+        model=model,
+        contents=contents,
+        config=generate_content_config
+    ):
+        if (chunk.candidates and
+            chunk.candidates[0].content and
+            chunk.candidates[0].content.parts):
+
+            part = chunk.candidates[0].content.parts[0]
+            if part.inline_data and part.inline_data.data:
+                image_data = part.inline_data.data
+                mime_type = part.inline_data.mime_type
+                break
+
+    if image_data:
+        # Save the generated image locally
+        timestamp = int(time.time() * 1000000)  # Microsecond timestamp
+        filename = f"img_{timestamp}.png"
+        path = ASSETS_DIR / filename
+
+        # Ensure unique filename in case of collisions
+        counter = 1
+        while path.exists():
+            filename = f"img_{timestamp}_{counter}.png"
             path = ASSETS_DIR / filename
-            
-            # Ensure unique filename in case of collisions
-            counter = 1
-            while path.exists():
-                filename = f"img_{timestamp}_{counter}.png"
-                path = ASSETS_DIR / filename
-                counter += 1
-            
-            path.write_bytes(response.content)
-            print(f"GENERATE_IMAGE: Saved unique file: {filename}")
-        else:
-            raise Exception(f"Failed to download image: {response.status_code}")
+            counter += 1
+
+        path.write_bytes(image_data)
+        print(f"GENERATE_IMAGE: Saved unique file with Gemini: {filename}")
     else:
-        raise Exception("Failed to generate image with nano-banana")
+        raise Exception("Failed to generate image with Gemini 2.5 Flash Image")
     
     # CRITICAL: Set this generated image as the most recent for editing in thread-specific context
     thread_id = state.get("configurable", {}).get("thread_id", "default") if state else "default"
@@ -302,7 +322,7 @@ def generate_image(prompt: str,
     print(f"GENERATE_IMAGE: Thread now has {len(context['uploaded_images'])} images")
     
     filename = pathlib.Path(path).name
-    return f'<img src="/assets/{filename}" class="message-image" alt="Generated image" onclick="openImageModal(\'/assets/{filename}\')"> Image generated with nano-banana: {prompt}. Saved to {path}'
+    return f'<img src="/assets/{filename}" class="message-image" alt="Generated image" onclick="openImageModal(\'/assets/{filename}\')"> Image generated with Gemini 2.5 Flash Image: {prompt}. Saved to {path}'
 
 # Thread-specific image storage to prevent cross-conversation contamination
 _thread_image_context = {}  # {thread_id: {'recent_path': path, 'uploaded_images': [paths], 'image_labels': {}}}
@@ -3655,7 +3675,7 @@ def build_coordinator():
         "- check_available_assets: 🔥 CALL THIS FIRST for file operations - shows ALL uploaded files (images, docs, videos) with paths and formats\n"
         "- analyze_user_intent: Understand complex requests\n"
         "- search_web: Get current news and information\n"
-        "- generate_image: Create images from descriptions using nano-banana\n"
+        "- generate_image: Create images from descriptions using Gemini 2.5 Flash Image\n"
         "- edit_image: Modify uploaded images using nano-banana/edit\n"
         "- generate_video_from_text: Create videos from text prompts using LTX-Video-13B\n"
         "- generate_video_from_image: Animate existing images into videos using LTX-Video-13B\n"

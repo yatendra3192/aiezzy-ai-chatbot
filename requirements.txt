@@ -1,5 +1,6 @@
 # Core LangChain packages - force compatible versions
 langchain-google-genai>=3.0.0
+google-genai  # Google Gemini native SDK for image generation
 langgraph
 pydantic>=2.0.0
 pillow
