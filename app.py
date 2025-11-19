@@ -539,11 +539,11 @@ def get_all_uploaded_files(thread_id, category=None):
 
 # === END UNIFIED FILE CONTEXT ===
 
-# --- Tool: image editing (FAL AI nano-banana/edit) ------------------------
+# --- Tool: image editing (Google Gemini 2.5 Flash Image) -----------------
 @tool
 def edit_image(prompt: str, state: Annotated[dict, InjectedState], *, config: RunnableConfig) -> str:
     """
-    Edit an existing image using FAL AI's nano-banana/edit model.
+    Edit an existing image using Google Gemini 2.5 Flash Image model.
     Takes a prompt describing the desired changes.
     Uses the most recently uploaded image for editing.
     Returns HTML img tag for web display.
@@ -657,70 +657,99 @@ def edit_image(prompt: str, state: Annotated[dict, InjectedState], *, config: Ru
             if not os.path.exists(image_path):
                 return f"Image file not found: {image_path}. Please upload a new image to edit."
         
-        # Upload the image file to FAL
-        if image_path.startswith(('http://', 'https://')):
-            fal_image_url = image_path
-        else:
-            # Upload local file to FAL
-            fal_image_url = fal_client.upload_file(image_path)
-        
-        result = fal_client.subscribe(
-            "fal-ai/nano-banana/edit",
-            arguments={
-                "prompt": clean_prompt,
-                "image_urls": [fal_image_url],
-                "num_images": 1
-            },
-            with_logs=True
+        # Use Google Gemini for image editing
+        from google import genai
+        from google.genai import types
+        import base64
+        import mimetypes
+
+        # Read and encode the image
+        with open(image_path, 'rb') as img_file:
+            image_data_bytes = img_file.read()
+        image_data_b64 = base64.b64encode(image_data_bytes).decode('utf-8')
+
+        # Determine MIME type
+        file_ext = pathlib.Path(image_path).suffix.lower().lstrip('.')
+        mime_type = mimetypes.guess_type(image_path)[0] or "image/png"
+
+        # Initialize Gemini client
+        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        model = "gemini-2.5-flash-image"
+
+        # Create multimodal content with image + edit instruction
+        contents = [
+            types.Content(
+                role="user",
+                parts=[
+                    types.Part.from_text(text=clean_prompt),
+                    types.Part.from_inline_data(
+                        inline_data=types.Blob(
+                            mime_type=mime_type,
+                            data=image_data_b64
+                        )
+                    )
+                ]
+            )
+        ]
+
+        generate_content_config = types.GenerateContentConfig(
+            response_modalities=["IMAGE"]
         )
-        
-        if result and result.get('images') and len(result['images']) > 0:
-            edited_image_url = result['images'][0]['url']
-            
-            # Download and save the edited image locally
-            import requests
-            response = requests.get(edited_image_url)
-            if response.status_code == 200:
-                # Use microsecond precision to avoid filename collisions in bulk operations
-                import time as time_module
-                timestamp = int(time_module.time() * 1000000)  # Microsecond timestamp
-                edited_path = ASSETS_DIR / f"edited_{timestamp}.png"
 
-                # Ensure unique filename in case of collisions
-                counter = 1
-                while edited_path.exists():
-                    timestamp = int(time_module.time() * 1000000)
-                    edited_path = ASSETS_DIR / f"edited_{timestamp}_{counter}.png"
-                    counter += 1
+        # Generate edited image
+        edited_image_data = None
 
-                edited_path.write_bytes(response.content)
-                filename = edited_path.name
+        for chunk in client.models.generate_content_stream(
+            model=model,
+            contents=contents,
+            config=generate_content_config
+        ):
+            if (chunk.candidates and
+                chunk.candidates[0].content and
+                chunk.candidates[0].content.parts):
 
-                # CRITICAL FIX: Get thread context to update the recent_path
-                context = get_thread_context(thread_id)
-                context['recent_path'] = str(edited_path)
-                # Also add the edited image to the uploaded images list for multi-image operations
-                context['uploaded_images'].append(str(edited_path))
-                if len(context['uploaded_images']) > 5:
-                    context['uploaded_images'] = context['uploaded_images'][-5:]
-                print(f"EDIT_IMAGE: Added to thread {thread_id} context: {edited_path}")
-                print(f"EDIT_IMAGE: Thread now has {len(context['uploaded_images'])} images")
-                
-                # Clean up active request
-                if request_key in _active_requests:
-                    del _active_requests[request_key]
-                
-                return f'<img src="/assets/{filename}" class="message-image" alt="Edited image" onclick="openImageModal(\'/assets/{filename}\')"> Image edited with nano-banana: {clean_prompt}\nSaved as {edited_path}\nTimestamp: {int(time.time())}'
-            else:
-                # Clean up active request on failure
-                if request_key in _active_requests:
-                    del _active_requests[request_key]
-                return "Failed to download edited image"
+                part = chunk.candidates[0].content.parts[0]
+                if part.inline_data and part.inline_data.data:
+                    edited_image_data = part.inline_data.data
+                    break
+
+        if edited_image_data:
+            # Save the edited image locally
+            import time as time_module
+            timestamp = int(time_module.time() * 1000000)  # Microsecond timestamp
+            edited_path = ASSETS_DIR / f"edited_{timestamp}.png"
+
+            # Ensure unique filename in case of collisions
+            counter = 1
+            while edited_path.exists():
+                timestamp = int(time_module.time() * 1000000)
+                edited_path = ASSETS_DIR / f"edited_{timestamp}_{counter}.png"
+                counter += 1
+
+            edited_path.write_bytes(edited_image_data)
+            filename = edited_path.name
+            print(f"EDIT_IMAGE: Saved edited image with Gemini: {filename}")
+
+            # CRITICAL FIX: Get thread context to update the recent_path
+            context = get_thread_context(thread_id)
+            context['recent_path'] = str(edited_path)
+            # Also add the edited image to the uploaded images list for multi-image operations
+            context['uploaded_images'].append(str(edited_path))
+            if len(context['uploaded_images']) > 5:
+                context['uploaded_images'] = context['uploaded_images'][-5:]
+            print(f"EDIT_IMAGE: Added to thread {thread_id} context: {edited_path}")
+            print(f"EDIT_IMAGE: Thread now has {len(context['uploaded_images'])} images")
+
+            # Clean up active request
+            if request_key in _active_requests:
+                del _active_requests[request_key]
+
+            return f'<img src="/assets/{filename}" class="message-image" alt="Edited image" onclick="openImageModal(\'/assets/{filename}\')"> Image edited with Gemini 2.5 Flash Image: {clean_prompt}\nSaved as {edited_path}\nTimestamp: {int(time.time())}'
         else:
             # Clean up active request on failure
             if request_key in _active_requests:
                 del _active_requests[request_key]
-            return "Failed to edit image"
+            return "Failed to edit image with Gemini 2.5 Flash Image"
             
     except Exception as e:
         # Clean up active request and global lock on error
@@ -3710,7 +3739,7 @@ def build_coordinator():
         "- analyze_user_intent: Understand complex requests\n"
         "- search_web: Get current news and information\n"
         "- generate_image: Create images from descriptions using Gemini 2.5 Flash Image\n"
-        "- edit_image: Modify uploaded images using nano-banana/edit\n"
+        "- edit_image: Modify uploaded images using Gemini 2.5 Flash Image\n"
         "- generate_video_from_text: Create videos from text prompts using LTX-Video-13B\n"
         "- generate_video_from_image: Animate existing images into videos using LTX-Video-13B\n"
         "- generate_image_from_multiple: Combine multiple uploaded images using nano-banana/edit\n"
