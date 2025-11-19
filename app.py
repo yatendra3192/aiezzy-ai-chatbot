@@ -226,86 +226,109 @@ def generate_image(prompt: str,
                   num_images: int = 1,
                   state: Annotated[dict, InjectedState] = None) -> str:
     """
-    Generate a NEW image from a text description/prompt using Google Gemini 2.5 Flash Image.
+    Generate NEW image(s) from a text description/prompt using Google Gemini 2.5 Flash Image.
 
     Use this when user wants to CREATE/GENERATE a NEW image from text description.
-    Examples: "create an image of a sunset", "generate a picture of a cat"
+    Examples: "create an image of a sunset", "generate a picture of a cat", "create 3 images of a dog"
+
+    NOTE: Google Gemini generates 1 image per API call. For multiple images, this function makes multiple calls.
 
     DO NOT use this for creating shareable links of uploaded files - use create_shareable_link() instead.
 
-    Returns HTML img tag for web display.
+    Returns HTML img tag(s) for web display.
     """
     from google import genai
     from google.genai import types
     import time
 
+    # Limit to max 4 images to avoid excessive API calls
+    num_images = min(num_images, 4)
+
     # Initialize Google Gemini client
     client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-
-    # Use Gemini 2.5 Flash Image model for generation
     model = "gemini-2.5-flash-image"
-    contents = [
-        types.Content(
-            role="user",
-            parts=[types.Part.from_text(text=prompt)]
+
+    generated_paths = []
+    generated_filenames = []
+
+    # Generate each image separately (Google Gemini doesn't support batch generation)
+    for i in range(num_images):
+        print(f"GENERATE_IMAGE: Generating image {i+1}/{num_images}...")
+
+        contents = [
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=prompt)]
+            )
+        ]
+        generate_content_config = types.GenerateContentConfig(
+            response_modalities=["IMAGE", "TEXT"]
         )
-    ]
-    generate_content_config = types.GenerateContentConfig(
-        response_modalities=["IMAGE", "TEXT"]
-    )
 
-    # Generate image using streaming
-    image_data = None
-    mime_type = None
+        # Generate image using streaming
+        image_data = None
+        mime_type = None
 
-    for chunk in client.models.generate_content_stream(
-        model=model,
-        contents=contents,
-        config=generate_content_config
-    ):
-        if (chunk.candidates and
-            chunk.candidates[0].content and
-            chunk.candidates[0].content.parts):
+        for chunk in client.models.generate_content_stream(
+            model=model,
+            contents=contents,
+            config=generate_content_config
+        ):
+            if (chunk.candidates and
+                chunk.candidates[0].content and
+                chunk.candidates[0].content.parts):
 
-            part = chunk.candidates[0].content.parts[0]
-            if part.inline_data and part.inline_data.data:
-                image_data = part.inline_data.data
-                mime_type = part.inline_data.mime_type
-                break
+                part = chunk.candidates[0].content.parts[0]
+                if part.inline_data and part.inline_data.data:
+                    image_data = part.inline_data.data
+                    mime_type = part.inline_data.mime_type
+                    break
 
-    if image_data:
-        # Save the generated image locally
-        timestamp = int(time.time() * 1000000)  # Microsecond timestamp
-        filename = f"img_{timestamp}.png"
-        path = ASSETS_DIR / filename
-
-        # Ensure unique filename in case of collisions
-        counter = 1
-        while path.exists():
-            filename = f"img_{timestamp}_{counter}.png"
+        if image_data:
+            # Save the generated image locally
+            timestamp = int(time.time() * 1000000)  # Microsecond timestamp
+            filename = f"img_{timestamp}.png"
             path = ASSETS_DIR / filename
-            counter += 1
 
-        path.write_bytes(image_data)
-        print(f"GENERATE_IMAGE: Saved unique file with Gemini: {filename}")
-    else:
-        raise Exception("Failed to generate image with Gemini 2.5 Flash Image")
+            # Ensure unique filename in case of collisions
+            counter = 1
+            while path.exists():
+                filename = f"img_{timestamp}_{counter}.png"
+                path = ASSETS_DIR / filename
+                counter += 1
+
+            path.write_bytes(image_data)
+            print(f"GENERATE_IMAGE: Saved image {i+1}/{num_images} with Gemini: {filename}")
+
+            generated_paths.append(str(path))
+            generated_filenames.append(filename)
+        else:
+            print(f"GENERATE_IMAGE: Failed to generate image {i+1}/{num_images}")
+
+    if not generated_paths:
+        raise Exception("Failed to generate any images with Gemini 2.5 Flash Image")
+
+    # Use the last generated image as the "most recent" for editing
+    path = generated_paths[-1]
+    filename = generated_filenames[-1]
     
-    # CRITICAL: Set this generated image as the most recent for editing in thread-specific context
+    # CRITICAL: Set generated images in thread-specific context
     thread_id = state.get("configurable", {}).get("thread_id", "default") if state else "default"
     if thread_id == "default":
         global _current_thread_id
         thread_id = _current_thread_id
     context = get_thread_context(thread_id)
-    context['recent_path'] = str(path)
-    # Also add to thread's uploaded images list for multi-image operations
-    context['uploaded_images'].append(str(path))
+    context['recent_path'] = str(path)  # Last image as "most recent"
+
+    # Add ALL generated images to thread's uploaded images list for multi-image operations
+    for gen_path in generated_paths:
+        context['uploaded_images'].append(gen_path)
+    # Keep only last 5 images
     if len(context['uploaded_images']) > 5:
         context['uploaded_images'] = context['uploaded_images'][-5:]
 
     # Extract key subject from prompt for labeling (e.g., "cat", "dog", "cow")
     import re
-    # Common animals and objects to look for in prompts
     subjects = ['cat', 'dog', 'cow', 'horse', 'bird', 'man', 'woman', 'person', 'car', 'tree', 'house', 'flower', 'mountain', 'ocean', 'sunset']
     prompt_lower = prompt.lower()
     found_subject = None
@@ -314,15 +337,26 @@ def generate_image(prompt: str,
             found_subject = subject
             break
 
+    # Label all generated images
     if found_subject:
-        context['image_labels'][str(path)] = found_subject
-        print(f"GENERATE_IMAGE: Labeled image as '{found_subject}'")
+        for gen_path in generated_paths:
+            context['image_labels'][gen_path] = found_subject
+        print(f"GENERATE_IMAGE: Labeled {len(generated_paths)} images as '{found_subject}'")
 
-    print(f"GENERATE_IMAGE: Added to thread {thread_id} context: {path}")
+    print(f"GENERATE_IMAGE: Added {len(generated_paths)} images to thread {thread_id} context")
     print(f"GENERATE_IMAGE: Thread now has {len(context['uploaded_images'])} images")
-    
-    filename = pathlib.Path(path).name
-    return f'<img src="/assets/{filename}" class="message-image" alt="Generated image" onclick="openImageModal(\'/assets/{filename}\')"> Image generated with Gemini 2.5 Flash Image: {prompt}. Saved to {path}'
+
+    # Build HTML response with all generated images
+    if len(generated_filenames) == 1:
+        # Single image response
+        return f'<img src="/assets/{generated_filenames[0]}" class="message-image" alt="Generated image" onclick="openImageModal(\'/assets/{generated_filenames[0]}\')"> Image generated with Gemini 2.5 Flash Image: {prompt}. Saved to {generated_paths[0]}'
+    else:
+        # Multiple images response
+        img_tags = []
+        for fname in generated_filenames:
+            img_tags.append(f'<img src="/assets/{fname}" class="message-image" alt="Generated image" onclick="openImageModal(\'/assets/{fname}\')">')
+        images_html = ' '.join(img_tags)
+        return f'{images_html} Generated {len(generated_filenames)} images with Gemini 2.5 Flash Image: {prompt}. Saved to: {", ".join([pathlib.Path(p).name for p in generated_paths])}'
 
 # Thread-specific image storage to prevent cross-conversation contamination
 _thread_image_context = {}  # {thread_id: {'recent_path': path, 'uploaded_images': [paths], 'image_labels': {}}}
