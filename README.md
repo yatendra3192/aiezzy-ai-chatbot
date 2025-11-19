@@ -76,9 +76,9 @@ For a comprehensive list of all features, see **[FEATURES.md](FEATURES.md)**
 ## ✨ Features
 
 ### 🤖 **Enhanced Multi-Agent Architecture**
-- **Master Coordinator Agent**: Unified intelligent orchestration using GPT-4o
-- **Vision Analyst Agent**: Analyzes images and provides detailed descriptions using GPT-4o
-- **Image Generator Agent**: Creates high-quality images from text prompts using OpenAI gpt-image-1
+- **Master Coordinator Agent**: Unified intelligent orchestration using Google Gemini 2.0 Flash
+- **Vision Analyst Agent**: Analyzes images and provides detailed descriptions using Gemini Vision
+- **Image Generator Agent**: Creates high-quality images from text prompts using FAL AI nano-banana
 - **Image Editor Agent**: Edits existing images using FAL AI flux-kontext model
 - **Video Generator Agent**: Creates videos from text using FAL AI LTX-Video-13B
 - **Image Animator Agent**: Animates static images into videos using FAL AI LTX-Video-13B
@@ -187,13 +187,13 @@ pip install -r requirements.txt
 ### 2. Configure API Keys
 Create/edit `.env` file with your API keys:
 ```env
-OPENAI_API_KEY=your_openai_api_key_here    # Get from https://platform.openai.com/api-keys
+GOOGLE_API_KEY=your_google_api_key_here     # Get from https://aistudio.google.com/app/apikey
 FAL_KEY=your_fal_ai_key_here               # Get from https://www.fal.ai/
 TAVILY_API_KEY=your_tavily_api_key_here    # Get from https://tavily.com/
 ```
 
 **API Key Sources:**
-- **OpenAI**: Required for GPT-4o vision analysis and image generation
+- **Google Gemini**: Required for AI chat, vision analysis, and text understanding
 - **FAL AI**: Required for image editing, video generation, and multi-image fusion
 - **Tavily AI**: Required for web search functionality (agent-optimized)
 
@@ -322,8 +322,8 @@ python app.py
 ## 🔧 Technical Details
 
 ### Models & APIs Used
-- **GPT-4o**: Vision analysis, general conversation, and coordination
-- **OpenAI gpt-image-1**: High-quality image generation
+- **Google Gemini 2.0 Flash**: Vision analysis, general conversation, and coordination
+- **FAL AI nano-banana**: High-quality image generation
 - **FAL AI flux-kontext**: Advanced image editing capabilities
 - **FAL AI LTX-Video-13B**: Professional video generation from text
 - **FAL AI LTX-Video-13B Image-to-Video**: Image animation capabilities
@@ -334,7 +334,7 @@ python app.py
 - **LangGraph**: Multi-agent orchestration and coordination
 - **LangChain**: AI model integration and tool management
 - **Flask**: Web framework with multimedia serving and authentication
-- **OpenAI**: GPT models and image generation
+- **Google Gemini**: AI models for chat and vision
 - **FAL Client**: Image editing, video generation, and multi-image fusion
 - **Tavily Python**: Real-time web search capabilities
 - **PyMuPDF (fitz)**: Advanced PDF processing with table detection
@@ -359,7 +359,7 @@ python app.py
 - **Enhanced LangGraph architecture** with unified coordinator
 - **Modern ChatGPT-style interface** with real-time progress indicators
 - **Vision analysis** with image upload and context preservation
-- **Image generation** via OpenAI gpt-image-1
+- **Image generation** via FAL AI nano-banana
 - **Image editing** via FAL AI flux-kontext
 - **Video generation** via FAL AI LTX-Video-13B (text-to-video)
 - **Image animation** via FAL AI LTX-Video-13B (image-to-video)
@@ -400,7 +400,7 @@ python app.py
 
 1. Clone/download the project
 2. Install dependencies: `pip install -r requirements.txt`
-3. Add API keys to `.env` file (OpenAI, FAL AI, Tavily AI)
+3. Add API keys to `.env` file (Google Gemini, FAL AI, Tavily AI)
 4. Run: `python web_app.py`
 5. Open: http://localhost:5000
 6. Start chatting, uploading images, generating videos, or creating multimedia content!

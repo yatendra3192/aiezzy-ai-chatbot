@@ -12,11 +12,11 @@ from langgraph.prebuilt import create_react_agent, InjectedState
 from langgraph.types import Command
 from langgraph.checkpoint.memory import InMemorySaver
 
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import tool, InjectedToolCallId
 from langchain_core.runnables import RunnableConfig
 
-# Note: OpenAI client removed since we now use nano-banana for image generation
+# Note: Migrated from OpenAI to Google Gemini API for all LLM operations
 
 # FAL AI client for image editing
 import fal_client
@@ -1118,15 +1118,13 @@ def evaluate_result_quality(user_request: str, operation_type: str, result_conte
     Returns evaluation and suggestions for improvement if needed.
     """
     try:
-        from langchain_openai import ChatOpenAI
-        
-        # Use GPT-5 mini for quick evaluation (faster and more cost-effective)
-        evaluator_model = ChatOpenAI(
-            model="gpt-5-mini",
-            model_kwargs={
-                "reasoning_effort": "minimal",  # Fast evaluation
-                "verbosity": "low"  # Concise responses
-            }
+        from langchain_google_genai import ChatGoogleGenerativeAI
+
+        # Use Gemini 2.0 Flash for quick evaluation (fast and cost-effective)
+        evaluator_model = ChatGoogleGenerativeAI(
+            model="gemini-2.0-flash-exp",
+            google_api_key=os.getenv("GOOGLE_API_KEY"),
+            temperature=0.3
         )
         
         evaluation_prompt = f"""
@@ -1504,7 +1502,7 @@ def create_shareable_link(state: Annotated[dict, InjectedState], *, config: Runn
 @tool
 def analyze_uploaded_image(state: Annotated[dict, InjectedState], *, config: RunnableConfig) -> str:
     """
-    Analyze the most recently uploaded image using GPT-4o vision.
+    Analyze the most recently uploaded image using Gemini vision.
 
     Use this when user wants to:
     - "analyze this image" / "what's in this image"
@@ -1534,44 +1532,22 @@ def analyze_uploaded_image(state: Annotated[dict, InjectedState], *, config: Run
         return f"❌ Image file not found: {file_path}"
 
     try:
-        # Use OpenAI Vision API to analyze the image
-        from openai import OpenAI
-        openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # Use Google Gemini Vision API to analyze the image
+        import google.generativeai as genai
+        genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
 
-        # Read and encode image
-        with open(file_path, "rb") as img_file:
-            image_data = base64.b64encode(img_file.read()).decode('utf-8')
+        # Initialize Gemini model with vision capabilities
+        model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
-        # Determine image format
-        file_ext = pathlib.Path(file_path).suffix.lower().lstrip('.')
-        mime_type = f"image/{file_ext}" if file_ext in ['jpeg', 'jpg', 'png', 'gif', 'webp'] else "image/jpeg"
+        # Read image file
+        from PIL import Image
+        img = Image.open(file_path)
 
-        # Call vision API with GPT-5 (84.2% on MMMU multimodal understanding)
-        response = openai_client.chat.completions.create(
-            model="gpt-5",
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "Analyze this image in detail. Describe what you see, including objects, text, colors, composition, and any other relevant information."
-                        },
-                        {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:{mime_type};base64,{image_data}"
-                            }
-                        }
-                    ]
-                }
-            ],
-            max_output_tokens=1000,
-            reasoning_effort="low",  # Fast vision analysis
-            verbosity="medium"
-        )
+        # Call Gemini Vision API
+        prompt = "Analyze this image in detail. Describe what you see, including objects, text, colors, composition, and any other relevant information."
+        response = model.generate_content([prompt, img])
 
-        analysis = response.choices[0].message.content
+        analysis = response.text
         return f"📸 **Image Analysis:**\n\n{analysis}"
 
     except Exception as e:
@@ -1591,7 +1567,7 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
     WORKFLOW AFTER CALLING THIS TOOL:
     1. Tool converts PDF to images and returns HTML with image tags
     2. Images are now displayed in the conversation
-    3. YOU MUST use your GPT-4o vision to READ the images immediately
+    3. YOU MUST use your Gemini vision to READ the images immediately
     4. Extract all visible text from the images
     5. Answer the user's original question using the extracted text
     6. DO NOT ask user "if you need text extracted" - JUST DO IT!
@@ -1635,47 +1611,29 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
 
         html_output = "".join(html_parts)
 
-        # NOW EXTRACT TEXT FROM IMAGES USING OPENAI VISION API
+        # NOW EXTRACT TEXT FROM IMAGES USING GEMINI VISION API
         # This ensures the AI gets actual extracted text, not just image HTML
         try:
-            from openai import OpenAI
-            openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            import google.generativeai as genai
+            from PIL import Image
+            genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+
+            # Initialize Gemini model with vision capabilities
+            gemini_model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
             all_extracted_text = []
 
             for i, img_path in enumerate(image_paths, 1):
-                print(f"INFO: Extracting text from image {i}/{len(image_paths)} using vision...")
+                print(f"INFO: Extracting text from image {i}/{len(image_paths)} using Gemini vision...")
 
-                # Read image and encode to base64
-                with open(img_path, "rb") as img_file:
-                    image_data = base64.b64encode(img_file.read()).decode('utf-8')
+                # Read image file
+                img = Image.open(img_path)
 
-                # Use OpenAI Vision API with GPT-5 to extract text
-                response = openai_client.chat.completions.create(
-                    model="gpt-5",
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": "Extract ALL visible text from this image. Preserve the layout and formatting as much as possible. Return ONLY the extracted text, no commentary or explanations."
-                                },
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/png;base64,{image_data}"
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    max_output_tokens=2000,
-                    reasoning_effort="low",  # Fast text extraction
-                    verbosity="low"  # Concise output
-                )
+                # Use Gemini Vision API to extract text
+                prompt = "Extract ALL visible text from this image. Preserve the layout and formatting as much as possible. Return ONLY the extracted text, no commentary or explanations."
+                response = gemini_model.generate_content([prompt, img])
 
-                extracted = response.choices[0].message.content
+                extracted = response.text
                 all_extracted_text.append(f"--- Page {i} ---\n{extracted}\n")
 
             full_text = "\n".join(all_extracted_text)
@@ -3540,14 +3498,12 @@ def analyze_user_intent(user_request: str) -> str:
 
 # --- Master coordinator agent ----------------------------------------------
 def build_coordinator():
-    # Using OpenAI GPT-5 for superior reasoning and multi-step planning
-    # GPT-5 offers 45% fewer factual errors and better coding capabilities
-    model = ChatOpenAI(
-        model="gpt-5",
-        model_kwargs={
-            "reasoning_effort": "medium",  # Options: minimal, low, medium, high
-            "verbosity": "medium"  # Options: low, medium, high
-        }
+    # Using Google Gemini 2.0 Flash for superior reasoning and multi-step planning
+    # Gemini 2.0 Flash offers excellent performance with multimodal capabilities
+    model = ChatGoogleGenerativeAI(
+        model="gemini-2.0-flash-exp",
+        google_api_key=os.getenv("GOOGLE_API_KEY"),
+        temperature=0.7
     )
     
     # Give the coordinator access to ALL tools for sequential execution
@@ -3634,7 +3590,7 @@ def build_coordinator():
     ]
     
     prompt = (
-        "You are an intelligent AI coordinator powered by GPT-4o. You excel at understanding user intent and executing complex multi-step tasks.\n\n"
+        "You are an intelligent AI coordinator powered by Google Gemini 2.0 Flash. You excel at understanding user intent and executing complex multi-step tasks.\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "🚨 ABSOLUTE PRIORITY RULE #1 - CHECK FILES FIRST:\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -3983,7 +3939,7 @@ def build_coordinator():
         "- ALWAYS verify the conversion path exists in the SUPPORTED list above before calling any tool\n\n"
         "DECISION LOGIC:\n"
         "- 'news', 'latest', 'current' -> Use search_web\n"
-        "- 'extract text', 'read text', 'OCR', 'get text' + image upload -> Use GPT-4o vision to analyze and extract all text\n"
+        "- 'extract text', 'read text', 'OCR', 'get text' + image upload -> Use Gemini vision to analyze and extract all text\n"
         "- PDF uploaded + ANY question or request -> ALWAYS call extract_text_from_pdf FIRST:\n"
         "  • If returns 'EXTRACTED_TEXT_FROM_PDF': Read the text and answer user's question directly\n"
         "  • If returns 'IMAGE_BASED_PDF_DETECTED': Call convert_pdf_to_images and use vision to analyze\n"
