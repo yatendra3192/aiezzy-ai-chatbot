@@ -212,7 +212,7 @@ class UploadedFile(db.Model):
 
     # Metadata
     upload_order = db.Column(db.Integer, default=0)
-    metadata = db.Column(db.Text)  # JSON for additional data
+    file_metadata = db.Column(db.Text)  # JSON for additional data (renamed from 'metadata' - reserved word)
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
     expires_at = db.Column(db.DateTime)  # Optional expiry for cleanup

@@ -459,7 +459,7 @@ def get_unified_file_context(thread_id):
             'path': db_file.file_path,
             'filename': db_file.filename,
             'mime_type': db_file.mime_type,
-            'extension': db_file.metadata,  # We stored extension in metadata
+            'extension': db_file.file_metadata,  # We stored extension in file_metadata
             'category': db_file.category,
             'size': db_file.file_size,
             'timestamp': db_file.created_at.timestamp()
@@ -519,7 +519,7 @@ def add_uploaded_file(thread_id, file_path, filename, mime_type=None, extension=
         mime_type=mime_type,
         file_size=file_size,
         upload_order=upload_order,
-        metadata=extension  # Store extension in metadata for now
+        file_metadata=extension  # Store extension in file_metadata
     )
 
     # Save to database
