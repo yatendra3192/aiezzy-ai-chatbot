@@ -669,11 +669,16 @@ def chat():
         # If we found HTML in tool outputs but it's not in the response, prepend it
         if tool_html_outputs:
             html_content = ' '.join(tool_html_outputs)
+            print(f"HTML INJECTION DEBUG: Found {len(tool_html_outputs)} HTML elements in tool outputs", file=sys.stderr)
+            print(f"HTML INJECTION DEBUG: First HTML element: {tool_html_outputs[0][:100] if tool_html_outputs else 'none'}", file=sys.stderr)
             # Check if response already contains this HTML
             if not any(html_tag in response_content for html_tag in tool_html_outputs[:3]):  # Check first 3 tags
                 print(f"HTML INJECTION FIX: Adding {len(tool_html_outputs)} HTML elements from tool outputs", file=sys.stderr)
                 # Prepend HTML before the conversational response
                 response_content = html_content + '\n\n' + response_content
+                print(f"HTML INJECTION DEBUG: Response now starts with: {response_content[:200]}", file=sys.stderr)
+            else:
+                print(f"HTML INJECTION DEBUG: HTML already in response, skipping injection", file=sys.stderr)
 
         # CRITICAL FIX: Repair broken download links caused by AI converting HTML to markdown
         # Pattern: "📄 Part 1: Pages 1-3[]()" or "📄 filename.pdf[]()"
