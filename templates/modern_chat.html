@@ -3535,6 +3535,7 @@
 
                     // Upload all files sequentially
                     let uploadError = null;
+                    const uploadResults = [];  // Store upload results to get actual file paths
                     for (let i = 0; i < filesToUpload.length; i++) {
                         const file = filesToUpload[i];
                         const formData = new FormData();
@@ -3558,6 +3559,9 @@
                             uploadError = uploadResult.error;
                             break;
                         }
+
+                        // Save upload result for later use
+                        uploadResults.push(uploadResult);
                     }
 
                     if (uploadError) {
@@ -3572,24 +3576,30 @@
 
                     console.log('UNIFIED_UPLOAD: All files uploaded successfully');
 
-                    // CRITICAL FIX: Update conversation history with actual file paths
+                    // CRITICAL FIX: Update conversation history with actual file paths from server
                     // This ensures images persist across page refreshes
-                    if (conversationHistory.length > 0) {
+                    if (conversationHistory.length > 0 && uploadResults.length > 0) {
                         const lastUserMsg = conversationHistory[conversationHistory.length - 1];
                         if (lastUserMsg.role === 'user') {
-                            // Collect uploaded file paths
+                            // Collect uploaded file paths from server responses (not generated timestamps!)
                             const imagePaths = [];
-                            for (let i = 0; i < filesToUpload.length; i++) {
-                                const file = filesToUpload[i];
-                                const ext = file.name.split('.').pop().toLowerCase();
-                                const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'heif', 'bmp', 'svg'];
-                                if (imageExtensions.includes(ext)) {
-                                    // Build path: /uploads/timestamp_filename
-                                    const uploadedPath = `/uploads/${Date.now()}_${file.name}`;
-                                    imagePaths.push(uploadedPath);
+                            const documentPaths = [];
+
+                            for (let i = 0; i < uploadResults.length; i++) {
+                                const result = uploadResults[i];
+                                if (result.category === 'image') {
+                                    // Use actual file_path from server response
+                                    imagePaths.push(result.file_path);
+                                } else if (result.category === 'document') {
+                                    documentPaths.push({
+                                        name: result.filename,
+                                        path: result.file_path,
+                                        size: result.size
+                                    });
                                 }
                             }
-                            // Update the history entry
+
+                            // Update the history entry with actual server paths
                             if (imagePaths.length === 1) {
                                 lastUserMsg.imagePath = imagePaths[0];
                                 lastUserMsg.imagePaths = null;
@@ -3597,7 +3607,15 @@
                                 lastUserMsg.imagePaths = imagePaths;
                                 lastUserMsg.imagePath = null;
                             }
-                            console.log('UPLOAD_FIX: Updated history with imagePaths:', imagePaths);
+
+                            if (documentPaths.length > 0) {
+                                lastUserMsg.documents = documentPaths;
+                            }
+
+                            console.log('UPLOAD_FIX: Updated history with actual server paths:', {
+                                imagePaths,
+                                documentPaths
+                            });
                         }
                     }
 
