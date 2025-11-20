@@ -1120,9 +1120,8 @@ def upload_file_unified():
         # DEBUG: Log thread_id before adding to context
         print(f"UNIFIED_UPLOAD_BACKEND: Received thread_id = '{thread_id}'", flush=True)
         print(f"UNIFIED_UPLOAD_BACKEND: Filename = '{filename}'", flush=True)
-        print(f"UNIFIED_UPLOAD_BACKEND: File category = '{file_info['category']}'", flush=True)
-        print(f"UNIFIED_UPLOAD_BACKEND: Adding file to thread {thread_id} unified context", flush=True)
         print(f"UNIFIED_UPLOAD_BACKEND: File path = '{file_path}'", flush=True)
+        print(f"UNIFIED_UPLOAD_BACKEND: Adding file to thread {thread_id} unified context", flush=True)
 
         # Add to unified context - NO decisions about what to do with it
         file_info = add_uploaded_file(
@@ -1131,6 +1130,9 @@ def upload_file_unified():
             filename=filename,
             file_size=file_size
         )
+
+        # DEBUG: Log after file_info is created
+        print(f"UNIFIED_UPLOAD_BACKEND: File category = '{file_info['category']}'", flush=True)
 
         print(f"UNIFIED_UPLOAD: Stored '{filename}' in context for thread {thread_id}")
         print(f"UNIFIED_UPLOAD: File added as category: {file_info['category']}", flush=True)
