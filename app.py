@@ -1122,77 +1122,114 @@ def generate_image_from_multiple(prompt: str,
         # Use the most recent images (up to 5) from this thread only
         images_to_use = uploaded_images[-min(5, len(uploaded_images)):]
         
-        # Upload all images to FAL for processing
-        fal_image_urls = []
+        # Use Google Gemini for multi-image combination
+        from google import genai
+        from google.genai import types
+        import base64
+
+        # Load and encode all images
+        image_parts = []
         for image_path in images_to_use:
             try:
-                if image_path.startswith(('http://', 'https://')):
-                    fal_image_urls.append(image_path)
+                if not os.path.exists(image_path):
+                    print(f"Warning: Image not found: {image_path}")
+                    continue
+
+                # Read and encode image
+                with open(image_path, 'rb') as f:
+                    image_data = base64.b64encode(f.read()).decode('utf-8')
+
+                # Detect mime type
+                if image_path.lower().endswith('.png'):
+                    mime_type = 'image/png'
+                elif image_path.lower().endswith(('.jpg', '.jpeg')):
+                    mime_type = 'image/jpeg'
                 else:
-                    # Check if file exists
-                    if not os.path.exists(image_path):
-                        continue  # Skip missing files
-                    # Upload to FAL
-                    fal_url = fal_client.upload_file(image_path)
-                    fal_image_urls.append(fal_url)
-            except Exception as upload_error:
-                print(f"Warning: Failed to upload {image_path}: {upload_error}")
+                    mime_type = 'image/png'  # Default
+
+                image_parts.append(types.Part.from_bytes(
+                    data=base64.b64decode(image_data),
+                    mime_type=mime_type
+                ))
+                print(f"Loaded image for combination: {image_path}")
+            except Exception as load_error:
+                print(f"Warning: Failed to load {image_path}: {load_error}")
                 continue
-        
-        if len(fal_image_urls) < 2:
-            return "Unable to process enough images for multi-image generation. Please ensure uploaded images are accessible."
-        
-        # Call FAL AI nano-banana/edit API
-        result = fal_client.subscribe(
-            "fal-ai/nano-banana/edit",
-            arguments={
-                "prompt": prompt,
-                "image_urls": fal_image_urls,
-                "num_images": num_images
-            },
-            with_logs=True
-        )
-        
-        if result and result.get('images') and len(result['images']) > 0:
-            # Get the first generated image
-            image_info = result['images'][0]
-            image_url = image_info.get('url')
-            
-            if image_url:
-                # Download and save the image locally
-                try:
-                    import requests
-                    response = requests.get(image_url)
-                    if response.status_code == 200:
-                        # Save with multi_ prefix to distinguish from single image generation
-                        timestamp = int(time.time())
-                        filename = f"multi_{timestamp}.png"
-                        local_path = ASSETS_DIR / filename
-                        local_path.write_bytes(response.content)
-                        
-                        # Update thread-specific recent image path for potential further editing
-                        context['recent_path'] = str(local_path)
-                        
-                        # Reset the active flag
-                        _multi_image_active = False
-                        
-                        return f'<img src="/assets/{filename}" class="message-image" alt="Multi-image generated" onclick="openImageModal(\'/assets/{filename}\')"> Multi-image created with nano-banana from {len(fal_image_urls)} images, saved to {local_path}'
-                    else:
-                        # Reset the active flag
-                        _multi_image_active = False
-                        # Fallback: use the direct URL
-                        return f'<img src="{image_url}" class="message-image" alt="Multi-image generated"> Multi-image generated with nano-banana from {len(fal_image_urls)} source images'
-                except Exception as download_error:
-                    # Reset the active flag
-                    _multi_image_active = False
-                    # Fallback: use the direct URL
-                    return f'<img src="{image_url}" class="message-image" alt="Multi-image generated"> Multi-image generated with nano-banana from {len(fal_image_urls)} source images'
-            else:
-                _multi_image_active = False
-                return "Failed to generate multi-image: No image URL in response"
-        else:
+
+        if len(image_parts) < 2:
             _multi_image_active = False
-            return "Failed to generate multi-image: Invalid response from API"
+            return "Unable to load enough images for multi-image generation. Please ensure uploaded images are accessible."
+
+        # Initialize Google Gemini client
+        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        model = "gemini-2.5-flash-preview-image"
+
+        # Build prompt with image context
+        combination_prompt = f"Combine these {len(image_parts)} images into one artistic composition. {prompt}"
+
+        # Create content with multiple images + text prompt
+        contents = [
+            types.Content(
+                role="user",
+                parts=[types.Part.from_text(text=combination_prompt)] + image_parts
+            )
+        ]
+
+        generate_content_config = types.GenerateContentConfig(
+            response_modalities=["IMAGE", "TEXT"]
+        )
+
+        # Generate combined image using Gemini
+        image_data = None
+        mime_type = None
+
+        for chunk in client.models.generate_content_stream(
+            model=model,
+            contents=contents,
+            config=generate_content_config
+        ):
+            if (chunk.candidates and
+                chunk.candidates[0].content and
+                chunk.candidates[0].content.parts):
+
+                part = chunk.candidates[0].content.parts[0]
+                if part.inline_data and part.inline_data.data:
+                    image_data = part.inline_data.data
+                    mime_type = part.inline_data.mime_type
+                    break
+
+        if not image_data:
+            _multi_image_active = False
+            return "Failed to generate combined image with Gemini"
+
+        # Save the generated combined image locally
+        timestamp = int(time.time() * 1000000)  # Microsecond timestamp
+        filename = f"multi_{timestamp}.png"
+        path = ASSETS_DIR / filename
+
+        # Ensure unique filename
+        counter = 1
+        while path.exists():
+            filename = f"multi_{timestamp}_{counter}.png"
+            path = ASSETS_DIR / filename
+            counter += 1
+
+        # Write the image data
+        path.write_bytes(image_data)
+        print(f"MULTI_IMAGE: Saved combined image to {path}")
+
+        # Update thread-specific recent image path for potential further editing
+        context['recent_path'] = str(path)
+
+        # Add to uploaded images list for future multi-image operations
+        context['uploaded_images'].append(str(path))
+        if len(context['uploaded_images']) > 5:
+            context['uploaded_images'] = context['uploaded_images'][-5:]
+
+        # Reset the active flag
+        _multi_image_active = False
+
+        return f'<img src="/assets/{filename}" class="message-image" alt="Multi-image generated with Gemini" onclick="openImageModal(\'/assets/{filename}\')"> Combined {len(image_parts)} images into one artistic composition using Gemini 2.5 Flash Image, saved to {path}'
             
     except Exception as e:
         _multi_image_active = False
