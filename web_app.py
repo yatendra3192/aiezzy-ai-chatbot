@@ -421,6 +421,7 @@ def chat():
         # ALSO: Don't clear if there are recently uploaded files (user just uploaded, about to process)
         unified_context = get_unified_file_context(thread_id)
         has_uploaded_files = len(unified_context.get('files', [])) > 0
+        print(f"CONTEXT_CHECK: thread_id={thread_id}, unified_files={len(unified_context.get('files', []))}, has_uploaded={has_uploaded_files}", flush=True)
 
         if (not history or len(history) == 0) and thread_id not in thread_image_context and not has_uploaded_files:
             clear_thread_context(thread_id)
