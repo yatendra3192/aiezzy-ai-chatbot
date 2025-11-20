@@ -3724,6 +3724,24 @@ def build_coordinator():
     prompt = (
         "You are an intelligent AI coordinator powered by Google Gemini 2.0 Flash. You excel at understanding user intent and executing complex multi-step tasks.\n\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "🎨 ABSOLUTE PRIORITY RULE #0 - IMAGE/VIDEO GENERATION:\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+        "When user asks to CREATE/GENERATE/MAKE images, logos, graphics, or videos:\n"
+        "→ 'create a logo', 'generate an image', 'make a picture', 'design a graphic', etc.\n\n"
+        "YOU MUST IMMEDIATELY CALL THE APPROPRIATE GENERATION TOOL:\n"
+        "- For NEW images/logos/graphics: Call generate_image(prompt='detailed description')\n"
+        "- For NEW videos from text: Call generate_video_from_text(prompt='description')\n"
+        "- For EDITING uploaded images: Call edit_image(file_path='...', prompt='changes')\n"
+        "- For ANIMATING uploaded images: Call generate_video_from_image(image_path='...')\n\n"
+        "DO NOT provide text descriptions of what the image would look like!\n"
+        "DO NOT say 'I cannot create images' - YOU CAN using the tools!\n"
+        "DO NOT return empty responses - ALWAYS call the appropriate tool!\n\n"
+        "Examples:\n"
+        "❌ WRONG: 'Here is a description of what the logo would look like...'\n"
+        "❌ WRONG: 'I cannot generate images directly...'\n"
+        "✅ CORRECT: *immediately calls generate_image(prompt='modern tech startup logo with...')*\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+        "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "🚨 ABSOLUTE PRIORITY RULE #1 - CHECK FILES FIRST:\n"
         "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
         "When user mentions ANYTHING about files, documents, images, PDFs, videos, or operations:\n"
@@ -4300,19 +4318,36 @@ def build_app():
             elapsed_time = time.time() - start_time
             print(f"DEBUG: Coordinator returned after {elapsed_time:.2f}s", flush=True)
 
-            # Log the response details
+            # Log the response details with COMPREHENSIVE TOOL CALL DEBUGGING
             if result and 'messages' in result:
                 last_response = result['messages'][-1] if result['messages'] else None
                 if last_response:
                     response_content = getattr(last_response, 'content', '')
+                    tool_calls = getattr(last_response, 'tool_calls', None)
+                    additional_kwargs = getattr(last_response, 'additional_kwargs', {})
+
                     print(f"DEBUG RESPONSE CONTENT: {response_content[:500]}", flush=True)
                     print(f"DEBUG RESPONSE TYPE: {type(last_response)}", flush=True)
                     print(f"DEBUG RESPONSE LENGTH: {len(str(response_content))}", flush=True)
+                    print(f"DEBUG TOOL_CALLS: {tool_calls}", flush=True)
+                    print(f"DEBUG ADDITIONAL_KWARGS: {additional_kwargs}", flush=True)
 
                     # Check if response is empty or whitespace
                     if not response_content or str(response_content).strip() == '':
-                        print(f"⚠️ WARNING: Coordinator returned EMPTY response!", flush=True)
-                        print(f"DEBUG: Full result = {result}", flush=True)
+                        if tool_calls:
+                            print(f"✅ INFO: Model called tools instead of generating text: {[tc.get('name', 'unknown') for tc in tool_calls]}", flush=True)
+                        else:
+                            print(f"⚠️ WARNING: Coordinator returned EMPTY response with NO tool calls!", flush=True)
+                            print(f"DEBUG: Full result = {result}", flush=True)
+
+                            # ADD FALLBACK MESSAGE for empty responses
+                            from langchain_core.messages import AIMessage
+                            fallback_msg = AIMessage(
+                                content="I apologize, but I encountered an issue generating a response. This might be due to model configuration. Please try rephrasing your request or try again.",
+                                name="coordinator"
+                            )
+                            result['messages'][-1] = fallback_msg
+                            print(f"🔧 FALLBACK: Injected error message for user", flush=True)
                 else:
                     print(f"⚠️ WARNING: No last message in result!", flush=True)
             else:
