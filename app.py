@@ -714,14 +714,14 @@ def edit_image(prompt: str, state: Annotated[dict, InjectedState], *, config: Ru
 
         if edited_image_data:
             # Save the edited image locally
-            import time as time_module
-            timestamp = int(time_module.time() * 1000000)  # Microsecond timestamp
+            # Use global time module (already imported at top of file)
+            timestamp = int(time.time() * 1000000)  # Microsecond timestamp
             edited_path = ASSETS_DIR / f"edited_{timestamp}.png"
 
             # Ensure unique filename in case of collisions
             counter = 1
             while edited_path.exists():
-                timestamp = int(time_module.time() * 1000000)
+                timestamp = int(time.time() * 1000000)
                 edited_path = ASSETS_DIR / f"edited_{timestamp}_{counter}.png"
                 counter += 1
 
