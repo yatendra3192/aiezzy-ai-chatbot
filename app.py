@@ -29,6 +29,9 @@ import pdf_converter
 # Image Converter for image format conversions
 import image_converter
 
+# Database models for persistent file storage (solves multi-worker issue)
+from models_v2 import db, UploadedFile
+
 # Phase 1 & 2 Tools (Oct 2025)
 import text_tools
 import qr_barcode_tools
@@ -425,13 +428,18 @@ def get_recent_image_paths(thread_id="default"):
     return context['uploaded_images']
 
 def clear_thread_context(thread_id):
-    """Clear ALL file contexts for a specific thread (old + unified systems)"""
+    """Clear ALL file contexts for a specific thread (old + unified systems + DATABASE)"""
     # Clear old image context
     if thread_id in _thread_image_context:
         del _thread_image_context[thread_id]
-    # Clear unified file context
-    if thread_id in _thread_unified_files:
-        del _thread_unified_files[thread_id]
+    # Clear unified file context from database
+    try:
+        UploadedFile.query.filter_by(thread_id=thread_id).delete()
+        db.session.commit()
+        print(f"INFO: Cleared DATABASE files for thread {thread_id}", flush=True)
+    except Exception as e:
+        db.session.rollback()
+        print(f"ERROR: Failed to clear DATABASE files for thread {thread_id}: {e}", flush=True)
     # Clear document context
     if thread_id in _thread_document_context:
         del _thread_document_context[thread_id]
@@ -440,26 +448,40 @@ def clear_thread_context(thread_id):
 # === UNIFIED FILE CONTEXT (Agent-Driven Architecture) ===
 
 def get_unified_file_context(thread_id):
-    """Get or create unified file context for thread"""
-    if thread_id not in _thread_unified_files:
-        _thread_unified_files[thread_id] = {
-            'files': []  # List of all uploaded files with metadata
-        }
-    return _thread_unified_files[thread_id]
+    """Get unified file context for thread from DATABASE (solves multi-worker issue)"""
+    # Query database for all files in this thread
+    db_files = UploadedFile.query.filter_by(thread_id=thread_id).order_by(UploadedFile.created_at).all()
+
+    # Convert to old dict format for backward compatibility
+    files_list = []
+    for db_file in db_files:
+        files_list.append({
+            'path': db_file.file_path,
+            'filename': db_file.filename,
+            'mime_type': db_file.mime_type,
+            'extension': db_file.metadata,  # We stored extension in metadata
+            'category': db_file.category,
+            'size': db_file.file_size,
+            'timestamp': db_file.created_at.timestamp()
+        })
+
+    print(f"DEBUG_CONTEXT: Queried DATABASE for thread_id={thread_id}, found {len(files_list)} files", flush=True)
+
+    return {'files': files_list}
 
 def add_uploaded_file(thread_id, file_path, filename, mime_type=None, extension=None, file_size=0):
-    """Add a file to unified context (images, documents, videos, anything)"""
+    """Add a file to unified context (images, documents, videos, anything) - DATABASE VERSION"""
     # time already imported globally at top of file
     import mimetypes
-
-    context = get_unified_file_context(thread_id)
+    from datetime import datetime
 
     # DEBUG: Log before adding file
+    existing_files = UploadedFile.query.filter_by(thread_id=thread_id).order_by(UploadedFile.created_at).all()
     print(f"DEBUG_ADD_FILE: BEFORE adding '{filename}' to thread {thread_id}", flush=True)
-    print(f"DEBUG_ADD_FILE: Current files count = {len(context['files'])}", flush=True)
-    if context['files']:
-        for idx, f in enumerate(context['files']):
-            print(f"DEBUG_ADD_FILE: Existing file {idx+1}: {f['filename']}", flush=True)
+    print(f"DEBUG_ADD_FILE: Current files count in DATABASE = {len(existing_files)}", flush=True)
+    if existing_files:
+        for idx, f in enumerate(existing_files):
+            print(f"DEBUG_ADD_FILE: Existing file {idx+1}: {f.filename}", flush=True)
 
     # Detect mime type and extension if not provided
     if not mime_type:
@@ -485,6 +507,48 @@ def add_uploaded_file(thread_id, file_path, filename, mime_type=None, extension=
     elif extension in ['doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv']:
         category = 'document'
 
+    # Calculate upload order
+    upload_order = len(existing_files)
+
+    # Create database record
+    uploaded_file = UploadedFile(
+        thread_id=thread_id,
+        file_path=file_path,
+        filename=filename,
+        category=category,
+        mime_type=mime_type,
+        file_size=file_size,
+        upload_order=upload_order,
+        metadata=extension  # Store extension in metadata for now
+    )
+
+    # Save to database
+    try:
+        db.session.add(uploaded_file)
+        db.session.commit()
+        print(f"DEBUG_ADD_FILE: ✅ Successfully saved '{filename}' to DATABASE for thread {thread_id}", flush=True)
+    except Exception as e:
+        db.session.rollback()
+        print(f"ERROR_ADD_FILE: Failed to save '{filename}' to database: {e}", flush=True)
+        raise
+
+    # Cleanup old files (keep last 10 per thread)
+    all_files = UploadedFile.query.filter_by(thread_id=thread_id).order_by(UploadedFile.created_at).all()
+    if len(all_files) > 10:
+        files_to_delete = all_files[:-10]
+        for f in files_to_delete:
+            db.session.delete(f)
+        db.session.commit()
+        print(f"DEBUG_ADD_FILE: Cleaned up {len(files_to_delete)} old files", flush=True)
+
+    # DEBUG: Log after adding file
+    updated_files = UploadedFile.query.filter_by(thread_id=thread_id).order_by(UploadedFile.created_at).all()
+    print(f"DEBUG_ADD_FILE: AFTER saving '{filename}' to DATABASE", flush=True)
+    print(f"DEBUG_ADD_FILE: New files count in DATABASE = {len(updated_files)}", flush=True)
+    for idx, f in enumerate(updated_files):
+        print(f"DEBUG_ADD_FILE: File {idx+1}: {f.filename}", flush=True)
+
+    # Build file_info dict for return value (for backward compatibility)
     file_info = {
         'path': file_path,
         'filename': filename,
@@ -492,19 +556,8 @@ def add_uploaded_file(thread_id, file_path, filename, mime_type=None, extension=
         'extension': extension,
         'category': category,
         'size': file_size,
-        'timestamp': time.time()
+        'timestamp': uploaded_file.created_at.timestamp()
     }
-
-    # Add to files list (keep last 10 files)
-    context['files'].append(file_info)
-    if len(context['files']) > 10:
-        context['files'] = context['files'][-10:]
-
-    # DEBUG: Log after adding file
-    print(f"DEBUG_ADD_FILE: AFTER appending '{filename}' to thread {thread_id}", flush=True)
-    print(f"DEBUG_ADD_FILE: New files count = {len(context['files'])}", flush=True)
-    for idx, f in enumerate(context['files']):
-        print(f"DEBUG_ADD_FILE: File {idx+1}: {f['filename']}", flush=True)
 
     # BACKWARD COMPATIBILITY: Also populate OLD context system so existing tools work
     if category == 'image':
@@ -517,8 +570,8 @@ def add_uploaded_file(thread_id, file_path, filename, mime_type=None, extension=
         set_document_context(thread_id, file_path, filename, is_original=True)
         print(f"BACKWARD_COMPAT: Also added document to old context system for thread {thread_id}", flush=True)
 
-    print(f"UNIFIED_CONTEXT: Added {category} file '{filename}' to thread {thread_id}")
-    print(f"UNIFIED_CONTEXT: Thread now has {len(context['files'])} files")
+    print(f"UNIFIED_CONTEXT: Added {category} file '{filename}' to thread {thread_id}", flush=True)
+    print(f"UNIFIED_CONTEXT: Thread now has {len(updated_files)} files in DATABASE", flush=True)
 
     return file_info
 

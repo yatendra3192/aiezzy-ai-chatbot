@@ -198,6 +198,46 @@ class DailyUsage(db.Model):
     def __repr__(self):
         return f'<DailyUsage user {self.user_id} on {self.date}>'
 
+class UploadedFile(db.Model):
+    """Track uploaded files across workers using database (solves multi-worker issue)"""
+    __tablename__ = 'uploaded_files'
+
+    id = db.Column(db.Integer, primary_key=True)
+    thread_id = db.Column(db.String(100), nullable=False, index=True)
+    file_path = db.Column(db.String(500), nullable=False)
+    filename = db.Column(db.String(255), nullable=False)
+    category = db.Column(db.String(50), nullable=False)  # image, document, video
+    mime_type = db.Column(db.String(100))
+    file_size = db.Column(db.Integer)
+
+    # Metadata
+    upload_order = db.Column(db.Integer, default=0)
+    metadata = db.Column(db.Text)  # JSON for additional data
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    expires_at = db.Column(db.DateTime)  # Optional expiry for cleanup
+
+    __table_args__ = (
+        db.Index('idx_thread_created', 'thread_id', 'created_at'),
+    )
+
+    def __repr__(self):
+        return f'<UploadedFile {self.filename} in thread {self.thread_id}>'
+
+    def to_dict(self):
+        """Convert to dictionary for API responses"""
+        return {
+            'id': self.id,
+            'thread_id': self.thread_id,
+            'file_path': self.file_path,
+            'filename': self.filename,
+            'category': self.category,
+            'mime_type': self.mime_type,
+            'file_size': self.file_size,
+            'upload_order': self.upload_order,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
 # Utility functions for password hashing
 def hash_password(password: str) -> str:
     """Hash a password using SHA256 with salt"""
