@@ -487,19 +487,49 @@ def chat():
         for msg in history[-history_limit:]:
             # Add image context information if present, but exclude image content to prevent bleeding
             content = msg.get('content', '')
-            
+
             # CRITICAL FIX: Filter out any HTML img tags from history to prevent image bleeding
             import re
             content = re.sub(r'<img[^>]*>', '', content)
-            
+
             if msg.get('hasImage', False):
                 content = f"[Previous message included an image] {content}"
-            
+
             messages.append({
                 "role": msg.get('role', 'user'),
                 "content": content
             })
-        
+
+        # CRITICAL FIX: Restore image context from conversation history after page refresh
+        # When the page refreshes, uploaded files are lost from memory but stored in localStorage
+        # We need to extract image paths from history and restore them to unified context
+        if history:
+            for msg in history:
+                # Check for single image
+                if msg.get('imagePath') and msg.get('imagePath') != 'pending':
+                    image_path = msg['imagePath']
+                    # Convert to absolute path if needed
+                    if image_path.startswith('/uploads/'):
+                        abs_path = os.path.join(os.getcwd(), image_path[1:])  # Remove leading /
+                        if os.path.exists(abs_path):
+                            # Restore to unified context
+                            filename = os.path.basename(abs_path)
+                            add_uploaded_file(thread_id, abs_path, filename, 'image')
+                            print(f"RESTORE_CONTEXT: Restored image from history: {abs_path}")
+
+                # Check for multiple images
+                if msg.get('imagePaths') and isinstance(msg['imagePaths'], list):
+                    for image_path in msg['imagePaths']:
+                        if image_path and image_path != 'pending':
+                            # Convert to absolute path if needed
+                            if image_path.startswith('/uploads/'):
+                                abs_path = os.path.join(os.getcwd(), image_path[1:])  # Remove leading /
+                                if os.path.exists(abs_path):
+                                    # Restore to unified context
+                                    filename = os.path.basename(abs_path)
+                                    add_uploaded_file(thread_id, abs_path, filename, 'image')
+                                    print(f"RESTORE_CONTEXT: Restored image from history: {abs_path}")
+
         # Check for document upload (single or multiple)
         documents = data.get('documents')  # Array for multiple documents
         document_count = data.get('document_count', 0)
