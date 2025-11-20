@@ -3616,6 +3616,11 @@
                                 imagePaths,
                                 documentPaths
                             });
+
+                            // CRITICAL: Save conversation immediately after updating paths
+                            // This ensures image paths persist across page refreshes
+                            saveCurrentConversation();
+                            console.log('UPLOAD_FIX: Saved conversation with updated image paths');
                         }
                     }
 
