@@ -1,1 +1,1 @@
-web: gunicorn web_app:web_app --bind 0.0.0.0:$PORT --workers 1 --timeout 1800 --preload
+web: WEB_CONCURRENCY=1 gunicorn web_app:web_app --bind 0.0.0.0:$PORT --workers 1 --worker-class sync --timeout 1800
