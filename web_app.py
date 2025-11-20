@@ -500,6 +500,14 @@ def chat():
                 "content": content
             })
 
+        # DEBUG: Check what the unified context actually contains
+        print(f"DEBUG_CONTEXT: About to check unified context for thread_id={thread_id}", flush=True)
+        debug_context = get_unified_file_context(thread_id)
+        print(f"DEBUG_CONTEXT: Unified context has {len(debug_context.get('files', []))} files", flush=True)
+        if debug_context.get('files'):
+            for idx, f in enumerate(debug_context['files']):
+                print(f"DEBUG_CONTEXT: File {idx+1}: {f.get('filename')} - {f.get('category')} - {f.get('path')}", flush=True)
+
         # CRITICAL FIX: Restore image context from conversation history after page refresh
         # When the page refreshes, uploaded files are lost from memory but stored in localStorage
         # We need to extract image paths from history and restore them to unified context
@@ -1112,6 +1120,8 @@ def upload_file_unified():
         # DEBUG: Log thread_id before adding to context
         print(f"UNIFIED_UPLOAD_BACKEND: Received thread_id = '{thread_id}'", flush=True)
         print(f"UNIFIED_UPLOAD_BACKEND: Filename = '{filename}'", flush=True)
+        print(f"UNIFIED_UPLOAD_BACKEND: File category = '{file_info['category']}'", flush=True)
+        print(f"UNIFIED_UPLOAD_BACKEND: Adding file to thread {thread_id} unified context", flush=True)
         print(f"UNIFIED_UPLOAD_BACKEND: File path = '{file_path}'", flush=True)
 
         # Add to unified context - NO decisions about what to do with it
