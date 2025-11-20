@@ -1127,11 +1127,14 @@ def upload_file_unified():
         print(f"UNIFIED_UPLOAD: AI agent will decide what to do based on user message: '{message}'")
 
         # Return success - AI agent will access file from context
+        # Build web-accessible path for frontend display (not file system path!)
+        web_path = f'/uploads/{unique_filename}'
+
         return jsonify({
             'success': True,
             'filename': filename,
             'unique_filename': unique_filename,  # Include server filename for persistence
-            'file_path': file_path,  # Full server path
+            'file_path': web_path,  # Web-accessible path (e.g., /uploads/123_image.jpg)
             'category': file_info['category'],  # 'image', 'document', etc.
             'size': file_size,
             'message': f'File uploaded: {filename}'
