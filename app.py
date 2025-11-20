@@ -239,7 +239,7 @@ def generate_image(prompt: str,
     """
     from google import genai
     from google.genai import types
-    import time
+    # time already imported globally at top of file
 
     # Limit to max 4 images to avoid excessive API calls
     num_images = min(num_images, 4)
@@ -386,7 +386,7 @@ def get_thread_document_context(thread_id):
 
 def set_document_context(thread_id, file_path, filename, is_original=True):
     """Set document context for thread"""
-    import time
+    # time already imported globally at top of file
     context = get_thread_document_context(thread_id)
     doc_info = {
         'path': file_path,
@@ -400,7 +400,7 @@ def set_document_context(thread_id, file_path, filename, is_original=True):
 
 def update_document_latest(thread_id, file_path, filename):
     """Update only the latest document (after conversion/manipulation)"""
-    import time
+    # time already imported globally at top of file
     context = get_thread_document_context(thread_id)
     context['latest'] = {
         'path': file_path,
@@ -448,7 +448,7 @@ def get_unified_file_context(thread_id):
 
 def add_uploaded_file(thread_id, file_path, filename, mime_type=None, extension=None, file_size=0):
     """Add a file to unified context (images, documents, videos, anything)"""
-    import time
+    # time already imported globally at top of file
     import mimetypes
 
     context = get_unified_file_context(thread_id)
@@ -1055,7 +1055,7 @@ def generate_image_from_multiple(prompt: str,
         print(f"CRITICAL DEBUG: prompt = {prompt}")
     
         # ENHANCED CHECK: Filter out very old or potentially contaminated images
-        import time
+    # time already imported globally at top of file
         current_time = int(time.time())
         
         # Filter images to only recent ones (within last 10 minutes = 600 seconds)
@@ -4310,7 +4310,7 @@ def build_app():
             print(f"DEBUG: About to invoke coordinator with state having {len(state.get('messages', []))} messages", flush=True)
 
             # Add timeout and error handling
-            import time
+            # Use global time module (already imported at top of file)
             start_time = time.time()
 
             result = coordinator.invoke(state, config=config)
