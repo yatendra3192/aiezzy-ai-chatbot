@@ -3619,7 +3619,7 @@ def build_coordinator():
         from langchain_google_genai import HarmBlockThreshold, HarmCategory
 
         model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model="gemini-2.0-flash-exp",  # CRITICAL: Use 2.0 instead of 2.5 due to tool calling bug
             google_api_key=api_key,
             temperature=0.7,
             transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
