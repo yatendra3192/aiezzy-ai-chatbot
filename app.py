@@ -453,6 +453,13 @@ def add_uploaded_file(thread_id, file_path, filename, mime_type=None, extension=
 
     context = get_unified_file_context(thread_id)
 
+    # DEBUG: Log before adding file
+    print(f"DEBUG_ADD_FILE: BEFORE adding '{filename}' to thread {thread_id}", flush=True)
+    print(f"DEBUG_ADD_FILE: Current files count = {len(context['files'])}", flush=True)
+    if context['files']:
+        for idx, f in enumerate(context['files']):
+            print(f"DEBUG_ADD_FILE: Existing file {idx+1}: {f['filename']}", flush=True)
+
     # Detect mime type and extension if not provided
     if not mime_type:
         mime_type, _ = mimetypes.guess_type(filename)
@@ -491,6 +498,12 @@ def add_uploaded_file(thread_id, file_path, filename, mime_type=None, extension=
     context['files'].append(file_info)
     if len(context['files']) > 10:
         context['files'] = context['files'][-10:]
+
+    # DEBUG: Log after adding file
+    print(f"DEBUG_ADD_FILE: AFTER appending '{filename}' to thread {thread_id}", flush=True)
+    print(f"DEBUG_ADD_FILE: New files count = {len(context['files'])}", flush=True)
+    for idx, f in enumerate(context['files']):
+        print(f"DEBUG_ADD_FILE: File {idx+1}: {f['filename']}", flush=True)
 
     # BACKWARD COMPATIBILITY: Also populate OLD context system so existing tools work
     if category == 'image':
