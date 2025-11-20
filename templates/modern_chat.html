@@ -3431,7 +3431,7 @@
                     role: 'user',
                     content: userContent,
                     hasImage: hasUploadedImage || hasMultiImages,
-                    hasDocument: hasUploadedDoc,
+                    hasDocument: hasUploadedDoc || !!documentMetadata,  // Fix: Also check unified files
                     documentData: documentMetadata, // Store metadata, not File objects
                     imageData: messageImageData,
                     imagePath: hasUploadedImage ? 'pending' : null, // Will be updated when response arrives
