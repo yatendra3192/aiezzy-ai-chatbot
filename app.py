@@ -1202,13 +1202,13 @@ def evaluate_result_quality(user_request: str, operation_type: str, result_conte
     try:
         from langchain_google_genai import ChatGoogleGenerativeAI
 
-        # Use Gemini 2.5 Flash for quick evaluation (latest stable, fast and cost-effective)
+        # Use Gemini 2.5 Pro for evaluation (better reasoning and higher rate limits)
         evaluator_model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-pro",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             temperature=0.3,
             transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
-            max_output_tokens=4096  # Fix empty response issue (min 2048 required)
+            max_output_tokens=8192  # Pro model supports higher token limits
         )
         
         evaluation_prompt = f"""
@@ -1620,12 +1620,12 @@ def analyze_uploaded_image(state: Annotated[dict, InjectedState], *, config: Run
         from langchain_google_genai import ChatGoogleGenerativeAI
         from langchain_core.messages import HumanMessage
 
-        # Initialize Gemini model with vision capabilities (latest stable)
+        # Initialize Gemini model with vision capabilities (Pro model)
         model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-pro",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
-            max_output_tokens=4096  # Fix empty response issue (min 2048 required)
+            max_output_tokens=8192  # Pro model supports higher token limits
         )
 
         # Read and encode image
@@ -1714,12 +1714,12 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
             from langchain_google_genai import ChatGoogleGenerativeAI
             from langchain_core.messages import HumanMessage
 
-            # Initialize Gemini model with vision capabilities (latest stable)
+            # Initialize Gemini model with vision capabilities (Pro model)
             gemini_model = ChatGoogleGenerativeAI(
-                model="gemini-2.5-flash",
+                model="gemini-2.5-pro",
                 google_api_key=os.getenv("GOOGLE_API_KEY"),
                 transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
-                max_output_tokens=4096  # Fix empty response issue (min 2048 required)
+                max_output_tokens=8192  # Pro model supports higher token limits
             )
 
             all_extracted_text = []
@@ -3619,7 +3619,7 @@ def build_coordinator():
         from langchain_google_genai import HarmBlockThreshold, HarmCategory
 
         model = ChatGoogleGenerativeAI(
-            model="gemini-2.0-flash-exp",  # CRITICAL: Use 2.0 instead of 2.5 due to tool calling bug
+            model="gemini-2.5-pro",  # Using Pro model for better performance and higher rate limits
             google_api_key=api_key,
             temperature=0.7,
             transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
