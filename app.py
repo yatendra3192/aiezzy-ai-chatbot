@@ -681,7 +681,7 @@ def edit_image(prompt: str, state: Annotated[dict, InjectedState], *, config: Ru
                 role="user",
                 parts=[
                     types.Part.from_text(text=clean_prompt),
-                    types.Part.from_inline_data(
+                    types.Part(
                         inline_data=types.Blob(
                             mime_type=mime_type,
                             data=image_data_bytes  # Pass raw bytes, not base64 string
