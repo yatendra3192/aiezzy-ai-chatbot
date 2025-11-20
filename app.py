@@ -16,9 +16,10 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.tools import tool, InjectedToolCallId
 from langchain_core.runnables import RunnableConfig
 
-# Note: Migrated from OpenAI to Google Gemini API for all LLM operations
+# Note: Migrated from OpenAI to Google Gemini API for all LLM and image operations
+# All image generation, editing, and combination now use Gemini 2.5 Flash Image
 
-# FAL AI client for image editing
+# FAL AI client (only used for video generation now)
 import fal_client
 fal_client.api_key = os.getenv("FAL_KEY")
 
