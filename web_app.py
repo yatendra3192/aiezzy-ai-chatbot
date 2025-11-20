@@ -1100,6 +1100,9 @@ def upload_file_unified():
         return jsonify({
             'success': True,
             'filename': filename,
+            'unique_filename': unique_filename,  # Include server filename for persistence
+            'file_path': file_path,  # Full server path
+            'category': file_info['category'],  # 'image', 'document', etc.
             'size': file_size,
             'message': f'File uploaded: {filename}'
         })

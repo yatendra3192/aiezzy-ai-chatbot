@@ -3572,6 +3572,35 @@
 
                     console.log('UNIFIED_UPLOAD: All files uploaded successfully');
 
+                    // CRITICAL FIX: Update conversation history with actual file paths
+                    // This ensures images persist across page refreshes
+                    if (conversationHistory.length > 0) {
+                        const lastUserMsg = conversationHistory[conversationHistory.length - 1];
+                        if (lastUserMsg.role === 'user') {
+                            // Collect uploaded file paths
+                            const imagePaths = [];
+                            for (let i = 0; i < filesToUpload.length; i++) {
+                                const file = filesToUpload[i];
+                                const ext = file.name.split('.').pop().toLowerCase();
+                                const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'heic', 'heif', 'bmp', 'svg'];
+                                if (imageExtensions.includes(ext)) {
+                                    // Build path: /uploads/timestamp_filename
+                                    const uploadedPath = `/uploads/${Date.now()}_${file.name}`;
+                                    imagePaths.push(uploadedPath);
+                                }
+                            }
+                            // Update the history entry
+                            if (imagePaths.length === 1) {
+                                lastUserMsg.imagePath = imagePaths[0];
+                                lastUserMsg.imagePaths = null;
+                            } else if (imagePaths.length > 1) {
+                                lastUserMsg.imagePaths = imagePaths;
+                                lastUserMsg.imagePath = null;
+                            }
+                            console.log('UPLOAD_FIX: Updated history with imagePaths:', imagePaths);
+                        }
+                    }
+
                     // Update loading message to show AI is processing (no visual gap)
                     updateLoadingMessage('Processing your request');
 
