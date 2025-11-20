@@ -554,11 +554,37 @@ def chat():
 
             is_conversion = any(keyword in message.lower() for keyword in conversion_keywords) or is_single_format_request
             is_manipulation = any(keyword in message.lower() for keyword in manipulation_keywords)
+
+            # Check BOTH old web_app.py context AND new unified context from app.py
             has_document_context = thread_id in thread_document_context
+            doc_context = None
+
+            if has_document_context:
+                # Use old context if available
+                doc_context = thread_document_context[thread_id]
+            else:
+                # Try unified context from app.py
+                unified_context = get_unified_file_context(thread_id)
+                document_files = [f for f in unified_context.get('files', []) if f['category'] == 'document']
+                if document_files:
+                    # Convert unified format to old format for backward compatibility
+                    latest_doc = document_files[-1]  # Most recent document
+                    doc_context = {
+                        'original': {
+                            'path': latest_doc['path'],
+                            'filename': latest_doc['filename'],
+                            'timestamp': latest_doc['timestamp']
+                        },
+                        'latest': {
+                            'path': latest_doc['path'],
+                            'filename': latest_doc['filename'],
+                            'timestamp': latest_doc['timestamp']
+                        }
+                    }
+                    has_document_context = True
+                    print(f"UNIFIED_CONTEXT_FIX: Retrieved document from unified context: {latest_doc['filename']}", flush=True)
 
             if (is_conversion or is_manipulation) and has_document_context and not documents and not document_path:
-                # User wants to perform operation on previously processed document
-                doc_context = thread_document_context[thread_id]
 
                 # SMART CONTEXT SELECTION:
                 # - Conversions (CSV->PDF, CSV->XLSX) use ORIGINAL uploaded file
