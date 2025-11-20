@@ -2966,7 +2966,7 @@
             if (sendBtn) sendBtn.disabled = false;
         }
 
-        function addMessage(content, isUser = false, timestamp = null, imageData = null, multiImageData = null) {
+        function addMessage(content, isUser = false, timestamp = null, imageData = null, multiImageData = null, documentData = null) {
             const messagesContainer = document.getElementById('chat-messages');
             const welcomeMsg = messagesContainer.querySelector('.welcome-message');
             if (welcomeMsg) {
@@ -2975,9 +2975,9 @@
 
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message';
-            
+
             const time = timestamp || new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-            
+
             let imageHtml = '';
             if (multiImageData && multiImageData.length > 0) {
                 // Multiple images display
@@ -2990,21 +2990,44 @@
                 // Single image display
                 imageHtml = `<img src="${imageData}" class="message-image" alt="Uploaded image" onclick="openImageModal('${imageData}')">`;
             }
-            
+
+            // Add document display if document was uploaded
+            let documentHtml = '';
+            if (documentData) {
+                const docs = Array.isArray(documentData) ? documentData : [documentData];
+                documentHtml = '<div class="message-documents" style="margin-bottom: 10px;">';
+                docs.forEach((doc, i) => {
+                    const ext = doc.name.split('.').pop().toLowerCase();
+                    const fileIcon = getFileIcon(ext);
+                    const fileSize = (doc.size / 1024).toFixed(1);
+                    documentHtml += `
+                        <div class="document-item" style="display: inline-block; margin: 5px; padding: 10px; border: 1px solid #e5e7eb; border-radius: 8px; background: #f9fafb; min-width: 120px;">
+                            <div class="file-icon" style="font-size: 32px; text-align: center;">${fileIcon}</div>
+                            <div class="file-info" style="font-size: 12px; text-align: center; margin-top: 5px;">
+                                <div class="file-name" style="font-weight: 600; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${doc.name}">${doc.name}</div>
+                                <div class="file-size" style="color: #6b7280;">${fileSize} KB</div>
+                            </div>
+                        </div>
+                    `;
+                });
+                documentHtml += '</div>';
+            }
+
             // Format text for AI messages, keep user messages simple
             const formattedContent = isUser ? content : formatText(content);
-            
+
             messageDiv.innerHTML = `
                 <div class="message-avatar ${isUser ? 'user-avatar' : 'ai-avatar'}">
                     ${isUser ? '👤' : '🤖'}
                 </div>
                 <div class="message-content">
                     ${imageHtml}
+                    ${documentHtml}
                     <div class="message-text">${formattedContent}</div>
                     <div class="message-time">${time}</div>
                 </div>
             `;
-            
+
             messagesContainer.appendChild(messageDiv);
             if (isAtBottom) {
                 scrollToBottom();
@@ -3368,9 +3391,8 @@
                 } else if (hasMultiImages) {
                     multiImageDataForMessage = uploadedImagesData; // LEGACY: Use legacy images
                 }
-                addMessage(userContent, true, null, messageImageData, multiImageDataForMessage);
 
-                // Get document metadata for history (not the File objects themselves)
+                // Get document metadata for display and history
                 let documentMetadata = null;
                 if (hasUploadedDoc && documentForAPI) {
                     if (Array.isArray(documentForAPI)) {
@@ -3386,7 +3408,24 @@
                             type: documentForAPI.type
                         };
                     }
+                } else if (hasUnifiedFiles) {
+                    // Also extract document info from unified files
+                    const docExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'csv'];
+                    const documentFiles = filesForAPI.filter(file => {
+                        const ext = file.name.split('.').pop().toLowerCase();
+                        return docExtensions.includes(ext);
+                    });
+                    if (documentFiles.length > 0) {
+                        documentMetadata = documentFiles.map(file => ({
+                            name: file.name,
+                            size: file.size,
+                            type: file.type
+                        }));
+                    }
                 }
+
+                // Add message with document display
+                addMessage(userContent, true, null, messageImageData, multiImageDataForMessage, documentMetadata);
 
                 const historyEntry = {
                     role: 'user',
@@ -4381,7 +4420,7 @@
                         }
                     }
                     
-                    addMessage(content, msg.isUser, msg.timestamp, imageData, msg.multiImageData);
+                    addMessage(content, msg.isUser, msg.timestamp, imageData, msg.multiImageData, msg.documentData);
                 });
 
                 updateActiveChat();
