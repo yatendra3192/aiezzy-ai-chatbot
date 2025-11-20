@@ -1184,24 +1184,37 @@ def generate_image_from_multiple(prompt: str,
         image_data = None
         mime_type = None
 
-        for chunk in client.models.generate_content_stream(
-            model=model,
-            contents=contents,
-            config=generate_content_config
-        ):
-            if (chunk.candidates and
-                chunk.candidates[0].content and
-                chunk.candidates[0].content.parts):
+        try:
+            print(f"MULTI_IMAGE: Starting Gemini API call with {len(image_parts)} images")
+            for chunk in client.models.generate_content_stream(
+                model=model,
+                contents=contents,
+                config=generate_content_config
+            ):
+                print(f"MULTI_IMAGE: Received chunk from Gemini")
+                if (chunk.candidates and
+                    chunk.candidates[0].content and
+                    chunk.candidates[0].content.parts):
 
-                part = chunk.candidates[0].content.parts[0]
-                if part.inline_data and part.inline_data.data:
-                    image_data = part.inline_data.data
-                    mime_type = part.inline_data.mime_type
-                    break
+                    part = chunk.candidates[0].content.parts[0]
+                    if part.inline_data and part.inline_data.data:
+                        image_data = part.inline_data.data
+                        mime_type = part.inline_data.mime_type
+                        print(f"MULTI_IMAGE: Successfully received image data from Gemini")
+                        break
+                    else:
+                        print(f"MULTI_IMAGE: Chunk has no inline_data")
+                else:
+                    print(f"MULTI_IMAGE: Chunk has no candidates/content/parts")
+        except Exception as api_error:
+            print(f"MULTI_IMAGE: Gemini API error: {str(api_error)}")
+            _multi_image_active = False
+            return f"Error calling Gemini API for multi-image: {str(api_error)}"
 
         if not image_data:
             _multi_image_active = False
-            return "Failed to generate combined image with Gemini"
+            print("MULTI_IMAGE: No image data received from Gemini")
+            return "Failed to generate combined image with Gemini - no image data returned"
 
         # Save the generated combined image locally
         timestamp = int(time.time() * 1000000)  # Microsecond timestamp
