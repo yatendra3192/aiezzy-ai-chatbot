@@ -1204,7 +1204,7 @@ def evaluate_result_quality(user_request: str, operation_type: str, result_conte
 
         # Use Gemini 2.5 Pro for evaluation (better reasoning and higher rate limits)
         evaluator_model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash-lite",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             temperature=0.3,
             transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
@@ -1622,7 +1622,7 @@ def analyze_uploaded_image(state: Annotated[dict, InjectedState], *, config: Run
 
         # Initialize Gemini model with vision capabilities (Pro model)
         model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-pro",
+            model="gemini-2.5-flash-lite",
             google_api_key=os.getenv("GOOGLE_API_KEY"),
             transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
             max_output_tokens=8192  # Pro model supports higher token limits
@@ -1716,7 +1716,7 @@ def convert_pdf_to_images(file_path: str, output_format: str = "png", *, config:
 
             # Initialize Gemini model with vision capabilities (Pro model)
             gemini_model = ChatGoogleGenerativeAI(
-                model="gemini-2.5-pro",
+                model="gemini-2.5-flash-lite",
                 google_api_key=os.getenv("GOOGLE_API_KEY"),
                 transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
                 max_output_tokens=8192  # Pro model supports higher token limits
@@ -3619,7 +3619,7 @@ def build_coordinator():
         from langchain_google_genai import HarmBlockThreshold, HarmCategory
 
         model = ChatGoogleGenerativeAI(
-            model="gemini-2.5-pro",  # Using Pro model for better performance and higher rate limits
+            model="gemini-2.5-flash-lite",  # Using Flash Lite for fast, cost-effective operations
             google_api_key=api_key,
             temperature=0.7,
             transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
