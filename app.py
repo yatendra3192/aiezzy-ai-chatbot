@@ -3625,7 +3625,7 @@ def build_coordinator():
             transport="rest",  # Use REST API instead of gRPC to avoid ADC requirement
             max_retries=2,  # Add retries for network issues
             request_timeout=60,  # Set explicit timeout
-            max_tokens=8192,  # Fix empty response issue (alias for max_output_tokens)
+            max_output_tokens=8192,  # CRITICAL FIX: Use correct parameter name for Gemini
             safety_settings={
                 HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
                 HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
