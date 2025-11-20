@@ -1163,7 +1163,7 @@ def generate_image_from_multiple(prompt: str,
 
         # Initialize Google Gemini client
         client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-        model = "gemini-2.5-flash-preview-image"
+        model = "gemini-2.5-flash-image"
 
         # Build prompt with image context
         combination_prompt = f"Combine these {len(image_parts)} images into one artistic composition. {prompt}"
