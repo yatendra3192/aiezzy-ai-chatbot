@@ -227,8 +227,8 @@ class Subscription(db.Model):
     currency = db.Column(db.String(3), default='USD')
     interval = db.Column(db.String(20), default='month')  # month, year
 
-    # Metadata
-    metadata = db.Column(db.Text)  # JSON for additional DodoPayments data
+    # Additional data
+    extra_data = db.Column(db.Text)  # JSON for additional DodoPayments data
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
