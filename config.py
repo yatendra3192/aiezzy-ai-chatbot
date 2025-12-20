@@ -58,6 +58,23 @@ class Config:
     # Base URL for OAuth callbacks
     BASE_URL = os.environ.get('BASE_URL', 'http://localhost:5000')
 
+    # DodoPayments settings
+    DODO_PAYMENTS_API_KEY = os.environ.get('DODO_PAYMENTS_API_KEY')
+    DODO_PAYMENTS_WEBHOOK_SECRET = os.environ.get('DODO_PAYMENTS_WEBHOOK_SECRET')
+    DODO_PAYMENTS_ENV = os.environ.get('DODO_PAYMENTS_ENV', 'test_mode')  # test_mode or live_mode
+
+    # DodoPayments product IDs (set these in Railway environment variables)
+    DODO_PRODUCT_PRO_MONTHLY = os.environ.get('DODO_PRODUCT_PRO_MONTHLY')
+    DODO_PRODUCT_PRO_YEARLY = os.environ.get('DODO_PRODUCT_PRO_YEARLY')
+    DODO_PRODUCT_ENTERPRISE_MONTHLY = os.environ.get('DODO_PRODUCT_ENTERPRISE_MONTHLY')
+    DODO_PRODUCT_ENTERPRISE_YEARLY = os.environ.get('DODO_PRODUCT_ENTERPRISE_YEARLY')
+
+    # Pricing display (for pricing page)
+    PRICE_PRO_MONTHLY = int(os.environ.get('PRICE_PRO_MONTHLY', '999'))  # $9.99 in cents
+    PRICE_PRO_YEARLY = int(os.environ.get('PRICE_PRO_YEARLY', '9900'))  # $99.00 in cents
+    PRICE_ENTERPRISE_MONTHLY = int(os.environ.get('PRICE_ENTERPRISE_MONTHLY', '4999'))  # $49.99
+    PRICE_ENTERPRISE_YEARLY = int(os.environ.get('PRICE_ENTERPRISE_YEARLY', '49900'))  # $499.00
+
     # Usage quotas (per day)
     QUOTA_FREE_IMAGES = int(os.environ.get('QUOTA_FREE_IMAGES', '20'))
     QUOTA_FREE_VIDEOS = int(os.environ.get('QUOTA_FREE_VIDEOS', '5'))

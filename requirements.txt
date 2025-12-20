@@ -23,6 +23,9 @@ flask-migrate
 authlib
 requests-oauthlib
 
+# Payment Processing (DodoPayments)
+dodopayments
+
 # Model Context Protocol (MCP) Support
 langchain-mcp-adapters
 mcp

@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing - AIezzy</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #a0aec0;
+            font-size: 1.1rem;
+        }
+
+        .billing-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 40px;
+            align-items: center;
+        }
+
+        .billing-toggle label {
+            color: #a0aec0;
+            cursor: pointer;
+        }
+
+        .billing-toggle label.active {
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+            background: #2d3748;
+            border-radius: 15px;
+            cursor: pointer;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 26px;
+            height: 26px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s ease;
+        }
+
+        .toggle-switch.yearly::after {
+            transform: translateX(30px);
+        }
+
+        .save-badge {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .pricing-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .pricing-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 40px;
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .pricing-card.popular {
+            border: 2px solid #667eea;
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .plan-name {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .plan-description {
+            color: #a0aec0;
+            margin-bottom: 24px;
+        }
+
+        .price {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .price span {
+            font-size: 1rem;
+            color: #a0aec0;
+            font-weight: 400;
+        }
+
+        .price-note {
+            color: #a0aec0;
+            font-size: 0.9rem;
+            margin-bottom: 32px;
+        }
+
+        .features {
+            list-style: none;
+            margin-bottom: 32px;
+        }
+
+        .features li {
+            padding: 12px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .features li:last-child {
+            border-bottom: none;
+        }
+
+        .features li::before {
+            content: '\2713';
+            color: #48bb78;
+            font-weight: bold;
+        }
+
+        .cta-button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .cta-button.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+
+        .cta-button.primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .cta-button.secondary {
+            background: transparent;
+            border: 2px solid #667eea;
+            color: #667eea;
+        }
+
+        .cta-button.secondary:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .cta-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .current-plan {
+            background: rgba(72, 187, 120, 0.2);
+            border: 2px solid #48bb78;
+            color: #48bb78;
+        }
+
+        .back-link {
+            display: inline-block;
+            color: #667eea;
+            text-decoration: none;
+            margin-bottom: 20px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .not-configured {
+            text-align: center;
+            padding: 60px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+        }
+
+        .not-configured h2 {
+            margin-bottom: 16px;
+        }
+
+        .not-configured p {
+            color: #a0aec0;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .pricing-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .pricing-card {
+                padding: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">&larr; Back to AIezzy</a>
+
+        <div class="header">
+            <h1>Choose Your Plan</h1>
+            <p>Unlock the full power of AI with our premium plans</p>
+        </div>
+
+        {% if not is_configured %}
+        <div class="not-configured">
+            <h2>Payment System Coming Soon</h2>
+            <p>We're setting up our payment system. Check back soon!</p>
+        </div>
+        {% else %}
+
+        <div class="billing-toggle">
+            <label id="monthlyLabel" class="active">Monthly</label>
+            <div class="toggle-switch" id="billingToggle" onclick="toggleBilling()"></div>
+            <label id="yearlyLabel">Yearly</label>
+            <span class="save-badge">Save 17%</span>
+        </div>
+
+        <div class="pricing-cards">
+            <!-- Free Plan -->
+            <div class="pricing-card">
+                <h2 class="plan-name">Free</h2>
+                <p class="plan-description">Get started with basic features</p>
+                <div class="price">$0 <span>/month</span></div>
+                <p class="price-note">Free forever</p>
+                <ul class="features">
+                    <li>20 images per day</li>
+                    <li>5 videos per day</li>
+                    <li>100 messages per day</li>
+                    <li>Basic AI models</li>
+                    <li>Community support</li>
+                </ul>
+                {% if user and subscription_status and subscription_status.tier == 'free' %}
+                <button class="cta-button current-plan" disabled>Current Plan</button>
+                {% else %}
+                <a href="/" class="cta-button secondary" style="display: block; text-align: center; text-decoration: none;">Get Started</a>
+                {% endif %}
+            </div>
+
+            <!-- Pro Plan -->
+            <div class="pricing-card popular">
+                <span class="popular-badge">Most Popular</span>
+                <h2 class="plan-name">Pro</h2>
+                <p class="plan-description">Perfect for power users</p>
+                <div class="price" id="proPrice">$9.99 <span>/month</span></div>
+                <p class="price-note" id="proPriceNote">Billed monthly</p>
+                <ul class="features">
+                    <li>200 images per day</li>
+                    <li>50 videos per day</li>
+                    <li>1,000 messages per day</li>
+                    <li>Priority AI models</li>
+                    <li>Priority support</li>
+                    <li>Advanced features</li>
+                </ul>
+                {% if user and subscription_status and subscription_status.tier == 'pro' %}
+                <button class="cta-button current-plan" disabled>Current Plan</button>
+                {% elif user %}
+                <button class="cta-button primary" onclick="subscribe('pro')">Upgrade to Pro</button>
+                {% else %}
+                <a href="/?login=1" class="cta-button primary" style="display: block; text-align: center; text-decoration: none;">Sign Up for Pro</a>
+                {% endif %}
+            </div>
+
+            <!-- Enterprise Plan -->
+            <div class="pricing-card">
+                <h2 class="plan-name">Enterprise</h2>
+                <p class="plan-description">For teams and businesses</p>
+                <div class="price" id="enterprisePrice">$49.99 <span>/month</span></div>
+                <p class="price-note" id="enterprisePriceNote">Billed monthly</p>
+                <ul class="features">
+                    <li>Unlimited images</li>
+                    <li>Unlimited videos</li>
+                    <li>Unlimited messages</li>
+                    <li>Premium AI models</li>
+                    <li>Dedicated support</li>
+                    <li>API access</li>
+                    <li>Custom integrations</li>
+                </ul>
+                {% if user and subscription_status and subscription_status.tier == 'enterprise' %}
+                <button class="cta-button current-plan" disabled>Current Plan</button>
+                {% elif user %}
+                <button class="cta-button primary" onclick="subscribe('enterprise')">Upgrade to Enterprise</button>
+                {% else %}
+                <a href="/?login=1" class="cta-button primary" style="display: block; text-align: center; text-decoration: none;">Sign Up for Enterprise</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        let isYearly = false;
+
+        function toggleBilling() {
+            isYearly = !isYearly;
+            const toggle = document.getElementById('billingToggle');
+            const monthlyLabel = document.getElementById('monthlyLabel');
+            const yearlyLabel = document.getElementById('yearlyLabel');
+            const proPrice = document.getElementById('proPrice');
+            const proPriceNote = document.getElementById('proPriceNote');
+            const enterprisePrice = document.getElementById('enterprisePrice');
+            const enterprisePriceNote = document.getElementById('enterprisePriceNote');
+
+            if (isYearly) {
+                toggle.classList.add('yearly');
+                monthlyLabel.classList.remove('active');
+                yearlyLabel.classList.add('active');
+                proPrice.innerHTML = '$99 <span>/year</span>';
+                proPriceNote.textContent = 'Billed annually (save $20)';
+                enterprisePrice.innerHTML = '$499 <span>/year</span>';
+                enterprisePriceNote.textContent = 'Billed annually (save $100)';
+            } else {
+                toggle.classList.remove('yearly');
+                monthlyLabel.classList.add('active');
+                yearlyLabel.classList.remove('active');
+                proPrice.innerHTML = '$9.99 <span>/month</span>';
+                proPriceNote.textContent = 'Billed monthly';
+                enterprisePrice.innerHTML = '$49.99 <span>/month</span>';
+                enterprisePriceNote.textContent = 'Billed monthly';
+            }
+        }
+
+        async function subscribe(plan) {
+            const interval = isYearly ? 'year' : 'month';
+
+            try {
+                const response = await fetch('/payment/checkout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ plan, interval })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                if (data.checkout_url) {
+                    window.location.href = data.checkout_url;
+                }
+            } catch (error) {
+                alert('Failed to create checkout session. Please try again.');
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

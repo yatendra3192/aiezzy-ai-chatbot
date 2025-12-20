@@ -19,6 +19,7 @@ from config import get_config
 from models_v2 import db, init_db
 from api_routes import api as api_v2
 from quota_service import quota_service
+from payment_routes import payment_bp
 
 # Initialize Flask app
 web_app = Flask(__name__)
@@ -68,6 +69,9 @@ user_manager = UserManager()
 # Register enhanced API routes
 web_app.register_blueprint(api_v2)
 
+# Register payment routes
+web_app.register_blueprint(payment_bp)
+
 # ===== Security Headers for A+ Rating =====
 @web_app.after_request
 def add_security_headers(response):
@@ -82,14 +86,14 @@ def add_security_headers(response):
     # Allow same-origin resources, inline styles/scripts (needed for app), external CDNs
     csp_policy = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com; "
+        "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://checkout.dodopayments.com; "
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data: https:; "
         "font-src 'self' data:; "
-        "connect-src 'self' https://www.google-analytics.com; "
+        "connect-src 'self' https://www.google-analytics.com https://api.dodopayments.com https://checkout.dodopayments.com; "
         "frame-ancestors 'self'; "
         "base-uri 'self'; "
-        "form-action 'self'"
+        "form-action 'self' https://checkout.dodopayments.com"
     )
     response.headers['Content-Security-Policy'] = csp_policy
 

@@ -86,16 +86,67 @@ def admin_required(f):
             else:
                 from flask import redirect, url_for
                 return redirect(url_for('login_page'))
-        
+
         if not user.get('is_admin', False):
             if request.is_json or request.path.startswith('/api/'):
                 return jsonify({'error': 'Admin privileges required'}), 403
             else:
                 from flask import abort
                 abort(403)
-        
+
         return f(*args, **kwargs)
     return decorated_function
+
+
+def subscription_required(allowed_tiers=None):
+    """
+    Decorator that requires an active paid subscription.
+
+    Args:
+        allowed_tiers: List of allowed tiers (e.g., ['pro', 'enterprise'])
+                      If None, requires any paid tier (pro or enterprise)
+    """
+    if allowed_tiers is None:
+        allowed_tiers = ['pro', 'enterprise']
+
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user = get_current_user()
+            if not user:
+                if request.is_json or request.path.startswith('/api/'):
+                    return jsonify({'error': 'Authentication required'}), 401
+                else:
+                    from flask import redirect, url_for
+                    return redirect(url_for('login_page'))
+
+            user_tier = user.get('tier', 'free')
+
+            if user_tier not in allowed_tiers:
+                if request.is_json or request.path.startswith('/api/'):
+                    return jsonify({
+                        'error': 'Subscription required',
+                        'required_tiers': allowed_tiers,
+                        'current_tier': user_tier,
+                        'upgrade_url': '/payment/pricing'
+                    }), 403
+                else:
+                    from flask import redirect
+                    return redirect('/payment/pricing')
+
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+def pro_required(f):
+    """Shortcut decorator that requires pro tier or higher"""
+    return subscription_required(['pro', 'enterprise'])(f)
+
+
+def enterprise_required(f):
+    """Shortcut decorator that requires enterprise tier"""
+    return subscription_required(['enterprise'])(f)
 
 def optional_auth(f):
     """Decorator that allows optional authentication (user can be None)"""

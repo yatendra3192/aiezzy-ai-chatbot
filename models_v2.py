@@ -198,6 +198,73 @@ class DailyUsage(db.Model):
     def __repr__(self):
         return f'<DailyUsage user {self.user_id} on {self.date}>'
 
+class Subscription(db.Model):
+    """User subscription tracking for DodoPayments"""
+    __tablename__ = 'subscriptions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+
+    # DodoPayments IDs
+    dodo_customer_id = db.Column(db.String(255), index=True)
+    dodo_subscription_id = db.Column(db.String(255), unique=True, index=True)
+    dodo_product_id = db.Column(db.String(255))
+
+    # Subscription details
+    plan = db.Column(db.String(50), nullable=False)  # pro, enterprise
+    status = db.Column(db.String(50), default='active')  # active, cancelled, past_due, expired
+
+    # Billing period
+    current_period_start = db.Column(db.DateTime)
+    current_period_end = db.Column(db.DateTime)
+
+    # Cancellation
+    cancelled_at = db.Column(db.DateTime)
+    cancel_at_period_end = db.Column(db.Boolean, default=False)
+
+    # Payment info
+    amount = db.Column(db.Integer)  # Amount in cents
+    currency = db.Column(db.String(3), default='USD')
+    interval = db.Column(db.String(20), default='month')  # month, year
+
+    # Metadata
+    metadata = db.Column(db.Text)  # JSON for additional DodoPayments data
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationship
+    user = db.relationship('User', backref=db.backref('subscriptions', lazy='dynamic'))
+
+    def __repr__(self):
+        return f'<Subscription {self.plan} for user {self.user_id}>'
+
+    def is_active(self):
+        """Check if subscription is currently active"""
+        if self.status not in ['active', 'trialing']:
+            return False
+        if self.current_period_end and self.current_period_end < datetime.utcnow():
+            return False
+        return True
+
+    def to_dict(self):
+        """Convert to dictionary"""
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'plan': self.plan,
+            'status': self.status,
+            'current_period_start': self.current_period_start.isoformat() if self.current_period_start else None,
+            'current_period_end': self.current_period_end.isoformat() if self.current_period_end else None,
+            'cancel_at_period_end': self.cancel_at_period_end,
+            'amount': self.amount,
+            'currency': self.currency,
+            'interval': self.interval,
+            'is_active': self.is_active(),
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
 class UploadedFile(db.Model):
     """Track uploaded files across workers using database (solves multi-worker issue)"""
     __tablename__ = 'uploaded_files'
